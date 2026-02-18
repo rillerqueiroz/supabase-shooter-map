@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, BookOpen } from "lucide-react";
+import { Settings } from "lucide-react";
 import { UserPermissionsManager } from "@/components/UserManagement/UserPermissionsManager";
-import { ManualSistema } from "@/components/Manual/ManualSistema";
 
 const Configuracoes = () => {
   return (
@@ -17,19 +16,11 @@ const Configuracoes = () => {
       <Tabs defaultValue="usuarios">
         <TabsList>
           <TabsTrigger value="usuarios">Usuários e Permissões</TabsTrigger>
-          <TabsTrigger value="manual" className="flex items-center gap-1.5">
-            <BookOpen className="h-4 w-4" />
-            Manual do Sistema
-          </TabsTrigger>
           <TabsTrigger value="acoes">Ações do Sistema</TabsTrigger>
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
           <UserPermissionsManager />
-        </TabsContent>
-
-        <TabsContent value="manual" className="mt-4">
-          <ManualSistema />
         </TabsContent>
 
         <TabsContent value="acoes" className="mt-4">
