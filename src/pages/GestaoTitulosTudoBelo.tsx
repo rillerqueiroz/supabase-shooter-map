@@ -39,10 +39,7 @@ import { HistoricoAtualizacoesTab } from "@/components/TitulosTudoBelo/Historico
 import { LogAlteracoesTab } from "@/components/TitulosTudoBelo/LogAlteracoesTab";
 import { TitulosBulkEditModal } from "@/components/TitulosTudoBelo/TitulosBulkEditModal";
 import { BulkInsercaoCedrusModal } from "@/components/TitulosTudoBelo/BulkInsercaoCedrusModal";
-import { TitulosAnalytics } from "@/components/TitulosTudoBelo/TitulosAnalytics";
 import { TitulosPendentesTab } from "@/components/TitulosTudoBelo/TitulosPendentesTab";
-import { GestaoEtapasTab } from "@/components/TitulosTudoBelo/GestaoEtapasTab";
-import { GestaoFormasPagamentoTab } from "@/components/TitulosTudoBelo/GestaoFormasPagamentoTab";
 import { VisaoEtapasTab } from "@/components/TitulosTudoBelo/VisaoEtapasTab";
 import { InadimplenciaCredorTab } from "@/components/TitulosTudoBelo/InadimplenciaCredorTab";
 import { InlineEtapaSelect } from "@/components/TitulosTudoBelo/InlineEtapaSelect";
@@ -58,15 +55,12 @@ import {
   ChevronUp,
   ChevronDown,
   Loader2,
-  BarChart3,
   TableIcon,
   History,
   X,
   ClipboardList,
-  Settings,
   Layers,
   Upload,
-  CreditCard,
   AlertTriangle,
   FileEdit,
   Trash2,
@@ -403,10 +397,6 @@ export default function GestaoTitulosTudoBelo() {
             <TableIcon className="h-4 w-4" />
             Dados
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Analytics
-          </TabsTrigger>
           <TabsTrigger value="historico" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             Histórico de Inserções
@@ -422,14 +412,6 @@ export default function GestaoTitulosTudoBelo() {
           <TabsTrigger value="visao-etapas" className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
             Visão por Etapas
-          </TabsTrigger>
-          <TabsTrigger value="gestao-etapas" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Gestão de Etapas
-          </TabsTrigger>
-          <TabsTrigger value="formas-pagamento" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Formas de Pagamento
           </TabsTrigger>
           <TabsTrigger value="inadimplencia-credor" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
@@ -781,23 +763,6 @@ export default function GestaoTitulosTudoBelo() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="analytics">
-          {titulos && titulos.length > 0 ? (
-            <TitulosAnalytics 
-              data={titulos} 
-              filters={filters}
-              onFiltersChange={setFilters}
-              options={options}
-              etapas={etapasDisponiveis?.map(e => e.etapa).filter(Boolean) as string[] || []}
-            />
-          ) : (
-            <Card>
-              <CardContent className="py-10 text-center text-muted-foreground">
-                Carregando dados para análise...
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
 
         <TabsContent value="historico">
           <HistoricoAtualizacoesTab />
@@ -815,13 +780,6 @@ export default function GestaoTitulosTudoBelo() {
           <VisaoEtapasTab />
         </TabsContent>
 
-        <TabsContent value="gestao-etapas">
-          <GestaoEtapasTab />
-        </TabsContent>
-
-        <TabsContent value="formas-pagamento">
-          <GestaoFormasPagamentoTab />
-        </TabsContent>
 
         <TabsContent value="inadimplencia-credor">
           <InadimplenciaCredorTab titulos={titulos || []} />
