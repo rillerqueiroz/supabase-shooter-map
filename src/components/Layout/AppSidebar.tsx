@@ -4,6 +4,7 @@ import {
   LogOut,
   Receipt,
   BarChart3,
+  ShieldCheck,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
@@ -27,6 +28,7 @@ const navigationItems = [
   { title: "Títulos Tudo Belo", url: "/gestao-titulos-tudobelo", icon: Receipt },
   { title: "Analytics Títulos", url: "/analytics-titulos-tudobelo", icon: BarChart3 },
   { title: "Negativados Tudo Belo", url: "/gestao-negativados-tudobelo", icon: AlertTriangle },
+  { title: "Acesso Sistemas", url: "/gestao-acesso-sistemas", icon: ShieldCheck },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ]
 
