@@ -16,8 +16,9 @@ export function useGestaoSplitsUserManagement() {
     queryKey: ['gestao-splits-users-management'],
     queryFn: async (): Promise<GestaoSplitsUserWithPermissions[]> => {
       const { data: profiles, error: profilesError } = await supabase
-        .from('gestao_splits_profiles')
-        .select('id, nome, created_at');
+        .from('gestao_profiles_todos_sistemas')
+        .select('id, nome, created_at')
+        .eq('sistema_tudobelo', true);
 
       if (profilesError) throw profilesError;
       if (!profiles || profiles.length === 0) return [];
@@ -94,8 +95,8 @@ export function useGestaoSplitsUserManagement() {
 
       // 2. Upsert no perfil (redundância de segurança com trigger)
       const { error: profileError } = await supabase
-        .from('gestao_splits_profiles')
-        .upsert({ id: newUserId, nome: input.nome }, { onConflict: 'id' });
+        .from('gestao_profiles_todos_sistemas')
+        .upsert({ id: newUserId, nome: input.nome, sistema_tudobelo: true }, { onConflict: 'id' });
 
       if (profileError) throw profileError;
 
@@ -160,7 +161,7 @@ export function useGestaoSplitsUserManagement() {
     mutationFn: async ({ userId, input }: { userId: string; input: GestaoSplitsUpdateUserInput }) => {
       if (input.nome) {
         const { error } = await supabase
-          .from('gestao_splits_profiles')
+          .from('gestao_profiles_todos_sistemas')
           .update({ nome: input.nome })
           .eq('id', userId);
         if (error) throw error;
@@ -229,7 +230,7 @@ export function useGestaoSplitsUserManagement() {
       const { error: clientErr } = await supabase.from('gestao_splits_client_permissions').delete().eq('user_id', userId);
       if (clientErr) throw clientErr;
 
-      const { error: profileErr } = await supabase.from('gestao_splits_profiles').delete().eq('id', userId);
+      const { error: profileErr } = await supabase.from('gestao_profiles_todos_sistemas').delete().eq('id', userId);
       if (profileErr) throw profileErr;
     },
     onSuccess: () => {

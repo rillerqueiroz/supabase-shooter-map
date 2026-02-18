@@ -41,14 +41,14 @@ export async function testConnection() {
 }
 
 // DEPRECATED: This function references a legacy table that stores plaintext passwords
-// and lacks RLS protection. Use Supabase Auth with gestao_splits_* tables instead.
+// and lacks RLS protection. Use Supabase Auth with gestao_profiles_todos_sistemas table instead.
 // See: useGestaoSplitsUserManagement hook for the secure implementation.
 /**
- * @deprecated Use Supabase Auth with gestao_splits_profiles table instead.
+ * @deprecated Use Supabase Auth with gestao_profiles_todos_sistemas table instead.
  * This function is kept for reference but should not be used.
  */
 export async function mapUsuariosTable() {
-  console.warn('⚠️ mapUsuariosTable is deprecated. Use Supabase Auth with gestao_splits_profiles instead.');
+  console.warn('⚠️ mapUsuariosTable is deprecated. Use Supabase Auth with gestao_profiles_todos_sistemas instead.');
   return { success: false, error: new Error('This function is deprecated. Use Supabase Auth instead.') };
 }
 
