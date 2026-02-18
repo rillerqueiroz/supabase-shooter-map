@@ -173,6 +173,8 @@ export default function GestaoTitulosTudoBelo() {
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const [emailDisparoOpen, setEmailDisparoOpen] = useState(false);
   const [emailDisparoLoading, setEmailDisparoLoading] = useState(false);
+  const [emailRelatorio, setEmailRelatorio] = useState<{nome_parceiro: string[], email: string[], saldo_parcela: number[], data_vencimento: string[]} | null>(null);
+  const [emailRelatorioOpen, setEmailRelatorioOpen] = useState(false);
   
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -324,7 +326,12 @@ export default function GestaoTitulosTudoBelo() {
         body: JSON.stringify({ mensagem: 'disparo de emails tudo belo' }),
       });
       if (response.ok) {
-        toast.success('Disparo de emails de cobrança iniciado com sucesso!');
+        const data = await response.json();
+        const relatorio = Array.isArray(data) ? data[0] : data;
+        setEmailRelatorio(relatorio);
+        setEmailDisparoOpen(false);
+        setEmailRelatorioOpen(true);
+        toast.success('Disparo de emails de cobrança realizado com sucesso!');
       } else {
         throw new Error('Falha no disparo');
       }
@@ -332,8 +339,43 @@ export default function GestaoTitulosTudoBelo() {
       toast.error('Erro ao disparar emails de cobrança.');
     } finally {
       setEmailDisparoLoading(false);
-      setEmailDisparoOpen(false);
     }
+  };
+
+  const handleDownloadRelatorioPDF = async () => {
+    if (!emailRelatorio) return;
+    const jsPDFModule = await import('jspdf');
+    const autoTableModule = await import('jspdf-autotable');
+    const jsPDF = jsPDFModule.default;
+    const autoTable = autoTableModule.default;
+    
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(18);
+    doc.text('Relatório de Emails de Cobrança - Tudo Belo', 14, 22);
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`, 14, 30);
+    doc.text(`Total de emails enviados: ${emailRelatorio.nome_parceiro.length}`, 14, 36);
+
+    const totalSaldo = emailRelatorio.saldo_parcela.reduce((s, v) => s + v, 0);
+    doc.text(`Saldo total cobrado: ${formatCurrency(totalSaldo)}`, 14, 42);
+
+    const tableData = emailRelatorio.nome_parceiro.map((nome, i) => [
+      nome,
+      emailRelatorio.email[i] || '-',
+      formatCurrency(emailRelatorio.saldo_parcela[i]),
+      formatDate(emailRelatorio.data_vencimento[i]),
+    ]);
+
+    autoTable(doc, {
+      startY: 50,
+      head: [['Parceiro', 'Email', 'Saldo', 'Vencimento']],
+      body: tableData,
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [234, 88, 12] },
+      alternateRowStyles: { fillColor: [255, 247, 237] },
+    });
+
+    doc.save(`relatorio-emails-cobranca-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`);
   };
 
   const clearFilters = () => {
@@ -874,9 +916,17 @@ export default function GestaoTitulosTudoBelo() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar envio de emails de cobrança</AlertDialogTitle>
             <AlertDialogDescription>
-              Deseja realmente enviar os emails de cobrança para todos os títulos Tudo Belo? Esta ação não pode ser desfeita.
+              {emailDisparoLoading 
+                ? 'Aguardando retorno do servidor... Isso pode levar alguns minutos.'
+                : 'Deseja realmente enviar os emails de cobrança para todos os títulos Tudo Belo? Esta ação não pode ser desfeita.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {emailDisparoLoading && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+              <span className="ml-3 text-sm text-muted-foreground">Processando disparo de emails...</span>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={emailDisparoLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
@@ -887,7 +937,65 @@ export default function GestaoTitulosTudoBelo() {
               disabled={emailDisparoLoading}
               className="bg-orange-600 hover:bg-orange-700"
             >
-              {emailDisparoLoading ? 'Enviando...' : 'Confirmar Envio'}
+              {emailDisparoLoading ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Aguardando...</>
+              ) : 'Confirmar Envio'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Relatório de emails enviados */}
+      <AlertDialog open={emailRelatorioOpen} onOpenChange={setEmailRelatorioOpen}>
+        <AlertDialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-orange-600" />
+              Relatório de Emails Enviados
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {emailRelatorio && `${emailRelatorio.nome_parceiro.length} emails enviados • Saldo total: ${formatCurrency(emailRelatorio.saldo_parcela.reduce((s, v) => s + v, 0))}`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {emailRelatorio && (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">#</TableHead>
+                    <TableHead className="text-xs">Parceiro</TableHead>
+                    <TableHead className="text-xs">Email</TableHead>
+                    <TableHead className="text-xs text-right">Saldo</TableHead>
+                    <TableHead className="text-xs">Vencimento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {emailRelatorio.nome_parceiro.map((nome, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-xs">{i + 1}</TableCell>
+                      <TableCell className="text-xs font-medium">{nome}</TableCell>
+                      <TableCell className="text-xs">{emailRelatorio.email[i]}</TableCell>
+                      <TableCell className="text-xs text-right">{formatCurrency(emailRelatorio.saldo_parcela[i])}</TableCell>
+                      <TableCell className="text-xs">{formatDate(emailRelatorio.data_vencimento[i])}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Fechar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDownloadRelatorioPDF();
+              }}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              Baixar PDF
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
