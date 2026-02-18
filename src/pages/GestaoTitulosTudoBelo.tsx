@@ -44,6 +44,16 @@ import { VisaoEtapasTab } from "@/components/TitulosTudoBelo/VisaoEtapasTab";
 import { InadimplenciaCredorTab } from "@/components/TitulosTudoBelo/InadimplenciaCredorTab";
 import { InlineEtapaSelect } from "@/components/TitulosTudoBelo/InlineEtapaSelect";
 import { CedrusConfirmDialog } from "@/components/TitulosTudoBelo/CedrusConfirmDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { TitulosBaixadosTab } from "@/components/TitulosTudoBelo/TitulosBaixadosTab";
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
 import {
@@ -161,6 +171,8 @@ export default function GestaoTitulosTudoBelo() {
   const [activeTab, setActiveTab] = useState("dados");
   const [removingCedrusId, setRemovingCedrusId] = useState<string | null>(null);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [emailDisparoOpen, setEmailDisparoOpen] = useState(false);
+  const [emailDisparoLoading, setEmailDisparoLoading] = useState(false);
   
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -303,6 +315,27 @@ export default function GestaoTitulosTudoBelo() {
     setDetailsOpen(true);
   };
 
+  const handleEnviarEmailsCobranca = async () => {
+    setEmailDisparoLoading(true);
+    try {
+      const response = await fetch('https://n8n.superavit.app.br/webhook/44d426da-4706-480d-9700-4d0e4027d8c6', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensagem: 'disparo de emails tudo belo' }),
+      });
+      if (response.ok) {
+        toast.success('Disparo de emails de cobrança iniciado com sucesso!');
+      } else {
+        throw new Error('Falha no disparo');
+      }
+    } catch {
+      toast.error('Erro ao disparar emails de cobrança.');
+    } finally {
+      setEmailDisparoLoading(false);
+      setEmailDisparoOpen(false);
+    }
+  };
+
   const clearFilters = () => {
     setFilters({});
   };
@@ -351,6 +384,15 @@ export default function GestaoTitulosTudoBelo() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            className="bg-orange-600 hover:bg-orange-700 text-white font-semibold shadow-md"
+            onClick={() => setEmailDisparoOpen(true)}
+            disabled={emailDisparoLoading}
+          >
+            <Send className="h-4 w-4 mr-1" />
+            {emailDisparoLoading ? 'Enviando...' : 'Enviar emails de cobrança'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => exportTitulosToExcel(titulos || [])}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />
             Excel
@@ -825,6 +867,31 @@ export default function GestaoTitulosTudoBelo() {
           (confirmDialog.actionType === "inserir" && inserirCedrusMutation.isPending)
         }
       />
+
+      {/* Confirmação de disparo de emails */}
+      <AlertDialog open={emailDisparoOpen} onOpenChange={setEmailDisparoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar envio de emails de cobrança</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente enviar os emails de cobrança para todos os títulos Tudo Belo? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={emailDisparoLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleEnviarEmailsCobranca();
+              }}
+              disabled={emailDisparoLoading}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {emailDisparoLoading ? 'Enviando...' : 'Confirmar Envio'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
