@@ -371,8 +371,8 @@ export default function GestaoTitulosTudoBelo() {
       head: [['Parceiro', 'Email', 'Saldo', 'Vencimento']],
       body: tableData,
       styles: { fontSize: 7 },
-      headStyles: { fillColor: [234, 88, 12] },
-      alternateRowStyles: { fillColor: [255, 247, 237] },
+      headStyles: { fillColor: [30, 30, 30], textColor: [212, 175, 55] },
+      alternateRowStyles: { fillColor: [245, 243, 237] },
     });
 
     doc.save(`relatorio-emails-cobranca-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`);
