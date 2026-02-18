@@ -14,6 +14,7 @@ import Configuracoes from "./pages/Configuracoes";
 import EditarUsuario from "./pages/EditarUsuario";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
 import GestaoTitulosTudoBelo from "./pages/GestaoTitulosTudoBelo";
+import AnalyticsTitulosTudoBelo from "./pages/AnalyticsTitulosTudoBelo";
 import GestaoNegativadosTudoBelo from "./pages/GestaoNegativadosTudoBelo";
 
 import Login from "./pages/Login";
@@ -58,6 +59,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<ProtectedRoute><PaginaInicial /></ProtectedRoute>} />
               <Route path="/gestao-titulos-tudobelo" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-titulos-tudobelo')!}><GestaoTitulosTudoBelo /></ProtectedScreen></ProtectedRoute>} />
+              <Route path="/analytics-titulos-tudobelo" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-titulos-tudobelo')!}><AnalyticsTitulosTudoBelo /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/gestao-negativados-tudobelo" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-negativados-tudobelo')!}><GestaoNegativadosTudoBelo /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/configuracoes')!}><Configuracoes /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/editar-usuario/:userId" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-usuarios')!}><EditarUsuario /></ProtectedScreen></ProtectedRoute>} />

@@ -3,6 +3,7 @@ import {
   Settings,
   LogOut,
   Receipt,
+  BarChart3,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
@@ -24,6 +25,7 @@ import logoSuperavit from "@/assets/logo-superavit.png"
 
 const navigationItems = [
   { title: "Títulos Tudo Belo", url: "/gestao-titulos-tudobelo", icon: Receipt },
+  { title: "Analytics Títulos", url: "/analytics-titulos-tudobelo", icon: BarChart3 },
   { title: "Negativados Tudo Belo", url: "/gestao-negativados-tudobelo", icon: AlertTriangle },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ]
