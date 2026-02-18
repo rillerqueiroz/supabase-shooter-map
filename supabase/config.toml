@@ -1,0 +1,19 @@
+project_id = "your-project-id"
+
+[functions.migrate-users]
+verify_jwt = false
+
+[functions.gerar-cobranca-asaas]
+verify_jwt = false
+
+[functions.gerar-contrato-zapsign]
+verify_jwt = false
+
+[functions.webhook-zapsign]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.webhook-cria-cobranca]
+verify_jwt = false
