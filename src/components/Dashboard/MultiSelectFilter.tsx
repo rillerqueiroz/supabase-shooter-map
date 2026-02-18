@@ -1,122 +1,92 @@
-import React from "react";
-import { Badge } from "@/components/ui/badge";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
-import { Check, ChevronDown, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ChevronDown, Search, X } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MultiSelectFilterProps {
   title: string;
   options: string[];
   selectedValues: string[];
-  onSelectionChange: (values: string[]) => void;
+  onSelectionChange: (selected: string[]) => void;
   placeholder?: string;
 }
 
-export function MultiSelectFilter({
-  title,
-  options,
-  selectedValues,
-  onSelectionChange,
-  placeholder = "Selecionar..."
-}: MultiSelectFilterProps) {
-  const [open, setOpen] = React.useState(false);
+export function MultiSelectFilter({ title, options, selectedValues, onSelectionChange }: MultiSelectFilterProps) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
 
-  const handleSelectAll = () => {
-    onSelectionChange(options);
+  const filteredOptions = useMemo(() => {
+    if (!search) return options;
+    return options.filter(opt => opt.toLowerCase().includes(search.toLowerCase()));
+  }, [options, search]);
+
+  const toggleOption = (option: string) => {
+    if (selectedValues.includes(option)) {
+      onSelectionChange(selectedValues.filter(s => s !== option));
+    } else {
+      onSelectionChange([...selectedValues, option]);
+    }
   };
 
-  const handleClearAll = () => {
+  const clearAll = () => {
     onSelectionChange([]);
   };
 
-  const handleToggleOption = (option: string) => {
-    const newSelection = selectedValues.includes(option)
-      ? selectedValues.filter(value => value !== option)
-      : [...selectedValues, option];
-    onSelectionChange(newSelection);
-  };
-
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">{title}</label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between"
-          >
-            {selectedValues.length === 0 ? (
-              placeholder
-            ) : selectedValues.length === 1 ? (
-              selectedValues[0]
-            ) : (
-              `${selectedValues.length} selecionados`
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 border-dashed justify-between min-w-[120px]">
+          <span className="truncate">
+            {title}
+            {selectedValues.length > 0 && (
+              <Badge variant="secondary" className="ml-1 rounded-sm px-1 font-normal">
+                {selectedValues.length}
+              </Badge>
             )}
-            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
-          <Command>
-            <CommandInput placeholder={`Buscar ${title.toLowerCase()}...`} />
-            <CommandList>
-              <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
-              <CommandGroup>
-                <CommandItem onSelect={handleSelectAll}>
-                  Selecionar Todos
-                </CommandItem>
-                <CommandItem onSelect={handleClearAll}>
-                  Desmarcar Todos
-                </CommandItem>
-                <Separator className="my-1" />
-                {options.map((option) => (
-                  <CommandItem
-                    key={option}
-                    onSelect={() => handleToggleOption(option)}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedValues.includes(option) ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {option}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      
-      {selectedValues.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {selectedValues.map((value) => (
-            <Badge key={value} variant="secondary" className="text-xs">
-              {value}
-              <button
-                className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleToggleOption(value);
-                  }
-                }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onClick={() => handleToggleOption(value)}
-              >
-                <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-              </button>
-            </Badge>
-          ))}
+          </span>
+          <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[220px] p-2" align="start">
+        <div className="flex items-center gap-1 mb-2">
+          <Search className="h-3 w-3 text-muted-foreground" />
+          <Input
+            placeholder="Buscar..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-7 text-xs"
+          />
         </div>
-      )}
-    </div>
+        {selectedValues.length > 0 && (
+          <Button variant="ghost" size="sm" className="h-6 text-xs w-full justify-start mb-1" onClick={clearAll}>
+            <X className="h-3 w-3 mr-1" /> Limpar
+          </Button>
+        )}
+        <ScrollArea className="max-h-[200px]">
+          <div className="space-y-1">
+            {filteredOptions.map((option) => (
+              <label
+                key={option}
+                className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-muted cursor-pointer text-xs"
+              >
+                <Checkbox
+                  checked={selectedValues.includes(option)}
+                  onCheckedChange={() => toggleOption(option)}
+                  className="h-3 w-3"
+                />
+                <span className="truncate">{option}</span>
+              </label>
+            ))}
+            {filteredOptions.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-2">Nenhum resultado</p>
+            )}
+          </div>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
   );
 }
