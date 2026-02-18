@@ -6,6 +6,7 @@ export const routeToScreenSlug: Record<string, string> = {
   '/gestao-titulos-tudobelo': 'gestao-titulos-tudobelo',
   '/analytics-titulos-tudobelo': 'gestao-titulos-tudobelo',
   '/gestao-negativados-tudobelo': 'gestao-negativados-tudobelo',
+  '/gestao-acesso-sistemas': 'configuracoes',
 };
 
 export const getScreenSlugFromRoute = (route: string): string | undefined => {
