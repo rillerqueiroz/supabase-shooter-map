@@ -1,89 +1,64 @@
 
 
-# Criar/Deletar/Alterar Senha de Usuarios via GoTrue Admin API
+# Renomear tabela de perfis e adicionar colunas por sistema
 
-## Problema
+## Objetivo
+Renomear `gestao_splits_profiles` para `gestao_profiles_todos_sistemas` e adicionar colunas booleanas para cada sistema, permitindo filtrar quais usuarios pertencem a qual sistema.
 
-As URLs dos webhooks n8n estao com valores placeholder (`SUBSTITUIR_CRIAR_USUARIO`, etc.), impedindo criar, deletar e alterar senha de usuarios. A funcao `handle_new_user` existe para `public.profiles`, mas o sistema usa `gestao_splits_profiles`.
+## Etapas
 
-## Solucao
+### 1. Migration SQL
+Renomear a tabela e adicionar as 5 colunas de sistema:
 
-Chamar a GoTrue Admin API diretamente do frontend usando a Service Role Key. Isso funciona bem para ambientes self-hosted com acesso restrito.
+```sql
+ALTER TABLE gestao_splits_profiles RENAME TO gestao_profiles_todos_sistemas;
 
-**Aviso de seguranca**: A Service Role Key ficara exposta no frontend. Isso e aceitavel apenas porque o sistema e interno e o acesso ao app ja e restrito.
-
-## Alteracoes
-
-### 1. Atualizar `src/lib/supabase.ts`
-
-Adicionar uma constante com a Service Role Key e criar um segundo cliente Supabase admin:
-
-```text
-const supabaseServiceRoleKey = 'SUA_SERVICE_ROLE_KEY_AQUI'
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
+ALTER TABLE gestao_profiles_todos_sistemas
+  ADD COLUMN sistema_tudobelo BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_gestao_repasses BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_antecipacoes BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_semear BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_gestao_splits BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_testedisc BOOLEAN DEFAULT false;
 ```
 
-Voce precisara fornecer a Service Role Key do seu Supabase self-hosted.
+### 2. Marcar usuarios existentes
+Usuarios que ja possuem roles em `gestao_splits_user_roles` serao marcados como pertencentes ao sistema Tudo Belo (via insert tool, nao migration):
 
-### 2. Atualizar `src/hooks/useGestaoSplitsUserManagement.ts`
-
-Substituir as 3 operacoes de webhook por chamadas diretas:
-
-**Criar usuario:**
-- Usar `supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { nome } })`
-- Inserir perfil em `gestao_splits_profiles` via `supabaseAdmin`
-- Inserir roles, permissoes de telas e clientes
-
-**Deletar usuario:**
-- Usar `supabaseAdmin.auth.admin.deleteUser(userId)`
-- Dados relacionados serao removidos automaticamente via CASCADE
-
-**Alterar senha:**
-- Usar `supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword })`
-
-### 3. Criar trigger para `gestao_splits_profiles` (SQL no seu servidor)
-
-Voce precisara executar no banco de dados um trigger similar ao `handle_new_user` mas para `gestao_splits_profiles`, para que usuarios criados por outros sistemas tambem tenham perfil nesta tabela:
-
-```text
-CREATE OR REPLACE FUNCTION public.handle_new_gestao_splits_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-BEGIN
-  INSERT INTO public.gestao_splits_profiles (id, nome, created_at)
-  VALUES (
-    NEW.id,
-    COALESCE(
-      NEW.raw_user_meta_data->>'nome',
-      NEW.raw_user_meta_data->>'full_name',
-      split_part(NEW.email, '@', 1)
-    ),
-    NOW()
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER on_auth_user_created_gestao_splits
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_gestao_splits_user();
+```sql
+UPDATE gestao_profiles_todos_sistemas 
+SET sistema_tudobelo = true 
+WHERE id IN (SELECT DISTINCT user_id FROM gestao_splits_user_roles);
 ```
 
-Isso garante que novos usuarios criados por qualquer sistema tenham automaticamente um perfil em `gestao_splits_profiles`.
+### 3. Atualizar trigger de criacao de usuario
+Recriar o trigger `gestao_splits_handle_new_user` para inserir na nova tabela `gestao_profiles_todos_sistemas` em vez de `gestao_splits_profiles`.
 
-## Resumo das mudancas
+### 4. Atualizar RLS policies
+Recriar as policies (select, update, insert, delete) apontando para `gestao_profiles_todos_sistemas`. O RENAME pode manter as policies, mas precisaremos verificar.
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/lib/supabase.ts` | Adicionar `supabaseAdmin` com Service Role Key |
-| `src/hooks/useGestaoSplitsUserManagement.ts` | Substituir fetch webhooks por chamadas admin diretas |
-| SQL no servidor | Criar trigger para `gestao_splits_profiles` |
+### 5. Atualizar codigo fonte
 
-## Proximo passo necessario
+Arquivos afetados:
 
-Voce precisa me informar a **Service Role Key** do seu Supabase self-hosted para que eu possa configurar o cliente admin.
+- **`src/hooks/useGestaoSplitsUserManagement.ts`** (4 referencias):
+  - Query de profiles: trocar tabela e adicionar `.eq('sistema_tudobelo', true)`
+  - Upsert ao criar usuario: trocar tabela e incluir `sistema_tudobelo: true`
+  - Update de nome: trocar tabela
+  - Delete de profile: trocar tabela
+
+- **`src/lib/supabase.ts`** (1 referencia):
+  - Atualizar comentario/docstring da funcao deprecated
+
+### 6. Grants
+Atualizar o GRANT para a nova tabela:
+```sql
+GRANT ALL ON gestao_profiles_todos_sistemas TO authenticated;
+```
+
+## Resultado esperado
+- Apenas usuarios com `sistema_tudobelo = true` aparecerao na gestao de usuarios deste sistema
+- Novos usuarios criados pelo sistema serao automaticamente marcados
+- Outros sistemas poderao usar suas respectivas colunas (`sistema_gestao_repasses`, etc.) para o mesmo fim
+- Nenhum impacto no `auth.users` compartilhado
 
