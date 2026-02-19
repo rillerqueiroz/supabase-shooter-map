@@ -41,7 +41,7 @@ import { TituloHistoricoSection } from "./TituloHistoricoSection";
 import { useState, useEffect, useRef } from "react";
 import { format, differenceInDays, addDays, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail } from "lucide-react";
+import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -537,10 +537,16 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                 <Download className="h-4 w-4 mr-1" />
                 PDF
               </Button>
-              {!isEditing && (
+              {!isEditing && !titulo.bloqueado && (
                 <Button size="sm" onClick={() => setIsEditing(true)}>
                   Editar
                 </Button>
+              )}
+              {titulo.bloqueado && !isEditing && (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  Bloqueado
+                </Badge>
               )}
               {isEditing && (
                 <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
