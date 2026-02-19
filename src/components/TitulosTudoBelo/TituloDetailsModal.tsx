@@ -299,7 +299,7 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
     
     const fieldsToTrack: (keyof TituloTudoBelo)[] = [
       'status_titulo', 'status_cedrus', 'inserido_cedrus', 'id_titulo_cedrus', 
-      'credor_cedrus', 'processado_internamente', 'observacoes', 'etapa', 'data_pagamento', 'negativado', 'tipo_titulo'
+      'credor_cedrus', 'processado_internamente', 'observacoes', 'etapa', 'data_pagamento', 'negativado', 'tipo_titulo', 'bloqueado'
     ];
 
     fieldsToTrack.forEach((field) => {
@@ -537,7 +537,7 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                 <Download className="h-4 w-4 mr-1" />
                 PDF
               </Button>
-              {!isEditing && !titulo.bloqueado && (
+              {!isEditing && (
                 <Button size="sm" onClick={() => setIsEditing(true)}>
                   Editar
                 </Button>
@@ -658,6 +658,21 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                         <SelectContent>
                           <SelectItem value="Original">Original</SelectItem>
                           <SelectItem value="Negociação">Negociação</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Bloqueado</Label>
+                      <Select
+                        value={editData.bloqueado ? "sim" : "nao"}
+                        onValueChange={(value) => setEditData({ ...editData, bloqueado: value === "sim" })}
+                      >
+                        <SelectTrigger className={`h-8 ${editData.bloqueado ? 'border-amber-300 text-amber-700' : ''}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sim">Sim (Bloqueado)</SelectItem>
+                          <SelectItem value="nao">Não (Desbloqueado)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
