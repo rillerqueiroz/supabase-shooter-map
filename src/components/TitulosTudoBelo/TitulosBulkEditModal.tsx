@@ -175,6 +175,21 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
             </Select>
           </FieldRow>
 
+          <FieldRow field="bloqueado" label="Bloqueado">
+            <Select
+              value={updates.bloqueado === true ? "true" : updates.bloqueado === false ? "false" : ""}
+              onValueChange={(value) => setUpdates({ ...updates, bloqueado: value === "true" })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Sim (Bloquear)</SelectItem>
+                <SelectItem value="false">Não (Desbloquear)</SelectItem>
+              </SelectContent>
+            </Select>
+          </FieldRow>
+
           {/* Campo obrigatório quando status é "Pago" */}
           {isStatusPago && (
             <div className="flex items-center gap-4 py-2 border-b border-border/50 bg-green-50/50 px-2 rounded">
@@ -291,21 +306,6 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
               onChange={(e) => setUpdates({ ...updates, observacoes: e.target.value })}
               placeholder="Digite as observações..."
             />
-          </FieldRow>
-
-          <FieldRow field="bloqueado" label="Bloqueado">
-            <Select
-              value={updates.bloqueado === true ? "true" : updates.bloqueado === false ? "false" : ""}
-              onValueChange={(value) => setUpdates({ ...updates, bloqueado: value === "true" })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">Sim (Bloquear)</SelectItem>
-                <SelectItem value="false">Não (Desbloquear)</SelectItem>
-              </SelectContent>
-            </Select>
           </FieldRow>
 
           {/* Campo de motivo/comentários da alteração */}
