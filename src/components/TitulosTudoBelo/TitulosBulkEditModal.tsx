@@ -293,6 +293,21 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
             />
           </FieldRow>
 
+          <FieldRow field="bloqueado" label="Bloqueado">
+            <Select
+              value={updates.bloqueado === true ? "true" : updates.bloqueado === false ? "false" : ""}
+              onValueChange={(value) => setUpdates({ ...updates, bloqueado: value === "true" })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Sim (Bloquear)</SelectItem>
+                <SelectItem value="false">Não (Desbloquear)</SelectItem>
+              </SelectContent>
+            </Select>
+          </FieldRow>
+
           {/* Campo de motivo/comentários da alteração */}
           <div className="mt-6 pt-4 border-t border-border">
             <Label className="text-sm font-medium">Motivo da Alteração (opcional)</Label>
