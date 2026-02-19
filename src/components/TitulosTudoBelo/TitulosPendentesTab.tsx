@@ -25,6 +25,7 @@ import { DateFilterSelect } from "@/components/Filters/DateFilterSelect";
 import {
   useTitulosTudoBelo,
   useTitulosTudoBeloOptions,
+  useBulkUpdateTitulosTudoBelo,
   TitulosFilters,
   TituloTudoBelo,
 } from "@/hooks/useTitulosTudoBelo";
@@ -49,6 +50,8 @@ import {
   Trash2,
   Send,
   Upload,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -94,6 +97,7 @@ export function TitulosPendentesTab() {
   const { data: titulos, isLoading, error } = useTitulosTudoBelo(filters);
   const { data: options } = useTitulosTudoBeloOptions();
   const { mutate: inserirCedrus, isPending: isInserindo } = useInserirCedrusWebhook();
+  const bulkUpdateMutation = useBulkUpdateTitulosTudoBelo();
 
   const { sortedData, sortConfig, requestSort } = useSortableTable(titulos || []);
 
@@ -311,6 +315,36 @@ export function TitulosPendentesTab() {
                   <Edit className="h-4 w-4 mr-1" />
                   Editar {selectedIds.length} selecionados
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    bulkUpdateMutation.mutate(
+                      { ids: selectedIds, updates: { bloqueado: true } },
+                      { onSuccess: () => setSelectedIds([]) }
+                    );
+                  }}
+                  disabled={bulkUpdateMutation.isPending}
+                  className="text-amber-700 border-amber-300 hover:bg-amber-50"
+                >
+                  <Lock className="h-4 w-4 mr-1" />
+                  Bloquear selecionados
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    bulkUpdateMutation.mutate(
+                      { ids: selectedIds, updates: { bloqueado: false } },
+                      { onSuccess: () => setSelectedIds([]) }
+                    );
+                  }}
+                  disabled={bulkUpdateMutation.isPending}
+                  className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                >
+                  <Unlock className="h-4 w-4 mr-1" />
+                  Desbloquear selecionados
+                </Button>
                 <Button 
                   size="sm" 
                   variant="outline"
@@ -451,13 +485,14 @@ export function TitulosPendentesTab() {
                       <SortableHeader column="status_cedrus" label="St. Cedrus" />
                       <SortableHeader column="processado_internamente" label="Status Interno" />
                       <TableHead>Cedrus</TableHead>
+                      <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedData.map((titulo) => (
                       <TableRow
                         key={titulo.id}
-                        className="cursor-pointer hover:bg-muted/50"
+                        className={`cursor-pointer hover:bg-muted/50 ${titulo.bloqueado ? 'opacity-75 bg-muted/30' : ''}`}
                         onClick={() => handleRowClick(titulo)}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -574,11 +609,16 @@ export function TitulosPendentesTab() {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          {titulo.bloqueado && (
+                            <Lock className="h-4 w-4 text-amber-600" />
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                     {paginatedData.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center text-muted-foreground py-10">
+                        <TableCell colSpan={12} className="text-center text-muted-foreground py-10">
                           Nenhum título encontrado
                         </TableCell>
                       </TableRow>
