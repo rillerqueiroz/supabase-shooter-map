@@ -1,3 +1,4 @@
+// Bulk edit modal for TitulosTudoBelo with bloqueado support
 import {
   Dialog,
   DialogContent,
