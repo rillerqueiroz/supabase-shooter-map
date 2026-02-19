@@ -175,20 +175,31 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
             </Select>
           </FieldRow>
 
-          <FieldRow field="bloqueado" label="Bloqueado">
-            <Select
-              value={updates.bloqueado === true ? "true" : updates.bloqueado === false ? "false" : ""}
-              onValueChange={(value) => setUpdates({ ...updates, bloqueado: value === "true" })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">Sim (Bloquear)</SelectItem>
-                <SelectItem value="false">Não (Desbloquear)</SelectItem>
-              </SelectContent>
-            </Select>
-          </FieldRow>
+          <div className="flex items-center gap-4 py-2 border-b border-border/50">
+            <Switch
+              checked={enabledFields['bloqueado'] || false}
+              onCheckedChange={() => toggleField('bloqueado')}
+            />
+            <Label className="w-40 text-sm font-semibold text-amber-700">Bloqueado</Label>
+            <div className="flex-1">
+              {enabledFields['bloqueado'] ? (
+                <Select
+                  value={updates.bloqueado === true ? "true" : updates.bloqueado === false ? "false" : ""}
+                  onValueChange={(value) => setUpdates({ ...updates, bloqueado: value === "true" })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Sim (Bloquear)</SelectItem>
+                    <SelectItem value="false">Não (Desbloquear)</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="text-muted-foreground text-sm">Não alterar</span>
+              )}
+            </div>
+          </div>
 
           {/* Campo obrigatório quando status é "Pago" */}
           {isStatusPago && (
