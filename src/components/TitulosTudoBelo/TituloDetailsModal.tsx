@@ -537,15 +537,15 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                 <Download className="h-4 w-4 mr-1" />
                 PDF
               </Button>
-              {!isEditing && (
+              {!isEditing && !titulo.bloqueado && (
                 <Button size="sm" onClick={() => setIsEditing(true)}>
                   Editar
                 </Button>
               )}
-              {titulo.bloqueado && !isEditing && (
+              {titulo.bloqueado && (
                 <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 flex items-center gap-1">
                   <Lock className="h-3 w-3" />
-                  Bloqueado
+                  Bloqueado - Desbloqueie para editar
                 </Badge>
               )}
               {isEditing && (

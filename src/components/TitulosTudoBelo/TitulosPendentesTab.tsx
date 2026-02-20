@@ -576,7 +576,7 @@ export function TitulosPendentesTab() {
                                   size="sm"
                                   variant="outline"
                                   className="h-6 text-xs px-2 gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                                  disabled={markingPaidId === titulo.id}
+                                  disabled={markingPaidId === titulo.id || !!titulo.bloqueado}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setConfirmDialog({ open: true, actionType: "marcar_pago", titulo });
@@ -593,7 +593,7 @@ export function TitulosPendentesTab() {
                                   size="sm"
                                   variant="outline"
                                   className="h-6 text-xs px-2 gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                                  disabled={removingCedrusId === titulo.id}
+                                  disabled={removingCedrusId === titulo.id || !!titulo.bloqueado}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setConfirmDialog({ open: true, actionType: "cancelar", titulo });
@@ -618,7 +618,7 @@ export function TitulosPendentesTab() {
                                   size="sm"
                                   variant="outline"
                                   className="h-6 text-xs px-2 gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
-                                  disabled={isInserindo}
+                                  disabled={isInserindo || !!titulo.bloqueado}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setConfirmDialog({ open: true, actionType: "inserir", titulo });
@@ -679,6 +679,7 @@ export function TitulosPendentesTab() {
         open={bulkEditOpen}
         onOpenChange={setBulkEditOpen}
         onSuccess={() => setSelectedIds([])}
+        blockedCount={(titulos || []).filter(t => selectedIds.includes(t.id) && t.bloqueado).length}
       />
 
       <BulkInsercaoCedrusModal
