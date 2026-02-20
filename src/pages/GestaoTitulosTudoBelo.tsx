@@ -746,7 +746,8 @@ export default function GestaoTitulosTudoBelo() {
                                 </Badge>
                                 <InlineEtapaSelect 
                                   tituloId={titulo.id} 
-                                  currentEtapa={titulo.etapa} 
+                                  currentEtapa={titulo.etapa}
+                                  bloqueado={!!titulo.bloqueado}
                                 />
                                 <Badge variant="outline" className={`text-[10px] ${
                                   titulo.tipo_titulo === 'Negociação'
@@ -784,7 +785,7 @@ export default function GestaoTitulosTudoBelo() {
                                       size="sm"
                                       variant="outline"
                                       className="h-6 text-xs px-2 gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                                      disabled={markingPaidId === titulo.id}
+                                      disabled={markingPaidId === titulo.id || !!titulo.bloqueado}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setConfirmDialog({ open: true, actionType: "marcar_pago", titulo });
@@ -801,7 +802,7 @@ export default function GestaoTitulosTudoBelo() {
                                       size="sm"
                                       variant="outline"
                                       className="h-6 text-xs px-2 gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                                      disabled={removingCedrusId === titulo.id}
+                                      disabled={removingCedrusId === titulo.id || !!titulo.bloqueado}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setConfirmDialog({ open: true, actionType: "cancelar", titulo });
@@ -826,7 +827,7 @@ export default function GestaoTitulosTudoBelo() {
                                       variant="outline"
                                       size="sm"
                                       className="h-6 text-[10px] px-2"
-                                      disabled={inserirCedrusMutation.isPending}
+                                      disabled={inserirCedrusMutation.isPending || !!titulo.bloqueado}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setConfirmDialog({ open: true, actionType: "inserir", titulo });
@@ -915,6 +916,7 @@ export default function GestaoTitulosTudoBelo() {
         open={bulkEditOpen}
         onOpenChange={setBulkEditOpen}
         onSuccess={() => setSelectedIds([])}
+        blockedCount={(titulos || []).filter(t => selectedIds.includes(t.id) && t.bloqueado).length}
       />
 
       <BulkInsercaoCedrusModal

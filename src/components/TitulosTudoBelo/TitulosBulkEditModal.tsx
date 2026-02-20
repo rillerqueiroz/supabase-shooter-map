@@ -16,7 +16,7 @@ import { TituloTudoBelo, useBulkUpdateTitulosTudoBelo, useTitulosTudoBeloOptions
 import { useTitulosEtapas } from "@/hooks/useTitulosEtapas";
 import { useCreateLogAlteracao } from "@/hooks/useTitulosLogAlteracoes";
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { toast } from "sonner";
 
@@ -28,9 +28,10 @@ interface TitulosBulkEditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  blockedCount?: number;
 }
 
-export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSuccess }: TitulosBulkEditModalProps) {
+export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSuccess, blockedCount = 0 }: TitulosBulkEditModalProps) {
   const { data: options } = useTitulosTudoBeloOptions();
   const { data: etapasDisponiveis } = useTitulosEtapas();
   const bulkUpdateMutation = useBulkUpdateTitulosTudoBelo();
@@ -156,6 +157,14 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
         </DialogHeader>
 
         <div className="space-y-2 py-4">
+          {blockedCount > 0 && (
+            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-md border border-amber-200 mb-4">
+              <Lock className="h-4 w-4 flex-shrink-0" />
+              <span>
+                {blockedCount} título(s) bloqueado(s) selecionado(s). Apenas o campo <strong>Bloqueado</strong> pode ser alterado para esses títulos. Desbloqueie-os primeiro para editar outros campos.
+              </span>
+            </div>
+          )}
           <p className="text-sm text-muted-foreground mb-4">
             Ative os campos que deseja alterar. Apenas os campos ativados serão atualizados.
           </p>

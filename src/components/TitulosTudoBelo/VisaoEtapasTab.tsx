@@ -710,7 +710,7 @@ export function VisaoEtapasTab() {
                             size="sm"
                             variant="outline"
                             className="h-6 text-xs px-2 gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                            disabled={markingPaidId === titulo.id}
+                            disabled={markingPaidId === titulo.id || !!titulo.bloqueado}
                             onClick={(e) => {
                               e.stopPropagation();
                               setConfirmDialog({ open: true, actionType: "marcar_pago", titulo });
@@ -729,7 +729,7 @@ export function VisaoEtapasTab() {
                             size="sm"
                             variant="outline"
                             className="h-6 text-xs px-2 gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                            disabled={removingId === titulo.id}
+                            disabled={removingId === titulo.id || !!titulo.bloqueado}
                             onClick={(e) => {
                               e.stopPropagation();
                               setConfirmDialog({ open: true, actionType: "cancelar", titulo });
@@ -755,7 +755,7 @@ export function VisaoEtapasTab() {
                           size="sm"
                           variant="outline"
                           className="h-6 text-xs px-2 gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                          disabled={markingPaidId === titulo.id}
+                          disabled={markingPaidId === titulo.id || !!titulo.bloqueado}
                           onClick={(e) => {
                             e.stopPropagation();
                             setConfirmDialog({ open: true, actionType: "marcar_pago", titulo });
@@ -772,7 +772,7 @@ export function VisaoEtapasTab() {
                           size="sm"
                           variant="outline"
                           className="h-6 text-xs px-2 gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                          disabled={removingId === titulo.id}
+                          disabled={removingId === titulo.id || !!titulo.bloqueado}
                           onClick={(e) => {
                             e.stopPropagation();
                             setConfirmDialog({ open: true, actionType: "cancelar", titulo });
@@ -793,7 +793,7 @@ export function VisaoEtapasTab() {
                         size="sm"
                         variant="outline"
                         className="h-6 text-xs px-2 gap-1"
-                        disabled={isInserindo && insertingId === titulo.id}
+                        disabled={(isInserindo && insertingId === titulo.id) || !!titulo.bloqueado}
                         onClick={(e) => {
                           e.stopPropagation();
                           setConfirmDialog({ open: true, actionType: "inserir", titulo });
@@ -851,6 +851,7 @@ export function VisaoEtapasTab() {
         open={bulkEditOpen}
         onOpenChange={setBulkEditOpen}
         onSuccess={() => setSelectedIds([])}
+        blockedCount={(filteredTitulos || []).filter(t => selectedIds.includes(t.id) && t.bloqueado).length}
       />
 
       <BulkInsercaoCedrusModal

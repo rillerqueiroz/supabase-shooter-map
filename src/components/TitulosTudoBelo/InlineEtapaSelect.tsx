@@ -14,9 +14,10 @@ import { Loader2 } from "lucide-react";
 interface InlineEtapaSelectProps {
   tituloId: string;
   currentEtapa: string | null;
+  bloqueado?: boolean;
 }
 
-export function InlineEtapaSelect({ tituloId, currentEtapa }: InlineEtapaSelectProps) {
+export function InlineEtapaSelect({ tituloId, currentEtapa, bloqueado }: InlineEtapaSelectProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { data: etapas } = useTitulosEtapas();
   const updateMutation = useUpdateTituloTudoBelo();
@@ -69,10 +70,10 @@ export function InlineEtapaSelect({ tituloId, currentEtapa }: InlineEtapaSelectP
   return (
     <Badge
       variant="outline"
-      className="bg-purple-50 text-purple-700 border-purple-200 cursor-pointer hover:bg-purple-100 transition-colors"
+      className={`${bloqueado ? 'bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed' : 'bg-purple-50 text-purple-700 border-purple-200 cursor-pointer hover:bg-purple-100'} transition-colors`}
       onClick={(e) => {
         e.stopPropagation();
-        setIsEditing(true);
+        if (!bloqueado) setIsEditing(true);
       }}
     >
       {currentEtapa || "Sem etapa"}
