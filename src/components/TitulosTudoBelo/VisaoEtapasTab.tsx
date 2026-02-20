@@ -39,7 +39,7 @@ import { TitulosBulkEditModal } from "./TitulosBulkEditModal";
 import { BulkInsercaoCedrusModal } from "./BulkInsercaoCedrusModal";
 import { CedrusConfirmDialog } from "./CedrusConfirmDialog";
 import { exportVisaoEtapasToPDF, exportTitulosToExcel } from "@/utils/exportTitulosTudoBelo";
-import { Search, Loader2, FolderOpen, DollarSign, FileText, Edit, Info, Send, Check, X, Filter, ChevronUp, ChevronDown, FileSpreadsheet, Upload } from "lucide-react";
+import { Search, Loader2, FolderOpen, DollarSign, FileText, Edit, Info, Send, Check, X, Filter, ChevronUp, ChevronDown, FileSpreadsheet, Upload, Lock, LockOpen } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -508,7 +508,7 @@ export function VisaoEtapasTab() {
 
           <Collapsible open={showFilters} onOpenChange={setShowFilters}>
             <CollapsibleContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t max-h-[300px] overflow-y-auto">
                 <MultiSelectFilter
                   title="Parceiro"
                   options={options?.nomesParceiros || []}
@@ -594,6 +594,25 @@ export function VisaoEtapasTab() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Bloqueado</label>
+                  <Select
+                    value={filters.bloqueado === null || filters.bloqueado === undefined ? "todos" : filters.bloqueado ? "sim" : "nao"}
+                    onValueChange={(v) => setFilters({ 
+                      ...filters, 
+                      bloqueado: v === "todos" ? null : v === "sim" 
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="sim">Bloqueados</SelectItem>
+                      <SelectItem value="nao">Desbloqueados</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -627,14 +646,21 @@ export function VisaoEtapasTab() {
               {paginatedData.map((titulo) => (
                 <TableRow
                   key={titulo.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className={`cursor-pointer hover:bg-muted/50 ${titulo.bloqueado ? 'opacity-75 bg-muted/30' : ''}`}
                   onClick={() => handleRowClick(titulo)}
                 >
                   <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedIds.includes(titulo.id)}
-                      onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
-                    />
+                    <div className="flex items-center gap-1.5">
+                      <Checkbox
+                        checked={selectedIds.includes(titulo.id)}
+                        onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
+                      />
+                      {titulo.bloqueado ? (
+                        <Lock className="h-4 w-4 text-amber-600" />
+                      ) : (
+                        <LockOpen className="h-4 w-4 text-muted-foreground/40" />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="font-medium text-xs">{titulo.documento || "-"}</TableCell>
                   <TableCell className="max-w-[180px] truncate text-sm" title={titulo.nome_parceiro || ""}>
