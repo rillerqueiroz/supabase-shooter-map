@@ -61,12 +61,20 @@ export function MultiSelectFilter({ title, options, selectedValues, onSelectionC
             className="h-7 text-xs"
           />
         </div>
-        {selectedValues.length > 0 && (
-          <Button variant="ghost" size="sm" className="h-6 text-xs w-full justify-start mb-1" onClick={clearAll}>
-            <X className="h-3 w-3 mr-1" /> Limpar
+        <div className="flex items-center gap-1 mb-1">
+          <Button variant="ghost" size="sm" className="h-6 text-xs flex-1 justify-center" onClick={() => onSelectionChange([...filteredOptions])}>
+            Todos
           </Button>
-        )}
-        <ScrollArea className="max-h-[200px]">
+          <Button variant="ghost" size="sm" className="h-6 text-xs flex-1 justify-center" onClick={clearAll}>
+            Nenhum
+          </Button>
+          {selectedValues.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-6 text-xs px-1" onClick={clearAll}>
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        <ScrollArea className="max-h-[250px]">
           <div className="space-y-1">
             {filteredOptions.map((option) => (
               <label

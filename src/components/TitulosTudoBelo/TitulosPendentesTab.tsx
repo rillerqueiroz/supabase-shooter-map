@@ -51,6 +51,7 @@ import {
   Send,
   Upload,
   Lock,
+  LockOpen,
   Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -365,7 +366,7 @@ export function TitulosPendentesTab() {
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t max-h-[300px] overflow-y-auto">
               <MultiSelectFilter
                 title="Parceiro"
                 options={options?.nomesParceiros || []}
@@ -451,6 +452,25 @@ export function TitulosPendentesTab() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Bloqueado</label>
+                <Select
+                  value={filters.bloqueado === null || filters.bloqueado === undefined ? "todos" : filters.bloqueado ? "sim" : "nao"}
+                  onValueChange={(v) => setFilters({ 
+                    ...filters, 
+                    bloqueado: v === "todos" ? null : v === "sim" 
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="sim">Bloqueados</SelectItem>
+                    <SelectItem value="nao">Desbloqueados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </CardContent>
@@ -485,7 +505,6 @@ export function TitulosPendentesTab() {
                       <SortableHeader column="status_cedrus" label="St. Cedrus" />
                       <SortableHeader column="processado_internamente" label="Status Interno" />
                       <TableHead>Cedrus</TableHead>
-                      <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -496,10 +515,17 @@ export function TitulosPendentesTab() {
                         onClick={() => handleRowClick(titulo)}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedIds.includes(titulo.id)}
-                            onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
-                          />
+                          <div className="flex items-center gap-1.5">
+                            <Checkbox
+                              checked={selectedIds.includes(titulo.id)}
+                              onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
+                            />
+                            {titulo.bloqueado ? (
+                              <Lock className="h-4 w-4 text-amber-600" />
+                            ) : (
+                              <LockOpen className="h-4 w-4 text-muted-foreground/40" />
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
                         <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
@@ -608,11 +634,6 @@ export function TitulosPendentesTab() {
                               </div>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          {titulo.bloqueado && (
-                            <Lock className="h-4 w-4 text-amber-600" />
-                          )}
                         </TableCell>
                       </TableRow>
                     ))}

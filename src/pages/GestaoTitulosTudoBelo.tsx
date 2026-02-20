@@ -76,6 +76,8 @@ import {
   Trash2,
   Send,
   Download,
+  Lock,
+  LockOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays, addDays } from "date-fns";
@@ -555,7 +557,7 @@ export default function GestaoTitulosTudoBelo() {
               </div>
 
               {showFilters && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t max-h-[300px] overflow-y-auto">
                   <MultiSelectFilter
                     title="Parceiro"
                     options={options?.nomesParceiros || []}
@@ -628,6 +630,25 @@ export default function GestaoTitulosTudoBelo() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Bloqueado</label>
+                    <Select
+                      value={filters.bloqueado === null || filters.bloqueado === undefined ? "todos" : filters.bloqueado ? "sim" : "nao"}
+                      onValueChange={(v) => setFilters({ 
+                        ...filters, 
+                        bloqueado: v === "todos" ? null : v === "sim" 
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos</SelectItem>
+                        <SelectItem value="sim">Bloqueados</SelectItem>
+                        <SelectItem value="nao">Desbloqueados</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -668,14 +689,21 @@ export default function GestaoTitulosTudoBelo() {
                         {paginatedData.map((titulo) => (
                           <TableRow
                             key={titulo.id}
-                            className="cursor-pointer hover:bg-muted/50"
+                            className={`cursor-pointer hover:bg-muted/50 ${titulo.bloqueado ? 'opacity-75 bg-muted/30' : ''}`}
                             onClick={() => handleRowClick(titulo)}
                           >
                             <TableCell onClick={(e) => e.stopPropagation()}>
-                              <Checkbox
-                                checked={selectedIds.includes(titulo.id)}
-                                onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
-                              />
+                              <div className="flex items-center gap-1.5">
+                                <Checkbox
+                                  checked={selectedIds.includes(titulo.id)}
+                                  onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
+                                />
+                                {titulo.bloqueado ? (
+                                  <Lock className="h-4 w-4 text-amber-600" />
+                                ) : (
+                                  <LockOpen className="h-4 w-4 text-muted-foreground/40" />
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
                             <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
