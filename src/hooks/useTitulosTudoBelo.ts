@@ -89,6 +89,7 @@ export interface TitulosFilters {
   dataDocumentoRange?: { from?: Date; to?: Date };
   inseridoCedrus?: boolean | null;
   processadoInternamente?: boolean | null;
+  bloqueado?: boolean | null;
 }
 
 export function useTitulosTudoBelo(filters?: TitulosFilters) {
@@ -186,6 +187,10 @@ export function useTitulosTudoBelo(filters?: TitulosFilters) {
 
       if (filters?.processadoInternamente !== undefined && filters?.processadoInternamente !== null) {
         query = query.eq('processado_internamente', filters.processadoInternamente);
+      }
+
+      if (filters?.bloqueado !== undefined && filters?.bloqueado !== null) {
+        query = query.eq('bloqueado', filters.bloqueado);
       }
 
       const { data, error } = await query;
