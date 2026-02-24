@@ -851,7 +851,7 @@ export function VisaoEtapasTab() {
         open={bulkEditOpen}
         onOpenChange={setBulkEditOpen}
         onSuccess={() => setSelectedIds([])}
-        blockedCount={(filteredTitulos || []).filter(t => selectedIds.includes(t.id) && t.bloqueado).length}
+        blockedIds={(filteredTitulos || []).filter(t => selectedIds.includes(t.id) && t.bloqueado).map(t => t.id)}
       />
 
       <BulkInsercaoCedrusModal

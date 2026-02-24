@@ -16,7 +16,7 @@ import { TituloTudoBelo, useBulkUpdateTitulosTudoBelo, useTitulosTudoBeloOptions
 import { useTitulosEtapas } from "@/hooks/useTitulosEtapas";
 import { useCreateLogAlteracao } from "@/hooks/useTitulosLogAlteracoes";
 import { useState, useEffect } from "react";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, ShieldAlert } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { toast } from "sonner";
 
@@ -25,13 +25,15 @@ const STATUS_PAGO = ['Pago'];
 
 interface TitulosBulkEditModalProps {
   selectedIds: string[];
+  blockedIds?: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  /** @deprecated Use blockedIds instead */
   blockedCount?: number;
 }
 
-export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSuccess, blockedCount = 0 }: TitulosBulkEditModalProps) {
+export function TitulosBulkEditModal({ selectedIds, blockedIds = [], open, onOpenChange, onSuccess, blockedCount }: TitulosBulkEditModalProps) {
   const { data: options } = useTitulosTudoBeloOptions();
   const { data: etapasDisponiveis } = useTitulosEtapas();
   const bulkUpdateMutation = useBulkUpdateTitulosTudoBelo();
@@ -41,13 +43,17 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
   const [enabledFields, setEnabledFields] = useState<Record<string, boolean>>({});
   const [motivoAlteracao, setMotivoAlteracao] = useState("");
 
+  const actualBlockedCount = blockedIds.length || blockedCount || 0;
+  const unblockedIds = selectedIds.filter(id => !blockedIds.includes(id));
+  const allBlocked = actualBlockedCount > 0 && actualBlockedCount === selectedIds.length;
+  const hasBlocked = actualBlockedCount > 0;
+
   // Verifica se o status selecionado é de pagamento
   const isStatusPago = updates.status_titulo && STATUS_PAGO.includes(updates.status_titulo);
 
   // Auto-preenche data_pagamento quando status é "Pago" e campo ainda não preenchido
   useEffect(() => {
     if (isStatusPago && enabledFields['status_titulo'] && !updates.data_pagamento) {
-      // Data de ontem no Brasil (UTC-3)
       const hoje = new Date();
       const brasilOffset = -3 * 60;
       const localOffset = hoje.getTimezoneOffset();
@@ -61,6 +67,9 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
   }, [isStatusPago, enabledFields['status_titulo']]);
 
   const toggleField = (field: string) => {
+    // Se todos bloqueados, não permite ativar campos que não sejam bloqueado
+    if (allBlocked && field !== 'bloqueado') return;
+    
     setEnabledFields((prev) => ({ ...prev, [field]: !prev[field] }));
     if (enabledFields[field]) {
       const newUpdates = { ...updates };
@@ -95,9 +104,26 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
       finalUpdates.processado_internamente = true;
     }
 
-    await bulkUpdateMutation.mutateAsync({ ids: selectedIds, updates: finalUpdates });
+    // Separar updates: bloqueados só recebem campo 'bloqueado', desbloqueados recebem tudo
+    if (hasBlocked && blockedIds.length > 0) {
+      // Para títulos bloqueados, aplicar APENAS o campo bloqueado (se alterado)
+      if (enabledFields['bloqueado'] && updates.bloqueado !== undefined) {
+        await bulkUpdateMutation.mutateAsync({ 
+          ids: blockedIds, 
+          updates: { bloqueado: updates.bloqueado } 
+        });
+      }
+      
+      // Para títulos desbloqueados, aplicar todos os campos
+      if (unblockedIds.length > 0) {
+        await bulkUpdateMutation.mutateAsync({ ids: unblockedIds, updates: finalUpdates });
+      }
+    } else {
+      // Sem bloqueados, comportamento normal
+      await bulkUpdateMutation.mutateAsync({ ids: selectedIds, updates: finalUpdates });
+    }
 
-    // Fechar modal imediatamente após salvar
+    // Fechar modal
     onOpenChange(false);
     setUpdates({});
     setEnabledFields({});
@@ -105,12 +131,13 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
     setMotivoAlteracao("");
     onSuccess?.();
 
-    // Registrar logs em background (não bloqueia o modal)
+    // Registrar logs em background
+    const idsParaLog = hasBlocked && blockedIds.length > 0 ? unblockedIds : selectedIds;
     const descricao = motivoFinal 
       ? `Edição em massa: ${motivoFinal}` 
       : `Edição em massa de ${changedFields.length} campo(s)`;
     
-    for (const tituloId of selectedIds) {
+    for (const tituloId of idsParaLog) {
       for (const campo of changedFields) {
         createLog.mutate({
           titulo_id: tituloId,
@@ -132,20 +159,27 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
     field: string; 
     label: string; 
     children: React.ReactNode;
-  }) => (
-    <div className="flex items-center gap-4 py-2 border-b border-border/50">
-      <Switch
-        checked={enabledFields[field] || false}
-        onCheckedChange={() => toggleField(field)}
-      />
-      <Label className="w-40 text-sm">{label}</Label>
-      <div className="flex-1">
-        {enabledFields[field] ? children : (
-          <span className="text-muted-foreground text-sm">Não alterar</span>
-        )}
+  }) => {
+    const isDisabledByBlock = allBlocked && field !== 'bloqueado';
+    
+    return (
+      <div className={`flex items-center gap-4 py-2 border-b border-border/50 ${isDisabledByBlock ? 'opacity-40 pointer-events-none' : ''}`}>
+        <Switch
+          checked={enabledFields[field] || false}
+          onCheckedChange={() => toggleField(field)}
+          disabled={isDisabledByBlock}
+        />
+        <Label className="w-40 text-sm">{label}</Label>
+        <div className="flex-1">
+          {enabledFields[field] ? children : (
+            <span className="text-muted-foreground text-sm">
+              {isDisabledByBlock ? 'Bloqueado' : 'Não alterar'}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -157,14 +191,24 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
         </DialogHeader>
 
         <div className="space-y-2 py-4">
-          {blockedCount > 0 && (
-            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-md border border-amber-200 mb-4">
-              <Lock className="h-4 w-4 flex-shrink-0" />
+          {allBlocked && (
+            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 px-3 py-3 rounded-md border border-destructive/30 mb-4">
+              <ShieldAlert className="h-5 w-5 flex-shrink-0" />
               <span>
-                {blockedCount} título(s) bloqueado(s) selecionado(s). Apenas o campo <strong>Bloqueado</strong> pode ser alterado para esses títulos. Desbloqueie-os primeiro para editar outros campos.
+                <strong>Todos os {actualBlockedCount} títulos selecionados estão bloqueados.</strong> Apenas o campo <strong>Bloqueado</strong> pode ser alterado. Desbloqueie-os primeiro para editar outros campos.
               </span>
             </div>
           )}
+
+          {hasBlocked && !allBlocked && (
+            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-md border border-amber-200 mb-4">
+              <Lock className="h-4 w-4 flex-shrink-0" />
+              <span>
+                {actualBlockedCount} de {selectedIds.length} título(s) estão <strong>bloqueados</strong>. Os campos editados serão aplicados <strong>apenas nos {unblockedIds.length} título(s) desbloqueados</strong>. Apenas o campo <strong>Bloqueado</strong> será aplicado nos bloqueados.
+              </span>
+            </div>
+          )}
+
           <p className="text-sm text-muted-foreground mb-4">
             Ative os campos que deseja alterar. Apenas os campos ativados serão atualizados.
           </p>
@@ -195,14 +239,14 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
             />
             <Label className="w-40 text-sm font-semibold text-amber-700">Bloqueado</Label>
             <div className="flex-1">
-              <span className={`text-sm ${updates.bloqueado ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+              <span className={`text-sm ${updates.bloqueado ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
                 {updates.bloqueado ? 'Será bloqueado' : 'Não bloqueado'}
               </span>
             </div>
           </div>
 
           {/* Campo obrigatório quando status é "Pago" */}
-          {isStatusPago && (
+          {isStatusPago && !allBlocked && (
             <div className="flex items-center gap-4 py-2 border-b border-border/50 bg-green-50/50 px-2 rounded">
               <Switch
                 checked={enabledFields['data_pagamento'] || false}
@@ -343,7 +387,7 @@ export function TitulosBulkEditModal({ selectedIds, open, onOpenChange, onSucces
             disabled={bulkUpdateMutation.isPending || Object.keys(enabledFields).filter(k => enabledFields[k]).length === 0}
           >
             {bulkUpdateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar {selectedIds.length} títulos
+            Salvar {allBlocked ? `${selectedIds.length} títulos (apenas bloqueio)` : `${selectedIds.length} títulos`}
           </Button>
         </DialogFooter>
       </DialogContent>
