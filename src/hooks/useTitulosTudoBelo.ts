@@ -148,15 +148,7 @@ export function useTitulosTudoBelo(filters?: TitulosFilters) {
       }
 
       if (filters?.tipoTitulo?.length) {
-        const hasOriginal = filters.tipoTitulo.includes('Original');
-        const hasNegociacao = filters.tipoTitulo.includes('Negociação');
-        
-        if (hasOriginal && !hasNegociacao) {
-          query = query.or('tipo_titulo.eq.Original,tipo_titulo.is.null');
-        } else if (hasNegociacao && !hasOriginal) {
-          query = query.eq('tipo_titulo', 'Negociação');
-        }
-        // If both selected, no filter needed
+        query = query.in('tipo_titulo', filters.tipoTitulo);
       }
 
       if (filters?.dataVencimentoRange?.from) {
@@ -207,7 +199,7 @@ export function useTitulosTudoBeloOptions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('base_tudobelo_intermediaria')
-        .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento');
+        .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento, tipo_titulo');
 
       if (error) throw error;
 
@@ -226,6 +218,7 @@ export function useTitulosTudoBeloOptions() {
         tiposTitulo: hasNulls ? ['Não informado', ...uniqueTipos] : uniqueTipos,
         ufs: unique(data?.map(d => d.uf_cobranca) || []),
         formasPagamento: unique(data?.map(d => d.forma_pagamento) || []),
+        tiposTituloReal: unique(data?.map(d => (d as any).tipo_titulo) || []),
       };
     },
   });

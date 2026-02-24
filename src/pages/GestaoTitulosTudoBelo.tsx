@@ -602,7 +602,7 @@ export default function GestaoTitulosTudoBelo() {
                   />
                   <MultiSelectFilter
                     title="Tipo Título"
-                    options={['Original', 'Negociação']}
+                    options={options?.tiposTituloReal || ['Original', 'Negociação']}
                     selectedValues={filters.tipoTitulo || []}
                     onSelectionChange={(v) => setFilters({ ...filters, tipoTitulo: v })}
                   />

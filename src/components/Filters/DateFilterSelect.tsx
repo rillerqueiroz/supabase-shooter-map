@@ -49,13 +49,14 @@ export function DateFilterSelect({ label = "Período", value, onChange }: DateFi
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
           <Calendar
             mode="range"
             selected={value as any}
             onSelect={(range: any) => onChange(range)}
             locale={ptBR}
             numberOfMonths={2}
+            className="p-3 pointer-events-auto"
           />
         </PopoverContent>
       </Popover>
