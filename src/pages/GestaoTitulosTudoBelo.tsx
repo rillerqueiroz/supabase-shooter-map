@@ -916,7 +916,7 @@ export default function GestaoTitulosTudoBelo() {
         open={bulkEditOpen}
         onOpenChange={setBulkEditOpen}
         onSuccess={() => setSelectedIds([])}
-        blockedCount={(titulos || []).filter(t => selectedIds.includes(t.id) && t.bloqueado).length}
+        blockedIds={(titulos || []).filter(t => selectedIds.includes(t.id) && t.bloqueado).map(t => t.id)}
       />
 
       <BulkInsercaoCedrusModal
