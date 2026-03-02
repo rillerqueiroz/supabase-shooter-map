@@ -50,7 +50,7 @@ export function DateFilterSelect({ label = "Período", value, onChange }: DateFi
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+        <PopoverContent className="w-auto p-0 pointer-events-auto z-50" align="start" side="bottom" sideOffset={4} avoidCollisions>
           <DayPicker
             mode="range"
             selected={selected}
@@ -62,7 +62,7 @@ export function DateFilterSelect({ label = "Período", value, onChange }: DateFi
               }
             }}
             locale={ptBR}
-            numberOfMonths={2}
+            numberOfMonths={1}
             weekStartsOn={0}
             className="p-3 pointer-events-auto"
             classNames={{
