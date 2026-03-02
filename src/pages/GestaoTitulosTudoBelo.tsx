@@ -557,7 +557,7 @@ export default function GestaoTitulosTudoBelo() {
               </div>
 
               {showFilters && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t max-h-[300px] overflow-y-auto">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
                   <MultiSelectFilter
                     title="Parceiro"
                     options={options?.nomesParceiros || []}
