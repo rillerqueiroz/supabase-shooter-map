@@ -112,12 +112,13 @@ export function VisaoEtapasTab() {
     }
   };
 
-  const handleMarcarPago = async (titulo: TituloTudoBelo, valorPagoApurado?: number) => {
+  const handleMarcarPago = async (titulo: TituloTudoBelo, valorPagoApurado?: number, dataPagamento?: string) => {
     setMarkingPaidId(titulo.id);
     try {
       const payload = {
         ...titulo,
         valor_pago_apurado_manualmente: valorPagoApurado,
+        data_pagamento_manual: dataPagamento,
       };
       const response = await fetch('https://projeton8n-n8n.pjq1cs.easypanel.host/webhook/marcar-titulo-como-pago-tudobelo', {
         method: 'POST',
@@ -142,7 +143,7 @@ export function VisaoEtapasTab() {
     setConfirmDialog({ open: false, actionType: "inserir", titulo: null });
   };
 
-  const handleConfirmAction = (valorPago?: number) => {
+  const handleConfirmAction = (valorPago?: number, dataPagamento?: string) => {
     if (!confirmDialog.titulo) return;
     switch (confirmDialog.actionType) {
       case "inserir":
@@ -152,7 +153,7 @@ export function VisaoEtapasTab() {
         handleRemoverCedrus(confirmDialog.titulo);
         break;
       case "marcar_pago":
-        handleMarcarPago(confirmDialog.titulo, valorPago);
+        handleMarcarPago(confirmDialog.titulo, valorPago, dataPagamento);
         break;
     }
   };

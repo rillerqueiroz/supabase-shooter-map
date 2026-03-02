@@ -29,7 +29,7 @@ interface CedrusConfirmDialogProps {
   actionType: CedrusActionType;
   documentoTitulo: string | null;
   tituloInfo?: TituloInfo | null;
-  onConfirm: (valorPago?: number) => void;
+  onConfirm: (valorPago?: number, dataPagamento?: string) => void;
   isLoading?: boolean;
 }
 
@@ -48,7 +48,7 @@ const actionConfig: Record<CedrusActionType, { title: string; description: strin
   },
   marcar_pago: {
     title: "Confirmar Marcação como Pago",
-    description: "Informe o valor pago para marcar este título como pago no Cedrus.",
+    description: "Informe o valor pago e a data de pagamento para marcar este título como pago no Cedrus.",
     confirmText: "Marcar como Pago",
     variant: "default",
   },
@@ -92,10 +92,12 @@ export function CedrusConfirmDialog({
 }: CedrusConfirmDialogProps) {
   const config = actionConfig[actionType];
   const [valorPago, setValorPago] = useState("");
+  const [dataPagamento, setDataPagamento] = useState("");
 
   useEffect(() => {
     if (open && actionType === "marcar_pago") {
       setValorPago("");
+      setDataPagamento("");
     }
   }, [open, actionType]);
 
@@ -107,14 +109,14 @@ export function CedrusConfirmDialog({
   const handleConfirm = () => {
     if (actionType === "marcar_pago") {
       const numericValue = parseCurrencyToNumber(valorPago);
-      onConfirm(numericValue);
+      onConfirm(numericValue, dataPagamento || undefined);
     } else {
       onConfirm();
     }
   };
 
   const isMarcarPago = actionType === "marcar_pago";
-  const isConfirmDisabled = isLoading || (isMarcarPago && (!valorPago || parseCurrencyToNumber(valorPago) <= 0));
+  const isConfirmDisabled = isLoading || (isMarcarPago && (!valorPago || parseCurrencyToNumber(valorPago) <= 0 || !dataPagamento));
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -157,26 +159,42 @@ export function CedrusConfirmDialog({
         )}
 
         {isMarcarPago && (
-          <div className="space-y-2 py-2">
-            <Label htmlFor="valor-pago">Valor Pago *</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                R$
-              </span>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="valor-pago">Valor Pago *</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  R$
+                </span>
+                <Input
+                  id="valor-pago"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0,00"
+                  value={valorPago}
+                  onChange={handleValorChange}
+                  className="pl-10"
+                  disabled={isLoading}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Informe o valor exato que foi pago
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data-pagamento">Data de Pagamento *</Label>
               <Input
-                id="valor-pago"
-                type="text"
-                inputMode="numeric"
-                placeholder="0,00"
-                value={valorPago}
-                onChange={handleValorChange}
-                className="pl-10"
+                id="data-pagamento"
+                type="date"
+                value={dataPagamento}
+                onChange={(e) => setDataPagamento(e.target.value)}
                 disabled={isLoading}
               />
+              <p className="text-xs text-muted-foreground">
+                Informe a data em que o pagamento foi realizado
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Informe o valor exato que foi pago
-            </p>
           </div>
         )}
 
