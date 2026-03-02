@@ -87,6 +87,7 @@ export interface TitulosFilters {
   tipoTitulo?: string[];
   dataVencimentoRange?: { from?: Date; to?: Date };
   dataDocumentoRange?: { from?: Date; to?: Date };
+  dataPagamentoRange?: { from?: Date; to?: Date };
   inseridoCedrus?: boolean | null;
   processadoInternamente?: boolean | null;
   bloqueado?: boolean | null;
@@ -171,6 +172,17 @@ export function useTitulosTudoBelo(filters?: TitulosFilters) {
         const toDate = filters.dataDocumentoRange.to;
         const toStr = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
         query = query.lte('data_documento', toStr);
+      }
+
+      if (filters?.dataPagamentoRange?.from) {
+        const fromDate = filters.dataPagamentoRange.from;
+        const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+        query = query.gte('data_pagamento', fromStr);
+      }
+      if (filters?.dataPagamentoRange?.to) {
+        const toDate = filters.dataPagamentoRange.to;
+        const toStr = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
+        query = query.lte('data_pagamento', toStr);
       }
 
       if (filters?.inseridoCedrus !== undefined && filters?.inseridoCedrus !== null) {

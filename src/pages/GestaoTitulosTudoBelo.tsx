@@ -611,6 +611,11 @@ export default function GestaoTitulosTudoBelo() {
                     value={filters.dataVencimentoRange}
                     onChange={(v) => setFilters({ ...filters, dataVencimentoRange: v })}
                   />
+                  <DateFilterSelect
+                    label="Data Pagamento"
+                    value={filters.dataPagamentoRange}
+                    onChange={(v) => setFilters({ ...filters, dataPagamentoRange: v })}
+                  />
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Inserido Cedrus</label>
                     <Select
