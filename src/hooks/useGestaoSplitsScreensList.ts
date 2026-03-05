@@ -4,10 +4,10 @@ import { GestaoSplitsScreen } from '@/types/gestaoSplitsPermissions';
 
 export function useGestaoSplitsScreensList() {
   return useQuery({
-    queryKey: ['gestao-splits-screens-list'],
+    queryKey: ['sistema-tudobelo-screens-list'],
     queryFn: async (): Promise<GestaoSplitsScreen[]> => {
       const { data, error } = await supabase
-        .from('gestao_splits_screens')
+        .from('sistema_tudobelo_screens')
         .select('id, slug, nome, descricao, ordem, ativo')
         .eq('ativo', true)
         .order('ordem', { ascending: true })

@@ -53,7 +53,7 @@ export function useGestaoSplitsScreenPermissions(userId?: string, screenSlug?: s
 
       // Buscar permissões do usuário para esta tela
       const { data: permissions, error: permError } = await supabase
-        .from('gestao_splits_screen_permissions')
+        .from('sistema_tudobelo_screen_permissions')
         .select('can_view, can_create, can_update, can_delete')
         .eq('user_id', userId)
         .eq('screen_id', screenData.id)

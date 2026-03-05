@@ -42,7 +42,7 @@ export default function PaginaInicial() {
       if (!user?.id) return [];
       
       const { data, error } = await supabase
-        .from('gestao_splits_screen_permissions')
+        .from('sistema_tudobelo_screen_permissions')
         .select('screen_id, can_view')
         .eq('user_id', user.id)
         .eq('can_view', true);
