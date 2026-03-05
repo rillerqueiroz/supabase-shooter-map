@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { LogIn, Eye, EyeOff } from "lucide-react";
+import logoSuperavit from "@/assets/logo-superavit.png";
 
 const Login = () => {
   const { toast } = useToast();
