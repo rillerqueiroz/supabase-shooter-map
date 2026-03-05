@@ -14,7 +14,7 @@ export function useGestaoSplitsClientPermissions(userId?: string) {
   const { isAdmin, isLoading: isLoadingAdmin } = useGestaoSplitsIsAdmin(userId);
 
   return useQuery({
-    queryKey: ['gestao-splits-client-permissions', userId],
+    queryKey: ['sistema-tudobelo-client-permissions', userId],
     queryFn: async (): Promise<ClientPermission[] | null> => {
       console.info('🔍 [GestaoSplits] Buscando permissões para userId:', userId);
       
