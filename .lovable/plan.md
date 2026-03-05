@@ -1,64 +1,44 @@
 
 
-# Renomear tabela de perfis e adicionar colunas por sistema
+## Plano: Permitir que todos os usuários visualizem todos os títulos
 
-## Objetivo
-Renomear `gestao_splits_profiles` para `gestao_profiles_todos_sistemas` e adicionar colunas booleanas para cada sistema, permitindo filtrar quais usuarios pertencem a qual sistema.
+### Problema
 
-## Etapas
+A tabela `base_tudobelo_intermediaria` possui uma política RLS que filtra os dados por `credor_cedrus` com base nas permissões de cliente (`sistema_tudobelo_client_permissions`). A usuária Thaynara não é admin e tem permissões restritas, por isso vê apenas 439 dos 3.632 títulos.
 
-### 1. Migration SQL
-Renomear a tabela e adicionar as 5 colunas de sistema:
+### Solução
 
-```sql
-ALTER TABLE gestao_splits_profiles RENAME TO gestao_profiles_todos_sistemas;
+Alterar a política RLS de SELECT da tabela `base_tudobelo_intermediaria` para permitir que qualquer usuário autenticado veja todos os registros. Não é necessário alterar código no frontend.
 
-ALTER TABLE gestao_profiles_todos_sistemas
-  ADD COLUMN sistema_tudobelo BOOLEAN DEFAULT false,
-  ADD COLUMN sistema_gestao_repasses BOOLEAN DEFAULT false,
-  ADD COLUMN sistema_antecipacoes BOOLEAN DEFAULT false,
-  ADD COLUMN sistema_semear BOOLEAN DEFAULT false,
-  ADD COLUMN sistema_gestao_splits BOOLEAN DEFAULT false,
-  ADD COLUMN sistema_testedisc BOOLEAN DEFAULT false;
-```
-
-### 2. Marcar usuarios existentes
-Usuarios que ja possuem roles em `gestao_splits_user_roles` serao marcados como pertencentes ao sistema Tudo Belo (via insert tool, nao migration):
+### SQL a executar no Supabase
 
 ```sql
-UPDATE gestao_profiles_todos_sistemas 
-SET sistema_tudobelo = true 
-WHERE id IN (SELECT DISTINCT user_id FROM gestao_splits_user_roles);
+-- 1. Remover a política de SELECT atual que filtra por credor
+DROP POLICY IF EXISTS "Users can view allowed titulos" ON base_tudobelo_intermediaria;
+DROP POLICY IF EXISTS "Authenticated users can view titulos" ON base_tudobelo_intermediaria;
+-- (listar outros nomes possíveis da policy de SELECT)
+
+-- 2. Criar política simples: autenticado = acesso total de leitura
+CREATE POLICY "Authenticated users can view all titulos"
+ON base_tudobelo_intermediaria
+FOR SELECT
+TO authenticated
+USING (true);
 ```
 
-### 3. Atualizar trigger de criacao de usuario
-Recriar o trigger `gestao_splits_handle_new_user` para inserir na nova tabela `gestao_profiles_todos_sistemas` em vez de `gestao_splits_profiles`.
+**Nota:** Antes de executar, seria prudente verificar o nome exato da política atual. Você pode fazer isso no Supabase Dashboard em: Table Editor > `base_tudobelo_intermediaria` > Policies, ou executar:
 
-### 4. Atualizar RLS policies
-Recriar as policies (select, update, insert, delete) apontando para `gestao_profiles_todos_sistemas`. O RENAME pode manter as policies, mas precisaremos verificar.
-
-### 5. Atualizar codigo fonte
-
-Arquivos afetados:
-
-- **`src/hooks/useGestaoSplitsUserManagement.ts`** (4 referencias):
-  - Query de profiles: trocar tabela e adicionar `.eq('sistema_tudobelo', true)`
-  - Upsert ao criar usuario: trocar tabela e incluir `sistema_tudobelo: true`
-  - Update de nome: trocar tabela
-  - Delete de profile: trocar tabela
-
-- **`src/lib/supabase.ts`** (1 referencia):
-  - Atualizar comentario/docstring da funcao deprecated
-
-### 6. Grants
-Atualizar o GRANT para a nova tabela:
 ```sql
-GRANT ALL ON gestao_profiles_todos_sistemas TO authenticated;
+SELECT policyname, cmd, qual
+FROM pg_policies
+WHERE tablename = 'base_tudobelo_intermediaria';
 ```
 
-## Resultado esperado
-- Apenas usuarios com `sistema_tudobelo = true` aparecerao na gestao de usuarios deste sistema
-- Novos usuarios criados pelo sistema serao automaticamente marcados
-- Outros sistemas poderao usar suas respectivas colunas (`sistema_gestao_repasses`, etc.) para o mesmo fim
-- Nenhum impacto no `auth.users` compartilhado
+Isso mostrará os nomes das policies e seus filtros. Substitua o `DROP POLICY` pelo nome correto.
+
+### Impacto
+
+- Nenhuma alteração de código no frontend
+- Todos os usuários autenticados passarão a ver os 3.632 títulos
+- As permissões de INSERT/UPDATE/DELETE permanecem inalteradas
 
