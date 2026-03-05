@@ -28,12 +28,12 @@ export function useGestaoSplitsClientPermissions(userId?: string) {
 
       // Buscar permissões específicas com JOIN para pegar todos os credores do cliente
       const { data, error } = await supabase
-        .from('gestao_splits_client_permissions')
+        .from('sistema_tudobelo_client_permissions')
         .select(`
           cliente_id,
           can_view,
           can_transact,
-          cliente:clientes_superavit!gestao_splits_client_permissions_cliente_id_fkey(
+          cliente:clientes_superavit!sistema_tudobelo_client_permissions_cliente_id_fkey(
             id,
             credor_cedrus,
             nome_credor

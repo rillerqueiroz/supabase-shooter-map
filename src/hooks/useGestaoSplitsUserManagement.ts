@@ -13,7 +13,7 @@ export function useGestaoSplitsUserManagement() {
 
   // Query: buscar todos os usuários com permissões
   const { data: users, isLoading } = useQuery({
-    queryKey: ['gestao-splits-users-management'],
+    queryKey: ['sistema-tudobelo-users-management'],
     queryFn: async (): Promise<GestaoSplitsUserWithPermissions[]> => {
       const { data: profiles, error: profilesError } = await supabase
         .from('gestao_profiles_todos_sistemas')
@@ -33,14 +33,14 @@ export function useGestaoSplitsUserManagement() {
             { data: screenPermsData },
             { data: clientPermsData }
           ] = await Promise.all([
-            supabase.rpc('gestao_splits_get_user_email', { _user_id: userId }),
-            supabase.from('gestao_splits_user_roles').select('role').eq('user_id', userId),
+            supabase.rpc('sistema_tudobelo_get_user_email', { _user_id: userId }),
+            supabase.from('sistema_tudobelo_user_roles').select('role').eq('user_id', userId),
             supabase
-              .from('gestao_splits_screen_permissions')
-              .select('screen_id, can_view, can_create, can_update, can_delete, gestao_splits_screens(slug, nome)')
+              .from('sistema_tudobelo_screen_permissions')
+              .select('screen_id, can_view, can_create, can_update, can_delete, sistema_tudobelo_screens(slug, nome)')
               .eq('user_id', userId),
             supabase
-              .from('gestao_splits_client_permissions')
+              .from('sistema_tudobelo_client_permissions')
               .select('cliente_id, credor_cedrus, can_view, can_transact, clientes_superavit(id, credor_cedrus, nome_credor)')
               .eq('user_id', userId)
           ]);
@@ -52,8 +52,8 @@ export function useGestaoSplitsUserManagement() {
             roles: rolesData?.map((r: any) => r.role) || [],
             screenPermissions: screenPermsData?.map((sp: any) => ({
               screenId: sp.screen_id,
-              screenSlug: sp.gestao_splits_screens?.slug || '',
-              screenName: sp.gestao_splits_screens?.nome || '',
+              screenSlug: sp.sistema_tudobelo_screens?.slug || '',
+              screenName: sp.sistema_tudobelo_screens?.nome || '',
               canView: sp.can_view,
               canCreate: sp.can_create,
               canUpdate: sp.can_update,
@@ -78,7 +78,6 @@ export function useGestaoSplitsUserManagement() {
   // Criar usuário via cliente isolado (não afeta sessão do admin)
   const createUserMutation = useMutation({
     mutationFn: async (input: GestaoSplitsCreateUserInput) => {
-      // 1. Criar conta no Auth com cliente isolado
       const isolatedClient = createIsolatedClient();
       const { data: signUpData, error: signUpError } = await isolatedClient.auth.signUp({
         email: input.email,
@@ -93,30 +92,26 @@ export function useGestaoSplitsUserManagement() {
 
       const newUserId = signUpData.user.id;
 
-      // 2. Upsert no perfil (redundância de segurança com trigger)
       const { error: profileError } = await supabase
         .from('gestao_profiles_todos_sistemas')
         .upsert({ id: newUserId, nome: input.nome, sistema_tudobelo: true }, { onConflict: 'id' });
 
       if (profileError) throw profileError;
 
-      // 3. Inserir roles
       if (input.roles.length > 0) {
         const { error: rolesError } = await supabase
-          .from('gestao_splits_user_roles')
+          .from('sistema_tudobelo_user_roles')
           .insert(input.roles.map(role => ({ user_id: newUserId, role })));
-
         if (rolesError) throw rolesError;
       }
 
-      // 4. Inserir permissões de tela
       if (input.screenPermissions && input.screenPermissions.length > 0) {
         const validPerms = input.screenPermissions.filter(
           sp => sp.canView || sp.canCreate || sp.canUpdate || sp.canDelete
         );
         if (validPerms.length > 0) {
           const { error: screenPermsError } = await supabase
-            .from('gestao_splits_screen_permissions')
+            .from('sistema_tudobelo_screen_permissions')
             .insert(validPerms.map(sp => ({
               user_id: newUserId,
               screen_id: sp.screenId,
@@ -125,15 +120,13 @@ export function useGestaoSplitsUserManagement() {
               can_update: sp.canUpdate,
               can_delete: sp.canDelete
             })));
-
           if (screenPermsError) throw screenPermsError;
         }
       }
 
-      // 5. Inserir permissões de cliente
       if (input.clientPermissions && input.clientPermissions.length > 0) {
         const { error: clientPermsError } = await supabase
-          .from('gestao_splits_client_permissions')
+          .from('sistema_tudobelo_client_permissions')
           .insert(input.clientPermissions.map(cp => ({
             user_id: newUserId,
             cliente_id: cp.clienteId,
@@ -141,14 +134,13 @@ export function useGestaoSplitsUserManagement() {
             can_view: cp.canView,
             can_transact: cp.canTransact
           })));
-
         if (clientPermsError) throw clientPermsError;
       }
 
       return newUserId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gestao-splits-users-management'] });
+      queryClient.invalidateQueries({ queryKey: ['sistema-tudobelo-users-management'] });
       toast({ title: 'Usuário criado', description: 'O usuário foi criado com sucesso.' });
     },
     onError: (error: any) => {
@@ -168,21 +160,21 @@ export function useGestaoSplitsUserManagement() {
       }
 
       if (input.roles) {
-        await supabase.from('gestao_splits_user_roles').delete().eq('user_id', userId);
+        await supabase.from('sistema_tudobelo_user_roles').delete().eq('user_id', userId);
         if (input.roles.length > 0) {
           const { error } = await supabase
-            .from('gestao_splits_user_roles')
+            .from('sistema_tudobelo_user_roles')
             .insert(input.roles.map(role => ({ user_id: userId, role })));
           if (error) throw error;
         }
       }
 
       if (input.screenPermissions) {
-        await supabase.from('gestao_splits_screen_permissions').delete().eq('user_id', userId);
+        await supabase.from('sistema_tudobelo_screen_permissions').delete().eq('user_id', userId);
         const valid = input.screenPermissions.filter(sp => sp.canView || sp.canCreate || sp.canUpdate || sp.canDelete);
         if (valid.length > 0) {
           const { error } = await supabase
-            .from('gestao_splits_screen_permissions')
+            .from('sistema_tudobelo_screen_permissions')
             .insert(valid.map(sp => ({
               user_id: userId, screen_id: sp.screenId,
               can_view: sp.canView, can_create: sp.canCreate,
@@ -193,10 +185,10 @@ export function useGestaoSplitsUserManagement() {
       }
 
       if (input.clientPermissions) {
-        await supabase.from('gestao_splits_client_permissions').delete().eq('user_id', userId);
+        await supabase.from('sistema_tudobelo_client_permissions').delete().eq('user_id', userId);
         if (input.clientPermissions.length > 0) {
           const { error } = await supabase
-            .from('gestao_splits_client_permissions')
+            .from('sistema_tudobelo_client_permissions')
             .insert(input.clientPermissions.map(cp => ({
               user_id: userId, cliente_id: cp.clienteId,
               credor_cedrus: cp.credorCedrus,
@@ -207,9 +199,9 @@ export function useGestaoSplitsUserManagement() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gestao-splits-users-management'] });
-      queryClient.invalidateQueries({ queryKey: ['gestao-splits-screen-permissions'] });
-      queryClient.invalidateQueries({ queryKey: ['gestao-splits-client-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['sistema-tudobelo-users-management'] });
+      queryClient.invalidateQueries({ queryKey: ['sistema-tudobelo-screen-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['sistema-tudobelo-client-permissions'] });
       toast({ title: 'Usuário atualizado', description: 'As permissões foram atualizadas com sucesso.' });
     },
     onError: (error: any) => {
@@ -217,24 +209,23 @@ export function useGestaoSplitsUserManagement() {
     }
   });
 
-  // Deletar usuário (apenas dados locais — sem Admin API, remove perfil/roles/permissões)
+  // Deletar usuário
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Remove dados nas tabelas (CASCADE deve limpar permissões se configurado)
-      const { error: rolesErr } = await supabase.from('gestao_splits_user_roles').delete().eq('user_id', userId);
+      const { error: rolesErr } = await supabase.from('sistema_tudobelo_user_roles').delete().eq('user_id', userId);
       if (rolesErr) throw rolesErr;
 
-      const { error: screenErr } = await supabase.from('gestao_splits_screen_permissions').delete().eq('user_id', userId);
+      const { error: screenErr } = await supabase.from('sistema_tudobelo_screen_permissions').delete().eq('user_id', userId);
       if (screenErr) throw screenErr;
 
-      const { error: clientErr } = await supabase.from('gestao_splits_client_permissions').delete().eq('user_id', userId);
+      const { error: clientErr } = await supabase.from('sistema_tudobelo_client_permissions').delete().eq('user_id', userId);
       if (clientErr) throw clientErr;
 
       const { error: profileErr } = await supabase.from('gestao_profiles_todos_sistemas').delete().eq('id', userId);
       if (profileErr) throw profileErr;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gestao-splits-users-management'] });
+      queryClient.invalidateQueries({ queryKey: ['sistema-tudobelo-users-management'] });
       toast({ title: 'Usuário removido', description: 'O usuário foi removido com sucesso.' });
     },
     onError: (error: any) => {
@@ -242,11 +233,9 @@ export function useGestaoSplitsUserManagement() {
     }
   });
 
-  // Alterar senha — sem Admin API, não é possível no frontend sem service role key
+  // Alterar senha
   const changePasswordMutation = useMutation({
     mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
-      // Criar cliente isolado, fazer login como o usuário não é possível sem a senha atual.
-      // Alternativa: usar resetPasswordForEmail para enviar email de reset
       throw new Error(
         'Alteração de senha direta não disponível sem Admin API. ' +
         'Use a opção de redefinir senha por email.'

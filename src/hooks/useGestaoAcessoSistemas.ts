@@ -51,8 +51,8 @@ export function useGestaoAcessoSistemas() {
       const result = await Promise.all(
         data.map(async (profile: any) => {
           const [{ data: emailData }, { data: rolesData }] = await Promise.all([
-            supabase.rpc('gestao_splits_get_user_email', { _user_id: profile.id }),
-            supabase.from('gestao_splits_user_roles').select('role').eq('user_id', profile.id),
+            supabase.rpc('sistema_tudobelo_get_user_email', { _user_id: profile.id }),
+            supabase.from('sistema_tudobelo_user_roles').select('role').eq('user_id', profile.id),
           ]);
 
           return {

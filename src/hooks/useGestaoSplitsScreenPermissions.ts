@@ -13,7 +13,7 @@ export function useGestaoSplitsScreenPermissions(userId?: string, screenSlug?: s
   const { isAdmin, isLoading: isLoadingAdmin } = useGestaoSplitsIsAdmin(userId);
 
   return useQuery<GestaoSplitsScreenPermissions>({
-    queryKey: ['gestao-splits-screen-permissions', userId, screenSlug],
+    queryKey: ['sistema-tudobelo-screen-permissions', userId, screenSlug],
     queryFn: async (): Promise<GestaoSplitsScreenPermissions> => {
       // Admin tem acesso total
       if (isAdmin) {

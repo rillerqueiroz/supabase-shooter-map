@@ -4,12 +4,12 @@ import { GestaoSplitsRole } from '@/types/gestaoSplitsPermissions';
 
 export function useGestaoSplitsUserRoles(userId?: string) {
   return useQuery({
-    queryKey: ['gestao-splits-user-roles', userId],
+    queryKey: ['sistema-tudobelo-user-roles', userId],
     queryFn: async () => {
       if (!userId) return [];
 
       const { data, error } = await supabase
-        .from('gestao_splits_user_roles')
+        .from('sistema_tudobelo_user_roles')
         .select('role')
         .eq('user_id', userId);
 

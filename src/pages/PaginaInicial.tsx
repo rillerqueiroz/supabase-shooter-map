@@ -37,7 +37,7 @@ export default function PaginaInicial() {
   });
 
   const { data: userPermissions = [], isLoading: isLoadingPerms } = useQuery({
-    queryKey: ['gestao-splits-user-screen-permissions', user?.id],
+    queryKey: ['sistema-tudobelo-user-screen-permissions', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
