@@ -24,7 +24,7 @@ export default function PaginaInicial() {
   const { isAdmin, isLoading: isLoadingAdmin } = useGestaoSplitsIsAdmin(user?.id);
 
   const { data: allScreens = [], isLoading: isLoadingScreens } = useQuery({
-    queryKey: ['gestao-splits-all-screens'],
+    queryKey: ['sistema-tudobelo-all-screens'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('gestao_splits_screens')
