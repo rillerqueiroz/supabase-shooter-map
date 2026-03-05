@@ -36,7 +36,7 @@ export function useGestaoSplitsScreenPermissions(userId?: string, screenSlug?: s
 
       // Buscar ID da tela pelo slug
       const { data: screenData, error: screenError } = await supabase
-        .from('gestao_splits_screens')
+        .from('sistema_tudobelo_screens')
         .select('id')
         .eq('slug', screenSlug)
         .maybeSingle();
