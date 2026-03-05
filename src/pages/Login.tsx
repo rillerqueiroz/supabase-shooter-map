@@ -58,13 +58,11 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="h-16 w-auto flex items-center justify-center bg-primary/10 rounded-lg px-4">
-              <span className="text-xl font-bold text-primary">Superávit Serviços</span>
-            </div>
+            <img src={logoSuperavit} alt="Superávit Serviços" className="h-16 w-auto" />
           </div>
           <CardTitle className="text-2xl">Acesso ao Sistema</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Sistema de Gestão de Disparos WhatsApp
+            Sistema de Gestão de Títulos Tudo Belo
           </p>
         </CardHeader>
         <CardContent>
