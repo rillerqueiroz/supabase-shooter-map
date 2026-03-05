@@ -13,7 +13,7 @@ export function useGestaoSplitsScreenPermissions(userId?: string, screenSlug?: s
   const { isAdmin, isLoading: isLoadingAdmin } = useGestaoSplitsIsAdmin(userId);
 
   return useQuery<GestaoSplitsScreenPermissions>({
-    queryKey: ['gestao-splits-screen-permissions', userId, screenSlug],
+    queryKey: ['sistema-tudobelo-screen-permissions', userId, screenSlug],
     queryFn: async (): Promise<GestaoSplitsScreenPermissions> => {
       // Admin tem acesso total
       if (isAdmin) {
@@ -36,7 +36,7 @@ export function useGestaoSplitsScreenPermissions(userId?: string, screenSlug?: s
 
       // Buscar ID da tela pelo slug
       const { data: screenData, error: screenError } = await supabase
-        .from('gestao_splits_screens')
+        .from('sistema_tudobelo_screens')
         .select('id')
         .eq('slug', screenSlug)
         .maybeSingle();
@@ -53,7 +53,7 @@ export function useGestaoSplitsScreenPermissions(userId?: string, screenSlug?: s
 
       // Buscar permissões do usuário para esta tela
       const { data: permissions, error: permError } = await supabase
-        .from('gestao_splits_screen_permissions')
+        .from('sistema_tudobelo_screen_permissions')
         .select('can_view, can_create, can_update, can_delete')
         .eq('user_id', userId)
         .eq('screen_id', screenData.id)

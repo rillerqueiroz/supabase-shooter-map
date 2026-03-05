@@ -24,10 +24,10 @@ export default function PaginaInicial() {
   const { isAdmin, isLoading: isLoadingAdmin } = useGestaoSplitsIsAdmin(user?.id);
 
   const { data: allScreens = [], isLoading: isLoadingScreens } = useQuery({
-    queryKey: ['gestao-splits-all-screens'],
+    queryKey: ['sistema-tudobelo-all-screens'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('gestao_splits_screens')
+        .from('sistema_tudobelo_screens')
         .select('id, slug, nome')
         .order('ordem', { ascending: true });
       
@@ -37,12 +37,12 @@ export default function PaginaInicial() {
   });
 
   const { data: userPermissions = [], isLoading: isLoadingPerms } = useQuery({
-    queryKey: ['gestao-splits-user-screen-permissions', user?.id],
+    queryKey: ['sistema-tudobelo-user-screen-permissions', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
       const { data, error } = await supabase
-        .from('gestao_splits_screen_permissions')
+        .from('sistema_tudobelo_screen_permissions')
         .select('screen_id, can_view')
         .eq('user_id', user.id)
         .eq('can_view', true);
