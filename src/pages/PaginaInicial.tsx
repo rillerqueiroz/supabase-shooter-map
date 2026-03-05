@@ -27,7 +27,7 @@ export default function PaginaInicial() {
     queryKey: ['sistema-tudobelo-all-screens'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('gestao_splits_screens')
+        .from('sistema_tudobelo_screens')
         .select('id, slug, nome')
         .order('ordem', { ascending: true });
       
