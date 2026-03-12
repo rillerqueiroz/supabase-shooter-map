@@ -72,10 +72,7 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
   const removerMutation = useRemoverNegativacao();
   const { data: negativacoesDatas } = useNegativacoesDatas();
 
-  const baseData = useMemo(() => {
-    if (showNaoPagos) return titulos;
-    return titulos.filter(t => t.status_titulo?.toLowerCase().includes('pago'));
-  }, [titulos, showNaoPagos]);
+  const baseData = titulos;
 
   const filtered = useMemo(() => {
     if (!search) return baseData;
