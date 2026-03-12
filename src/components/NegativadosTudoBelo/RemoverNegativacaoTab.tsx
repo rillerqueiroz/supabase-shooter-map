@@ -25,7 +25,7 @@ import { useRemoverNegativacao, MOTIVOS_REMOCAO, useNegativacoesDatas } from "@/
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { usePagination } from "@/hooks/usePagination";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
-import { Search, ChevronUp, ChevronDown, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, Loader2, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
