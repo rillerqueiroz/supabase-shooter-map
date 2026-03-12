@@ -162,14 +162,6 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
                 className="pl-10"
               />
             </div>
-            <Button
-              variant={showNaoPagos ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setShowNaoPagos(!showNaoPagos)}
-            >
-              {showNaoPagos ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-              {showNaoPagos ? "Ocultando não pagos" : "Exibir não pagos"}
-            </Button>
             {selectedIds.length > 0 && (
               <Button
                 size="sm"
