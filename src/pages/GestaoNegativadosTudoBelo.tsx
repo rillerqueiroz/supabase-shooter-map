@@ -142,7 +142,7 @@ export default function GestaoNegativadosTudoBelo() {
         </TabsContent>
 
         <TabsContent value="remover">
-          <RemoverNegativacaoTab titulos={negativadosData} isLoading={isLoading} />
+          <RemoverNegativacaoTab titulos={removerData} isLoading={isLoading} />
         </TabsContent>
 
         <TabsContent value="historico">
