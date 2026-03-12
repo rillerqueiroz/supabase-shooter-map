@@ -27,8 +27,11 @@ export default function GestaoNegativadosTudoBelo() {
 
   const removerData = useMemo(() =>
     (titulos || []).filter(t =>
-      t.negativado === true &&
-      t.status_titulo?.toLowerCase().includes('pago')
+      t.negativado === true && (
+        t.status_titulo?.toLowerCase().includes('pago') ||
+        t.status_titulo?.toLowerCase().includes('negociado') ||
+        ['N', 'P'].includes(t.status_cedrus || '')
+      )
     ),
     [titulos]
   );
@@ -139,7 +142,7 @@ export default function GestaoNegativadosTudoBelo() {
         </TabsContent>
 
         <TabsContent value="remover">
-          <RemoverNegativacaoTab titulos={negativadosData} isLoading={isLoading} />
+          <RemoverNegativacaoTab titulos={removerData} isLoading={isLoading} />
         </TabsContent>
 
         <TabsContent value="historico">

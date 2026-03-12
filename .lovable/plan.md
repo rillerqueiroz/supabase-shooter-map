@@ -1,43 +1,64 @@
 
 
-## Plano: Expandir critérios da aba "Remover Negativação" e destacar títulos por Status Cedrus
+# Renomear tabela de perfis e adicionar colunas por sistema
 
-### Mudanças
+## Objetivo
+Renomear `gestao_splits_profiles` para `gestao_profiles_todos_sistemas` e adicionar colunas booleanas para cada sistema, permitindo filtrar quais usuarios pertencem a qual sistema.
 
-**1. `src/pages/GestaoNegativadosTudoBelo.tsx`** — Atualizar o filtro `removerData`:
+## Etapas
 
-```ts
-const removerData = useMemo(() =>
-  (titulos || []).filter(t =>
-    t.negativado === true && (
-      t.status_titulo?.toLowerCase().includes('pago') ||
-      t.status_titulo?.toLowerCase().includes('negociado') ||
-      ['N', 'P'].includes(t.status_cedrus || '')
-    )
-  ),
-  [titulos]
-);
+### 1. Migration SQL
+Renomear a tabela e adicionar as 5 colunas de sistema:
+
+```sql
+ALTER TABLE gestao_splits_profiles RENAME TO gestao_profiles_todos_sistemas;
+
+ALTER TABLE gestao_profiles_todos_sistemas
+  ADD COLUMN sistema_tudobelo BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_gestao_repasses BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_antecipacoes BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_semear BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_gestao_splits BOOLEAN DEFAULT false,
+  ADD COLUMN sistema_testedisc BOOLEAN DEFAULT false;
 ```
 
-Passar `removerData` (e não `negativadosData`) para o `RemoverNegativacaoTab`:
-```tsx
-<RemoverNegativacaoTab titulos={removerData} isLoading={isLoading} />
+### 2. Marcar usuarios existentes
+Usuarios que ja possuem roles em `gestao_splits_user_roles` serao marcados como pertencentes ao sistema Tudo Belo (via insert tool, nao migration):
+
+```sql
+UPDATE gestao_profiles_todos_sistemas 
+SET sistema_tudobelo = true 
+WHERE id IN (SELECT DISTINCT user_id FROM gestao_splits_user_roles);
 ```
 
-Atualizar a métrica `pendentesRemocao` para usar `removerData.length` (já usa).
+### 3. Atualizar trigger de criacao de usuario
+Recriar o trigger `gestao_splits_handle_new_user` para inserir na nova tabela `gestao_profiles_todos_sistemas` em vez de `gestao_splits_profiles`.
 
-**2. `src/components/NegativadosTudoBelo/RemoverNegativacaoTab.tsx`**:
+### 4. Atualizar RLS policies
+Recriar as policies (select, update, insert, delete) apontando para `gestao_profiles_todos_sistemas`. O RENAME pode manter as policies, mas precisaremos verificar.
 
-- Adicionar coluna **"St. Cedrus"** na tabela (sortable header).
-- Na célula de cada linha, exibir o `status_cedrus`. Quando o título entrou na aba **por causa do status_cedrus** (N ou P) e não por status_titulo pago, destacar a linha com um banner/badge amarelo de alerta: **"⚠ Verifique se a negociação foi paga"**.
-- Lógica: se `status_cedrus` é "N" ou "P" e `status_titulo` **não** contém "pago", mostrar o destaque amarelo na linha (bg amarelo claro + tooltip/badge de aviso).
-- Atualizar o `colSpan` da linha vazia de 9 para 10.
+### 5. Atualizar codigo fonte
 
-### Resultado
+Arquivos afetados:
 
-Títulos aparecem na aba Remover Negativação se `negativado === true` **E** pelo menos um dos critérios:
-- `status_titulo` contém "pago" ou "negociado"
-- `status_cedrus` é "N" (Negociado) ou "P" (Pago)
+- **`src/hooks/useGestaoSplitsUserManagement.ts`** (4 referencias):
+  - Query de profiles: trocar tabela e adicionar `.eq('sistema_tudobelo', true)`
+  - Upsert ao criar usuario: trocar tabela e incluir `sistema_tudobelo: true`
+  - Update de nome: trocar tabela
+  - Delete de profile: trocar tabela
 
-Títulos que entraram apenas pelo critério de `status_cedrus` terão destaque visual amarelo pedindo conferência.
+- **`src/lib/supabase.ts`** (1 referencia):
+  - Atualizar comentario/docstring da funcao deprecated
+
+### 6. Grants
+Atualizar o GRANT para a nova tabela:
+```sql
+GRANT ALL ON gestao_profiles_todos_sistemas TO authenticated;
+```
+
+## Resultado esperado
+- Apenas usuarios com `sistema_tudobelo = true` aparecerao na gestao de usuarios deste sistema
+- Novos usuarios criados pelo sistema serao automaticamente marcados
+- Outros sistemas poderao usar suas respectivas colunas (`sistema_gestao_repasses`, etc.) para o mesmo fim
+- Nenhum impacto no `auth.users` compartilhado
 

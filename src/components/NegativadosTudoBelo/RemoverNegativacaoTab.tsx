@@ -214,38 +214,52 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
                       <SortableHeader column="saldo_parcela" label="Saldo" />
                       <SortableHeader column="data_vencimento" label="Vencimento" />
                       <SortableHeader column="status_titulo" label="Status" />
+                      <SortableHeader column="status_cedrus" label="St. Cedrus" />
                       <TableHead>Data Negativação</TableHead>
                       <TableHead>Negativado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedData.map((titulo) => (
-                      <TableRow key={titulo.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedTitulo(titulo); setDetailsOpen(true); }}>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedIds.includes(titulo.id)}
-                            onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
-                        <TableCell>{titulo.cnpj_cpf || "-"}</TableCell>
-                        <TableCell>{formatCurrency(titulo.saldo_parcela)}</TableCell>
-                        <TableCell>{formatDate(titulo.data_vencimento)}</TableCell>
-                        <TableCell>
-                          <Badge variant="default">{titulo.status_titulo || "-"}</Badge>
-                        </TableCell>
-                        <TableCell className="text-xs">{formatDateTime(negativacoesDatas?.[titulo.id] || null)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-500/30">
-                            Negativado
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {paginatedData.map((titulo) => {
+                      const needsCheck = ['N', 'P'].includes(titulo.status_cedrus || '') && !titulo.status_titulo?.toLowerCase().includes('pago');
+                      return (
+                        <TableRow key={titulo.id} className={`cursor-pointer hover:bg-muted/50 ${needsCheck ? 'bg-amber-50 dark:bg-amber-950/30' : ''}`} onClick={() => { setSelectedTitulo(titulo); setDetailsOpen(true); }}>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedIds.includes(titulo.id)}
+                              onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
+                          <TableCell>{titulo.cnpj_cpf || "-"}</TableCell>
+                          <TableCell>{formatCurrency(titulo.saldo_parcela)}</TableCell>
+                          <TableCell>{formatDate(titulo.data_vencimento)}</TableCell>
+                          <TableCell>
+                            <Badge variant="default">{titulo.status_titulo || "-"}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <span>{titulo.status_cedrus || "-"}</span>
+                              {needsCheck && (
+                                <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700 text-[10px] whitespace-nowrap">
+                                  ⚠ Verifique pagamento
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs">{formatDateTime(negativacoesDatas?.[titulo.id] || null)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-500/30">
+                              Negativado
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {paginatedData.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
                           Nenhum título negativado encontrado
                         </TableCell>
                       </TableRow>
