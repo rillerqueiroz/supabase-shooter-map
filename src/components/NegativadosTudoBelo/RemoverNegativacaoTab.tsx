@@ -65,7 +65,7 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
   const [motivo, setMotivo] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [showNaoPagos, setShowNaoPagos] = useState(false);
+  
   const [alertOpen, setAlertOpen] = useState(false);
   const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
