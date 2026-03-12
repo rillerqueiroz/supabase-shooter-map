@@ -214,6 +214,7 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
                       <SortableHeader column="saldo_parcela" label="Saldo" />
                       <SortableHeader column="data_vencimento" label="Vencimento" />
                       <SortableHeader column="status_titulo" label="Status" />
+                      <SortableHeader column="status_cedrus" label="St. Cedrus" />
                       <TableHead>Data Negativação</TableHead>
                       <TableHead>Negativado</TableHead>
                     </TableRow>
