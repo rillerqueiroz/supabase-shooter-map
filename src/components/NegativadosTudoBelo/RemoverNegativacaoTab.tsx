@@ -25,7 +25,7 @@ import { useRemoverNegativacao, MOTIVOS_REMOCAO, useNegativacoesDatas } from "@/
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { usePagination } from "@/hooks/usePagination";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
-import { Search, ChevronUp, ChevronDown, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, Loader2, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -65,17 +65,14 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
   const [motivo, setMotivo] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [showNaoPagos, setShowNaoPagos] = useState(false);
+  
   const [alertOpen, setAlertOpen] = useState(false);
   const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const removerMutation = useRemoverNegativacao();
   const { data: negativacoesDatas } = useNegativacoesDatas();
 
-  const baseData = useMemo(() => {
-    if (showNaoPagos) return titulos;
-    return titulos.filter(t => t.status_titulo?.toLowerCase().includes('pago'));
-  }, [titulos, showNaoPagos]);
+  const baseData = titulos;
 
   const filtered = useMemo(() => {
     if (!search) return baseData;
@@ -165,14 +162,6 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
                 className="pl-10"
               />
             </div>
-            <Button
-              variant={showNaoPagos ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setShowNaoPagos(!showNaoPagos)}
-            >
-              {showNaoPagos ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-              {showNaoPagos ? "Ocultando não pagos" : "Exibir não pagos"}
-            </Button>
             {selectedIds.length > 0 && (
               <Button
                 size="sm"
