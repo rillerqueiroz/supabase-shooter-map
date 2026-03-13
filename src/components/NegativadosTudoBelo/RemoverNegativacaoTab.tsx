@@ -157,7 +157,7 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por documento, parceiro ou CNPJ..."
+                placeholder="Buscar por documento, parceiro, CNPJ ou ID Cedrus..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
