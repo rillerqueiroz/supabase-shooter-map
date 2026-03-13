@@ -80,7 +80,8 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
     return baseData.filter(t =>
       t.documento?.toLowerCase().includes(s) ||
       t.nome_parceiro?.toLowerCase().includes(s) ||
-      t.cnpj_cpf?.toLowerCase().includes(s)
+      t.cnpj_cpf?.toLowerCase().includes(s) ||
+      t.id_titulo_cedrus?.toLowerCase().includes(s)
     );
   }, [baseData, search]);
 
