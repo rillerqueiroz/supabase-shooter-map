@@ -220,8 +220,13 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
                               onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
+                          <TableCell className="font-medium">
+                            <div>{titulo.documento || "-"}</div>
+                            <div className="text-[10px] text-muted-foreground">{titulo.id_titulo_cedrus || ""}</div>
+                          </TableCell>
+                          <TableCell className="max-w-[250px]">
+                            <span className="block truncate" title={titulo.nome_parceiro || ""}>{titulo.nome_parceiro || "-"}</span>
+                          </TableCell>
                           <TableCell>{titulo.cnpj_cpf || "-"}</TableCell>
                           <TableCell>{formatCurrency(titulo.saldo_parcela)}</TableCell>
                           <TableCell>{formatDate(titulo.data_vencimento)}</TableCell>
