@@ -80,7 +80,8 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
     return baseData.filter(t =>
       t.documento?.toLowerCase().includes(s) ||
       t.nome_parceiro?.toLowerCase().includes(s) ||
-      t.cnpj_cpf?.toLowerCase().includes(s)
+      t.cnpj_cpf?.toLowerCase().includes(s) ||
+      t.id_titulo_cedrus?.toLowerCase().includes(s)
     );
   }, [baseData, search]);
 
@@ -156,7 +157,7 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por documento, parceiro ou CNPJ..."
+                placeholder="Buscar por documento, parceiro, CNPJ ou ID Cedrus..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
@@ -219,8 +220,13 @@ export function RemoverNegativacaoTab({ titulos, isLoading }: RemoverNegativacao
                               onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
+                          <TableCell className="font-medium">
+                            <div>{titulo.documento || "-"}</div>
+                            <div className="text-[10px] text-muted-foreground">{titulo.id_titulo_cedrus || ""}</div>
+                          </TableCell>
+                          <TableCell className="max-w-[250px]">
+                            <span className="block truncate" title={titulo.nome_parceiro || ""}>{titulo.nome_parceiro || "-"}</span>
+                          </TableCell>
                           <TableCell>{titulo.cnpj_cpf || "-"}</TableCell>
                           <TableCell>{formatCurrency(titulo.saldo_parcela)}</TableCell>
                           <TableCell>{formatDate(titulo.data_vencimento)}</TableCell>
