@@ -103,7 +103,7 @@ export function useTitulosTudoBelo(filters?: TitulosFilters) {
         .order('data_vencimento', { ascending: false });
 
       if (filters?.search) {
-        query = query.or(`documento.ilike.%${filters.search}%,nome_parceiro.ilike.%${filters.search}%,cnpj_cpf.ilike.%${filters.search}%,fone1.ilike.%${filters.search}%,fone2.ilike.%${filters.search}%`);
+        query = query.or(`documento.ilike.%${filters.search}%,nome_parceiro.ilike.%${filters.search}%,cnpj_cpf.ilike.%${filters.search}%,fone1.ilike.%${filters.search}%,fone2.ilike.%${filters.search}%,id_titulo_cedrus.ilike.%${filters.search}%`);
       }
 
       if (filters?.nomesParceiros?.length) {
