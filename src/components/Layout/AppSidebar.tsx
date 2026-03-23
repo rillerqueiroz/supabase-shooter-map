@@ -1,4 +1,4 @@
-import { 
+import {
   AlertTriangle,
   Settings,
   LogOut,
@@ -6,6 +6,7 @@ import {
   BarChart3,
   ShieldCheck,
   Upload,
+  FlaskConical,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
@@ -30,6 +31,7 @@ const navigationItems = [
   { title: "Analytics Títulos", url: "/analytics-titulos-tudobelo", icon: BarChart3 },
   { title: "Negativados Tudo Belo", url: "/gestao-negativados-tudobelo", icon: AlertTriangle },
   { title: "Upload de Arquivos", url: "/upload-arquivos", icon: Upload },
+  { title: "Títulos Testes", url: "/gestao-titulos-testes", icon: FlaskConical },
   { title: "Acesso Sistemas", url: "/gestao-acesso-sistemas", icon: ShieldCheck },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ]
