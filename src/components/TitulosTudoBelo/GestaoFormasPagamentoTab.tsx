@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -20,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import {
   useTitulosFormasPagamento,
   useCreateFormaPagamento,
@@ -82,17 +84,11 @@ export function GestaoFormasPagamentoTab() {
     setEditingPrazoRecompra("");
   };
 
-  const handleUpdateCredor = async (forma: FormaPagamento, credor: string) => {
+  const handleToggleInsereNaBase = async (forma: FormaPagamento) => {
+    const newValue = forma.insere_na_base === true ? false : true;
     await updateMutation.mutateAsync({
       id: forma.id,
-      credor_cedrus: credor.trim() || null
-    });
-  };
-
-  const handleUpdatePrazoRecompra = async (forma: FormaPagamento, prazo: string) => {
-    await updateMutation.mutateAsync({
-      id: forma.id,
-      prazo_recompra: prazo ? parseInt(prazo) : null
+      insere_na_base: newValue,
     });
   };
 
@@ -108,6 +104,12 @@ export function GestaoFormasPagamentoTab() {
     } catch {
       return dateString;
     }
+  };
+
+  const getInsereNaBaseBadge = (value: boolean | null) => {
+    if (value === true) return <Badge className="bg-green-100 text-green-700 border-green-200">Sim</Badge>;
+    if (value === false) return <Badge variant="destructive">Não</Badge>;
+    return <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">Null</Badge>;
   };
 
   return (
@@ -153,7 +155,7 @@ export function GestaoFormasPagamentoTab() {
         </CardContent>
       </Card>
 
-      {/* Lista de formas de pagamento */}
+      {/* Lista */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Formas de Pagamento Cadastradas</CardTitle>
@@ -170,6 +172,7 @@ export function GestaoFormasPagamentoTab() {
                   <TableHead>Forma de Pagamento</TableHead>
                   <TableHead>Credor Cedrus</TableHead>
                   <TableHead className="w-[140px]">Prazo Recompra</TableHead>
+                  <TableHead className="w-[140px] text-center">Insere na Base</TableHead>
                   <TableHead>Criado em</TableHead>
                   <TableHead className="w-[120px] text-right">Ações</TableHead>
                 </TableRow>
@@ -198,13 +201,7 @@ export function GestaoFormasPagamentoTab() {
                           placeholder="Credor Cedrus..."
                         />
                       ) : (
-                        <Input
-                          value={forma.credor_cedrus || ""}
-                          onChange={(e) => handleUpdateCredor(forma, e.target.value)}
-                          onBlur={(e) => handleUpdateCredor(forma, e.target.value)}
-                          className="h-8 border-dashed"
-                          placeholder="Vincular credor..."
-                        />
+                        <span className="text-sm">{forma.credor_cedrus || <span className="text-muted-foreground">—</span>}</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -222,12 +219,30 @@ export function GestaoFormasPagamentoTab() {
                             placeholder="Dias"
                           />
                           <span className="text-sm text-muted-foreground">dias</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleSaveEdit}
-                            disabled={updateMutation.isPending}
-                          >
+                        </div>
+                      ) : (
+                        <span className="text-sm">
+                          {forma.prazo_recompra != null ? `${forma.prazo_recompra} dias` : <span className="text-muted-foreground">—</span>}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Switch
+                          checked={forma.insere_na_base === true}
+                          onCheckedChange={() => handleToggleInsereNaBase(forma)}
+                          disabled={updateMutation.isPending}
+                        />
+                        {getInsereNaBaseBadge(forma.insere_na_base)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {formatDate(forma.created_at)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {editingId === forma.id ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="sm" variant="ghost" onClick={handleSaveEdit} disabled={updateMutation.isPending}>
                             <Save className="h-4 w-4" />
                           </Button>
                           <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
@@ -235,32 +250,8 @@ export function GestaoFormasPagamentoTab() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            value={forma.prazo_recompra ?? ""}
-                            onChange={(e) => handleUpdatePrazoRecompra(forma, e.target.value)}
-                            onBlur={(e) => handleUpdatePrazoRecompra(forma, e.target.value)}
-                            className="h-8 w-20 border-dashed"
-                            placeholder="Dias"
-                          />
-                          {forma.prazo_recompra && (
-                            <span className="text-sm text-muted-foreground">dias</span>
-                          )}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(forma.created_at)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {editingId !== forma.id && (
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleStartEdit(forma)}
-                          >
+                          <Button size="sm" variant="ghost" onClick={() => handleStartEdit(forma)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
@@ -278,7 +269,7 @@ export function GestaoFormasPagamentoTab() {
                 ))}
                 {(!formasPagamento || formasPagamento.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       Nenhuma forma de pagamento cadastrada
                     </TableCell>
                   </TableRow>
