@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -29,7 +36,7 @@ import {
   useDeleteFormaPagamento,
   FormaPagamento,
 } from "@/hooks/useTitulosFormasPagamento";
-import { Plus, Pencil, Trash2, Loader2, Save, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Save, X, Search, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -47,6 +54,45 @@ export function GestaoFormasPagamentoTab() {
   const [editingCredor, setEditingCredor] = useState("");
   const [editingPrazoRecompra, setEditingPrazoRecompra] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<FormaPagamento | null>(null);
+
+  // Filtros
+  const [searchForma, setSearchForma] = useState("");
+  const [filterCredor, setFilterCredor] = useState<string>("todos");
+  const [filterInsereNaBase, setFilterInsereNaBase] = useState<string>("todos");
+  const [filterPrazoRecompra, setFilterPrazoRecompra] = useState<string>("todos");
+
+  // Opções dinâmicas de credores
+  const credorOptions = useMemo(() => {
+    if (!formasPagamento) return [];
+    const credores = [...new Set(formasPagamento.map(f => f.credor_cedrus).filter(Boolean))] as string[];
+    return credores.sort();
+  }, [formasPagamento]);
+
+  // Dados filtrados
+  const filteredData = useMemo(() => {
+    if (!formasPagamento) return [];
+    return formasPagamento.filter(f => {
+      if (searchForma && !f.forma_pagamento.toLowerCase().includes(searchForma.toLowerCase())) return false;
+      if (filterCredor === "com_credor" && !f.credor_cedrus) return false;
+      if (filterCredor === "sem_credor" && f.credor_cedrus) return false;
+      if (filterCredor !== "todos" && filterCredor !== "com_credor" && filterCredor !== "sem_credor" && f.credor_cedrus !== filterCredor) return false;
+      if (filterInsereNaBase === "sim" && f.insere_na_base !== true) return false;
+      if (filterInsereNaBase === "nao" && f.insere_na_base !== false) return false;
+      if (filterInsereNaBase === "null" && f.insere_na_base !== null) return false;
+      if (filterPrazoRecompra === "com_prazo" && f.prazo_recompra == null) return false;
+      if (filterPrazoRecompra === "sem_prazo" && f.prazo_recompra != null) return false;
+      return true;
+    });
+  }, [formasPagamento, searchForma, filterCredor, filterInsereNaBase, filterPrazoRecompra]);
+
+  const hasActiveFilters = searchForma || filterCredor !== "todos" || filterInsereNaBase !== "todos" || filterPrazoRecompra !== "todos";
+
+  const clearFilters = () => {
+    setSearchForma("");
+    setFilterCredor("todos");
+    setFilterInsereNaBase("todos");
+    setFilterPrazoRecompra("todos");
+  };
 
   const handleCreate = async () => {
     if (!novaForma.trim()) return;
