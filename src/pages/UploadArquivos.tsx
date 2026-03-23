@@ -523,7 +523,8 @@ export default function UploadArquivos() {
             <div>
               <p className="text-sm font-medium">{selectedFile?.name}</p>
               <p className="text-xs text-muted-foreground">
-                {analysis.totalRows} registros prontos para envio
+                {analysis.records.length} de {analysis.totalRows} registros serão enviados
+                {blockedTotal > 0 && ` (${blockedTotal} bloqueado(s))`}
               </p>
             </div>
           </div>
