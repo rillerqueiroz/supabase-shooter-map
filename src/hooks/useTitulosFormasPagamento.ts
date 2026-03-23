@@ -59,17 +59,20 @@ export function useUpdateFormaPagamento() {
       id, 
       forma_pagamento, 
       credor_cedrus,
-      prazo_recompra
+      prazo_recompra,
+      insere_na_base
     }: { 
       id: number; 
       forma_pagamento?: string; 
       credor_cedrus?: string | null;
       prazo_recompra?: number | null;
+      insere_na_base?: boolean | null;
     }) => {
       const updateData: Partial<FormaPagamento> = {};
       if (forma_pagamento !== undefined) updateData.forma_pagamento = forma_pagamento;
       if (credor_cedrus !== undefined) updateData.credor_cedrus = credor_cedrus;
       if (prazo_recompra !== undefined) updateData.prazo_recompra = prazo_recompra;
+      if (insere_na_base !== undefined) updateData.insere_na_base = insere_na_base;
 
       const { data, error } = await supabase
         .from("base_tudobelo_formas_pagamento")
