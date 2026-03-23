@@ -260,6 +260,7 @@ export default function UploadArquivos() {
 
   // Se a análise estiver ativa, mostra a tela de análise
   if (analysis) {
+    const fv = analysis.formaValidation;
     const warnings = [];
     if (analysis.unmatchedColumns.length > 0) {
       warnings.push(`${analysis.unmatchedColumns.length} coluna(s) na planilha não correspondem à tabela e serão ignoradas`);
@@ -270,6 +271,18 @@ export default function UploadArquivos() {
     for (const issue of analysis.requiredFieldIssues) {
       warnings.push(`Campo obrigatório "${issue.field}" está vazio em ${issue.emptyRows} linha(s)`);
     }
+    if (fv) {
+      for (const item of fv.blocked) {
+        warnings.push(`"${item.forma}" — insere_na_base = false → ${item.count} registro(s) bloqueado(s)`);
+      }
+      for (const item of fv.nullConfig) {
+        warnings.push(`"${item.forma}" — insere_na_base = null (não configurado) → ${item.count} registro(s)`);
+      }
+      for (const item of fv.notFound) {
+        warnings.push(`"${item.forma}" — forma de pagamento não cadastrada → ${item.count} registro(s)`);
+      }
+    }
+    const blockedTotal = fv ? fv.blocked.reduce((s, b) => s + b.count, 0) : 0;
 
     return (
       <div className="p-6 space-y-6">
