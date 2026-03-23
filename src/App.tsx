@@ -66,6 +66,7 @@ const App = () => {
               <Route path="/configuracoes" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/configuracoes')!}><Configuracoes /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/editar-usuario/:userId" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-usuarios')!}><EditarUsuario /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/gestao-usuarios" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-usuarios')!}><GestaoUsuarios /></ProtectedScreen></ProtectedRoute>} />
+              <Route path="/upload-arquivos" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/upload-arquivos')!}><UploadArquivos /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/gestao-acesso-sistemas" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-acesso-sistemas')!}><GestaoAcessoSistemas /></ProtectedScreen></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
