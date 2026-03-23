@@ -1,4 +1,4 @@
-import { 
+import {
   AlertTriangle,
   Settings,
   LogOut,
@@ -6,6 +6,7 @@ import {
   BarChart3,
   ShieldCheck,
   Upload,
+  FlaskConical,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
