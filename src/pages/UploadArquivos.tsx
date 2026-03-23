@@ -29,6 +29,19 @@ const EXPECTED_COLUMNS = [
 // Campos obrigatórios
 const REQUIRED_FIELDS = ["id", "nome_parceiro"];
 
+interface FormaPagamentoConfig {
+  forma_pagamento: string;
+  insere_na_base: boolean | null;
+}
+
+interface FormaPagamentoValidation {
+  blocked: { forma: string; count: number }[];
+  nullConfig: { forma: string; count: number }[];
+  notFound: { forma: string; count: number }[];
+  allowedCount: number;
+  totalWithForma: number;
+}
+
 interface AnalysisResult {
   totalRows: number;
   columns: string[];
@@ -39,9 +52,10 @@ interface AnalysisResult {
   requiredFieldIssues: { field: string; emptyRows: number }[];
   duplicateIds: number;
   records: Record<string, any>[];
+  formaValidation: FormaPagamentoValidation | null;
 }
 
-function analyzeData(rows: Record<string, any>[]): AnalysisResult {
+function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
   const matchedColumns = columns.filter(c => EXPECTED_COLUMNS.includes(c));
   const unmatchedColumns = columns.filter(c => !EXPECTED_COLUMNS.includes(c));
@@ -63,19 +77,65 @@ function analyzeData(rows: Record<string, any>[]): AnalysisResult {
   const ids = rows.map(r => r.id).filter(Boolean);
   const duplicateIds = ids.length - new Set(ids).size;
 
-  const records = rows.map((row, idx) => {
-    const id = row.id || `upload-${Date.now()}-${idx}`;
-    const record: Record<string, any> = { id: String(id) };
-    for (const col of EXPECTED_COLUMNS) {
-      if (col === "id") continue;
-      if (["inserido_cedrus", "negativado", "bloqueado"].includes(col)) {
-        record[col] = row[col] ?? false;
+  // Validação forma_pagamento vs insere_na_base
+  const configMap = new Map(formasConfig.map(f => [f.forma_pagamento, f.insere_na_base]));
+  const blockedMap: Record<string, number> = {};
+  const nullConfigMap: Record<string, number> = {};
+  const notFoundMap: Record<string, number> = {};
+  let allowedCount = 0;
+  let totalWithForma = 0;
+
+  for (const row of rows) {
+    const forma = row.forma_pagamento;
+    if (!forma || forma === "") continue;
+    totalWithForma++;
+
+    if (!configMap.has(forma)) {
+      notFoundMap[forma] = (notFoundMap[forma] || 0) + 1;
+    } else {
+      const val = configMap.get(forma);
+      if (val === null || val === undefined) {
+        nullConfigMap[forma] = (nullConfigMap[forma] || 0) + 1;
+      } else if (val === false) {
+        blockedMap[forma] = (blockedMap[forma] || 0) + 1;
       } else {
-        record[col] = row[col] ?? null;
+        allowedCount++;
       }
     }
-    return record;
-  });
+  }
+
+  const formaValidation: FormaPagamentoValidation = {
+    blocked: Object.entries(blockedMap).map(([forma, count]) => ({ forma, count })),
+    nullConfig: Object.entries(nullConfigMap).map(([forma, count]) => ({ forma, count })),
+    notFound: Object.entries(notFoundMap).map(([forma, count]) => ({ forma, count })),
+    allowedCount,
+    totalWithForma,
+  };
+
+  // Filtrar records: só incluir os que têm forma_pagamento permitida ou sem forma
+  const allowedFormas = new Set(
+    formasConfig.filter(f => f.insere_na_base === true).map(f => f.forma_pagamento)
+  );
+
+  const records = rows
+    .filter(row => {
+      const forma = row.forma_pagamento;
+      if (!forma || forma === "") return true; // sem forma → permite
+      return allowedFormas.has(forma);
+    })
+    .map((row, idx) => {
+      const id = row.id || `upload-${Date.now()}-${idx}`;
+      const record: Record<string, any> = { id: String(id) };
+      for (const col of EXPECTED_COLUMNS) {
+        if (col === "id") continue;
+        if (["inserido_cedrus", "negativado", "bloqueado"].includes(col)) {
+          record[col] = row[col] ?? false;
+        } else {
+          record[col] = row[col] ?? null;
+        }
+      }
+      return record;
+    });
 
   return {
     totalRows: rows.length,
@@ -87,6 +147,7 @@ function analyzeData(rows: Record<string, any>[]): AnalysisResult {
     requiredFieldIssues,
     duplicateIds,
     records,
+    formaValidation,
   };
 }
 
@@ -127,6 +188,13 @@ export default function UploadArquivos() {
     if (!selectedFile) return;
     setAnalyzing(true);
     try {
+      // Buscar config de formas de pagamento
+      const { data: formasConfig, error: formasError } = await supabase
+        .from("base_tudobelo_formas_pagamento")
+        .select("forma_pagamento, insere_na_base");
+
+      if (formasError) throw formasError;
+
       const data = await selectedFile.arrayBuffer();
       const workbook = XLSX.read(data);
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -138,7 +206,7 @@ export default function UploadArquivos() {
         return;
       }
 
-      const result = analyzeData(rows);
+      const result = analyzeData(rows, formasConfig || []);
       setAnalysis(result);
     } catch (err: any) {
       toast.error(`Erro ao analisar arquivo: ${err.message}`);
@@ -192,6 +260,7 @@ export default function UploadArquivos() {
 
   // Se a análise estiver ativa, mostra a tela de análise
   if (analysis) {
+    const fv = analysis.formaValidation;
     const warnings = [];
     if (analysis.unmatchedColumns.length > 0) {
       warnings.push(`${analysis.unmatchedColumns.length} coluna(s) na planilha não correspondem à tabela e serão ignoradas`);
@@ -202,6 +271,18 @@ export default function UploadArquivos() {
     for (const issue of analysis.requiredFieldIssues) {
       warnings.push(`Campo obrigatório "${issue.field}" está vazio em ${issue.emptyRows} linha(s)`);
     }
+    if (fv) {
+      for (const item of fv.blocked) {
+        warnings.push(`"${item.forma}" — insere_na_base = false → ${item.count} registro(s) bloqueado(s)`);
+      }
+      for (const item of fv.nullConfig) {
+        warnings.push(`"${item.forma}" — insere_na_base = null (não configurado) → ${item.count} registro(s)`);
+      }
+      for (const item of fv.notFound) {
+        warnings.push(`"${item.forma}" — forma de pagamento não cadastrada → ${item.count} registro(s)`);
+      }
+    }
+    const blockedTotal = fv ? fv.blocked.reduce((s, b) => s + b.count, 0) : 0;
 
     return (
       <div className="p-6 space-y-6">
@@ -278,6 +359,74 @@ export default function UploadArquivos() {
                   </li>
                 ))}
               </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Validação Forma de Pagamento */}
+        {fv && (fv.blocked.length > 0 || fv.nullConfig.length > 0 || fv.notFound.length > 0) && (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-destructive">
+                <XCircle className="h-4 w-4" />
+                Validação: Forma de Pagamento (insere_na_base)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Forma de Pagamento</TableHead>
+                      <TableHead className="text-center">Registros</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {fv.blocked.map(item => (
+                      <TableRow key={item.forma}>
+                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
+                        <TableCell className="text-center text-sm">{item.count}</TableCell>
+                        <TableCell>
+                          <Badge variant="destructive" className="text-xs">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Bloqueado (false)
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {fv.nullConfig.map(item => (
+                      <TableRow key={item.forma}>
+                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
+                        <TableCell className="text-center text-sm">{item.count}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Valor null
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {fv.notFound.map(item => (
+                      <TableRow key={item.forma}>
+                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
+                        <TableCell className="text-center text-sm">{item.count}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Não cadastrada
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {blockedTotal > 0 && (
+                <p className="text-xs text-destructive mt-3">
+                  {blockedTotal} registro(s) serão removidos do envio por terem forma de pagamento com insere_na_base = false.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
@@ -374,7 +523,8 @@ export default function UploadArquivos() {
             <div>
               <p className="text-sm font-medium">{selectedFile?.name}</p>
               <p className="text-xs text-muted-foreground">
-                {analysis.totalRows} registros prontos para envio
+                {analysis.records.length} de {analysis.totalRows} registros serão enviados
+                {blockedTotal > 0 && ` (${blockedTotal} bloqueado(s))`}
               </p>
             </div>
           </div>
