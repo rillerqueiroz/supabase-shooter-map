@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useTitulosInsercoes } from "@/hooks/useTitulosInsercoes";
-import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, FlaskConical } from "lucide-react";
+import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, FlaskConical, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send } from "lucide-react";
 import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,15 +13,95 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+// Colunas esperadas na tabela
+const EXPECTED_COLUMNS = [
+  "id", "documento", "tipo_documento", "serie_documento", "codigo_parceiro",
+  "nome_parceiro", "cnpj_cpf", "numero_parcela", "valor_parcela", "saldo_parcela",
+  "data_documento", "data_vencimento", "dias_atraso", "observacoes", "forma_pagamento",
+  "status_boleto", "filial", "vendedor", "uf_cobranca", "municipio_cobranca",
+  "inserido_cedrus", "id_titulo_cedrus", "credor_cedrus", "processado_internamente",
+  "status_titulo", "status_cedrus", "etapa", "tipo_titulo", "id_negociacao_cedrus",
+  "linha_digitavel", "data_pagamento", "valor_pago", "nome_fantasia", "fone1",
+  "fone2", "email", "endereco", "numero_endereco", "complemento", "bairro",
+  "cidade", "uf", "tipo_negocio", "cod_devedor_cedrus", "negativado", "bloqueado",
+];
+
+// Campos obrigatórios
+const REQUIRED_FIELDS = ["id", "nome_parceiro"];
+
+interface AnalysisResult {
+  totalRows: number;
+  columns: string[];
+  matchedColumns: string[];
+  unmatchedColumns: string[];
+  missingExpected: string[];
+  fieldStats: Record<string, { filled: number; empty: number; uniqueValues: number }>;
+  requiredFieldIssues: { field: string; emptyRows: number }[];
+  duplicateIds: number;
+  records: Record<string, any>[];
+}
+
+function analyzeData(rows: Record<string, any>[]): AnalysisResult {
+  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const matchedColumns = columns.filter(c => EXPECTED_COLUMNS.includes(c));
+  const unmatchedColumns = columns.filter(c => !EXPECTED_COLUMNS.includes(c));
+  const missingExpected = EXPECTED_COLUMNS.filter(c => !columns.includes(c));
+
+  const fieldStats: Record<string, { filled: number; empty: number; uniqueValues: number }> = {};
+  for (const col of columns) {
+    const values = rows.map(r => r[col]);
+    const filled = values.filter(v => v !== null && v !== undefined && v !== "").length;
+    const uniqueValues = new Set(values.filter(v => v !== null && v !== undefined && v !== "")).size;
+    fieldStats[col] = { filled, empty: rows.length - filled, uniqueValues };
+  }
+
+  const requiredFieldIssues = REQUIRED_FIELDS.map(field => {
+    const emptyRows = rows.filter(r => !r[field] || r[field] === "").length;
+    return { field, emptyRows };
+  }).filter(r => r.emptyRows > 0);
+
+  const ids = rows.map(r => r.id).filter(Boolean);
+  const duplicateIds = ids.length - new Set(ids).size;
+
+  const records = rows.map((row, idx) => {
+    const id = row.id || `upload-${Date.now()}-${idx}`;
+    const record: Record<string, any> = { id: String(id) };
+    for (const col of EXPECTED_COLUMNS) {
+      if (col === "id") continue;
+      if (["inserido_cedrus", "negativado", "bloqueado"].includes(col)) {
+        record[col] = row[col] ?? false;
+      } else {
+        record[col] = row[col] ?? null;
+      }
+    }
+    return record;
+  });
+
+  return {
+    totalRows: rows.length,
+    columns,
+    matchedColumns,
+    unmatchedColumns,
+    missingExpected,
+    fieldStats,
+    requiredFieldIssues,
+    duplicateIds,
+    records,
+  };
+}
+
 export default function UploadArquivos() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const { data: insercoes, isLoading } = useTitulosInsercoes();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setSelectedFile(file);
+    setAnalysis(null);
   };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -37,13 +117,15 @@ export default function UploadArquivos() {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files?.[0] || null;
-    if (file) setSelectedFile(file);
+    if (file) {
+      setSelectedFile(file);
+      setAnalysis(null);
+    }
   }, []);
 
-  const handleUpload = async () => {
+  const handleAnalyze = async () => {
     if (!selectedFile) return;
-    setUploading(true);
-
+    setAnalyzing(true);
     try {
       const data = await selectedFile.arrayBuffer();
       const workbook = XLSX.read(data);
@@ -52,68 +134,28 @@ export default function UploadArquivos() {
 
       if (!rows.length) {
         toast.error("A planilha está vazia.");
-        setUploading(false);
+        setAnalyzing(false);
         return;
       }
 
-      // Map spreadsheet columns to table columns
-      const records = rows.map((row, idx) => {
-        const id = row.id || `upload-${Date.now()}-${idx}`;
-        return {
-          id: String(id),
-          documento: row.documento ?? null,
-          tipo_documento: row.tipo_documento ?? null,
-          serie_documento: row.serie_documento ?? null,
-          codigo_parceiro: row.codigo_parceiro ?? null,
-          nome_parceiro: row.nome_parceiro ?? null,
-          cnpj_cpf: row.cnpj_cpf ?? null,
-          numero_parcela: row.numero_parcela ?? null,
-          valor_parcela: row.valor_parcela ?? null,
-          saldo_parcela: row.saldo_parcela ?? null,
-          data_documento: row.data_documento ?? null,
-          data_vencimento: row.data_vencimento ?? null,
-          dias_atraso: row.dias_atraso ?? null,
-          observacoes: row.observacoes ?? null,
-          forma_pagamento: row.forma_pagamento ?? null,
-          status_boleto: row.status_boleto ?? null,
-          filial: row.filial ?? null,
-          vendedor: row.vendedor ?? null,
-          uf_cobranca: row.uf_cobranca ?? null,
-          municipio_cobranca: row.municipio_cobranca ?? null,
-          inserido_cedrus: row.inserido_cedrus ?? false,
-          id_titulo_cedrus: row.id_titulo_cedrus ?? null,
-          credor_cedrus: row.credor_cedrus ?? null,
-          processado_internamente: row.processado_internamente ?? null,
-          status_titulo: row.status_titulo ?? null,
-          status_cedrus: row.status_cedrus ?? null,
-          etapa: row.etapa ?? null,
-          tipo_titulo: row.tipo_titulo ?? null,
-          id_negociacao_cedrus: row.id_negociacao_cedrus ?? null,
-          linha_digitavel: row.linha_digitavel ?? null,
-          data_pagamento: row.data_pagamento ?? null,
-          valor_pago: row.valor_pago ?? null,
-          nome_fantasia: row.nome_fantasia ?? null,
-          fone1: row.fone1 ?? null,
-          fone2: row.fone2 ?? null,
-          email: row.email ?? null,
-          endereco: row.endereco ?? null,
-          numero_endereco: row.numero_endereco ?? null,
-          complemento: row.complemento ?? null,
-          bairro: row.bairro ?? null,
-          cidade: row.cidade ?? null,
-          uf: row.uf ?? null,
-          tipo_negocio: row.tipo_negocio ?? null,
-          cod_devedor_cedrus: row.cod_devedor_cedrus ?? null,
-          negativado: row.negativado ?? false,
-          bloqueado: row.bloqueado ?? false,
-        };
-      });
+      const result = analyzeData(rows);
+      setAnalysis(result);
+    } catch (err: any) {
+      toast.error(`Erro ao analisar arquivo: ${err.message}`);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
-      // Insert in batches of 500
+  const handleUpload = async () => {
+    if (!analysis) return;
+    setUploading(true);
+
+    try {
       const batchSize = 500;
       let totalInserted = 0;
-      for (let i = 0; i < records.length; i += batchSize) {
-        const batch = records.slice(i, i + batchSize);
+      for (let i = 0; i < analysis.records.length; i += batchSize) {
+        const batch = analysis.records.slice(i, i + batchSize);
         const { error } = await supabase
           .from("base_tudobelo_para_testes")
           .upsert(batch, { onConflict: "id" });
@@ -124,13 +166,21 @@ export default function UploadArquivos() {
 
       toast.success(`${totalInserted} registros inseridos na base de testes!`);
       setSelectedFile(null);
+      setAnalysis(null);
     } catch (err: any) {
       console.error("Erro no upload:", err);
-      toast.error(`Erro ao processar arquivo: ${err.message}`);
+      toast.error(`Erro ao enviar dados: ${err.message}`);
     } finally {
       setUploading(false);
     }
   };
+
+  const handleCancel = () => {
+    setAnalysis(null);
+    setSelectedFile(null);
+  };
+
+  const hasBlockingIssues = analysis ? analysis.requiredFieldIssues.some(r => r.field === "id" && r.emptyRows > 0) : false;
 
   const formatDateStr = (dateStr: string) => {
     try {
@@ -139,6 +189,213 @@ export default function UploadArquivos() {
       return dateStr;
     }
   };
+
+  // Se a análise estiver ativa, mostra a tela de análise
+  if (analysis) {
+    const warnings = [];
+    if (analysis.unmatchedColumns.length > 0) {
+      warnings.push(`${analysis.unmatchedColumns.length} coluna(s) na planilha não correspondem à tabela e serão ignoradas`);
+    }
+    if (analysis.duplicateIds > 0) {
+      warnings.push(`${analysis.duplicateIds} ID(s) duplicado(s) encontrado(s) — serão atualizados via upsert`);
+    }
+    for (const issue of analysis.requiredFieldIssues) {
+      warnings.push(`Campo obrigatório "${issue.field}" está vazio em ${issue.emptyRows} linha(s)`);
+    }
+
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <img src={logoSuperavit} alt="Superávit" className="h-10" />
+            <div>
+              <h1 className="text-2xl font-bold">Análise do Arquivo</h1>
+              <p className="text-muted-foreground text-sm">
+                Revise os dados antes de enviar para a base de testes
+              </p>
+            </div>
+          </div>
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 h-8 px-3">
+            <FlaskConical className="h-3.5 w-3.5 mr-1" />
+            AMBIENTE DE TESTES
+          </Badge>
+        </div>
+
+        {/* Resumo geral */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total de Linhas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analysis.totalRows.toLocaleString("pt-BR")}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Colunas Encontradas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analysis.columns.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Colunas Compatíveis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{analysis.matchedColumns.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Alertas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${warnings.length > 0 ? "text-amber-600" : "text-green-600"}`}>
+                {warnings.length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Alertas */}
+        {warnings.length > 0 && (
+          <Card className="border-amber-200 bg-amber-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-amber-800">
+                <AlertCircle className="h-4 w-4" />
+                Alertas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1">
+                {warnings.map((w, i) => (
+                  <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
+                    <span className="mt-0.5">⚠</span>
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Mapeamento de colunas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Mapeamento de Colunas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {analysis.matchedColumns.map(col => (
+                <div key={col} className="flex items-center gap-1.5 text-sm">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                  <span className="truncate">{col}</span>
+                </div>
+              ))}
+              {analysis.unmatchedColumns.map(col => (
+                <div key={col} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                  <span className="truncate line-through">{col}</span>
+                </div>
+              ))}
+            </div>
+            {analysis.missingExpected.length > 0 && (
+              <div className="mt-3 pt-3 border-t">
+                <p className="text-xs text-muted-foreground mb-1">Colunas da tabela ausentes na planilha (serão preenchidas como null):</p>
+                <p className="text-xs text-muted-foreground">{analysis.missingExpected.join(", ")}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Estatísticas por campo */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Preenchimento por Campo</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Campo</TableHead>
+                    <TableHead className="text-center">Preenchidos</TableHead>
+                    <TableHead className="text-center">Vazios</TableHead>
+                    <TableHead className="text-center">Valores Únicos</TableHead>
+                    <TableHead className="text-center">Preenchimento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {analysis.matchedColumns.map(col => {
+                    const stats = analysis.fieldStats[col];
+                    const pct = Math.round((stats.filled / analysis.totalRows) * 100);
+                    return (
+                      <TableRow key={col}>
+                        <TableCell className="text-sm font-medium">{col}</TableCell>
+                        <TableCell className="text-center text-sm">{stats.filled}</TableCell>
+                        <TableCell className="text-center text-sm">
+                          {stats.empty > 0 ? (
+                            <span className="text-amber-600">{stats.empty}</span>
+                          ) : (
+                            <span className="text-muted-foreground">0</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">{stats.uniqueValues}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              pct === 100
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : pct >= 50
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-red-50 text-red-700 border-red-200"
+                            }`}
+                          >
+                            {pct}%
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ações */}
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium">{selectedFile?.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {analysis.totalRows} registros prontos para envio
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleCancel}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Voltar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleUpload}
+              disabled={uploading || hasBlockingIssues}
+            >
+              <Send className="h-4 w-4 mr-1" />
+              {uploading ? "Enviando..." : "Confirmar e Enviar"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -208,11 +465,11 @@ export default function UploadArquivos() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => setSelectedFile(null)} variant="ghost">
+                <Button size="sm" onClick={() => { setSelectedFile(null); setAnalysis(null); }} variant="ghost">
                   Remover
                 </Button>
-                <Button size="sm" onClick={handleUpload} disabled={uploading}>
-                  {uploading ? "Enviando..." : "Enviar para Base de Testes"}
+                <Button size="sm" onClick={handleAnalyze} disabled={analyzing}>
+                  {analyzing ? "Analisando..." : "Analisar Arquivo"}
                 </Button>
               </div>
             </div>
