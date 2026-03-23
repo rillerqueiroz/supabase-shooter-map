@@ -55,7 +55,7 @@ interface AnalysisResult {
   formaValidation: FormaPagamentoValidation | null;
 }
 
-function analyzeData(rows: Record<string, any>[]): AnalysisResult {
+function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
   const matchedColumns = columns.filter(c => EXPECTED_COLUMNS.includes(c));
   const unmatchedColumns = columns.filter(c => !EXPECTED_COLUMNS.includes(c));
@@ -77,19 +77,65 @@ function analyzeData(rows: Record<string, any>[]): AnalysisResult {
   const ids = rows.map(r => r.id).filter(Boolean);
   const duplicateIds = ids.length - new Set(ids).size;
 
-  const records = rows.map((row, idx) => {
-    const id = row.id || `upload-${Date.now()}-${idx}`;
-    const record: Record<string, any> = { id: String(id) };
-    for (const col of EXPECTED_COLUMNS) {
-      if (col === "id") continue;
-      if (["inserido_cedrus", "negativado", "bloqueado"].includes(col)) {
-        record[col] = row[col] ?? false;
+  // Validação forma_pagamento vs insere_na_base
+  const configMap = new Map(formasConfig.map(f => [f.forma_pagamento, f.insere_na_base]));
+  const blockedMap: Record<string, number> = {};
+  const nullConfigMap: Record<string, number> = {};
+  const notFoundMap: Record<string, number> = {};
+  let allowedCount = 0;
+  let totalWithForma = 0;
+
+  for (const row of rows) {
+    const forma = row.forma_pagamento;
+    if (!forma || forma === "") continue;
+    totalWithForma++;
+
+    if (!configMap.has(forma)) {
+      notFoundMap[forma] = (notFoundMap[forma] || 0) + 1;
+    } else {
+      const val = configMap.get(forma);
+      if (val === null || val === undefined) {
+        nullConfigMap[forma] = (nullConfigMap[forma] || 0) + 1;
+      } else if (val === false) {
+        blockedMap[forma] = (blockedMap[forma] || 0) + 1;
       } else {
-        record[col] = row[col] ?? null;
+        allowedCount++;
       }
     }
-    return record;
-  });
+  }
+
+  const formaValidation: FormaPagamentoValidation = {
+    blocked: Object.entries(blockedMap).map(([forma, count]) => ({ forma, count })),
+    nullConfig: Object.entries(nullConfigMap).map(([forma, count]) => ({ forma, count })),
+    notFound: Object.entries(notFoundMap).map(([forma, count]) => ({ forma, count })),
+    allowedCount,
+    totalWithForma,
+  };
+
+  // Filtrar records: só incluir os que têm forma_pagamento permitida ou sem forma
+  const allowedFormas = new Set(
+    formasConfig.filter(f => f.insere_na_base === true).map(f => f.forma_pagamento)
+  );
+
+  const records = rows
+    .filter(row => {
+      const forma = row.forma_pagamento;
+      if (!forma || forma === "") return true; // sem forma → permite
+      return allowedFormas.has(forma);
+    })
+    .map((row, idx) => {
+      const id = row.id || `upload-${Date.now()}-${idx}`;
+      const record: Record<string, any> = { id: String(id) };
+      for (const col of EXPECTED_COLUMNS) {
+        if (col === "id") continue;
+        if (["inserido_cedrus", "negativado", "bloqueado"].includes(col)) {
+          record[col] = row[col] ?? false;
+        } else {
+          record[col] = row[col] ?? null;
+        }
+      }
+      return record;
+    });
 
   return {
     totalRows: rows.length,
@@ -101,6 +147,7 @@ function analyzeData(rows: Record<string, any>[]): AnalysisResult {
     requiredFieldIssues,
     duplicateIds,
     records,
+    formaValidation,
   };
 }
 
