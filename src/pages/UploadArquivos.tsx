@@ -496,7 +496,7 @@ export default function UploadArquivos() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analysis.filteredStats.totalOriginal.toLocaleString("pt-BR")}</div>
+              <div className="text-2xl font-bold">{(analysis.filteredStats?.totalOriginal ?? analysis.totalRows).toLocaleString("pt-BR")}</div>
             </CardContent>
           </Card>
           <Card>
@@ -536,7 +536,7 @@ export default function UploadArquivos() {
         </div>
 
         {/* Filtros aplicados */}
-        {(analysis.filteredStats.semDocumento > 0 || analysis.filteredStats.lancamentoContabil > 0 || analysis.filteredStats.saldoZero > 0) && (
+        {analysis.filteredStats && (analysis.filteredStats.semDocumento > 0 || analysis.filteredStats.lancamentoContabil > 0 || analysis.filteredStats.saldoZero > 0) && (
           <Card className="border-blue-200 bg-blue-50/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
