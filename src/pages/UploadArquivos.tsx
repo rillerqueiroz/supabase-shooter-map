@@ -203,29 +203,68 @@ interface AnalysisResult {
   filteredStats: FilteredStats;
 }
 
-function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
-  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
+  // --- Passo 1: Mapear e filtrar linhas ---
+  let semDocumento = 0;
+  let lancamentoContabil = 0;
+  let saldoZero = 0;
+  const mappedRows: Record<string, any>[] = [];
+
+  for (const raw of rawRows) {
+    // Verificar filtros antes do mapeamento para contagem
+    const excelDocumento = raw["Documento"] ?? raw["documento"];
+    const excelTipoDoc = raw["Tipo Documento"] ?? raw["tipo_documento"];
+    const excelSaldo = raw["Saldo Parcela"] ?? raw["saldo_parcela"];
+
+    if (!excelDocumento || String(excelDocumento).trim() === "") {
+      semDocumento++;
+      continue;
+    }
+    if (excelTipoDoc && String(excelTipoDoc).trim() === "Lançamento Contábil Manual") {
+      lancamentoContabil++;
+      continue;
+    }
+    const saldoNum = Number(excelSaldo);
+    if (isNaN(saldoNum) || saldoNum <= 0) {
+      saldoZero++;
+      continue;
+    }
+
+    const mapped = mapExcelRow(raw);
+    if (mapped) mappedRows.push(mapped);
+  }
+
+  const filteredStats: FilteredStats = {
+    totalOriginal: rawRows.length,
+    semDocumento,
+    lancamentoContabil,
+    saldoZero,
+    totalAposFiltro: mappedRows.length,
+  };
+
+  // --- Passo 2: Analisar dados mapeados ---
+  const columns = mappedRows.length > 0 ? Object.keys(mappedRows[0]) : [];
   const matchedColumns = columns.filter(c => EXPECTED_COLUMNS.includes(c));
   const unmatchedColumns = columns.filter(c => !EXPECTED_COLUMNS.includes(c));
   const missingExpected = EXPECTED_COLUMNS.filter(c => !columns.includes(c));
 
   const fieldStats: Record<string, { filled: number; empty: number; uniqueValues: number }> = {};
-  for (const col of columns) {
-    const values = rows.map(r => r[col]);
+  for (const col of matchedColumns) {
+    const values = mappedRows.map(r => r[col]);
     const filled = values.filter(v => v !== null && v !== undefined && v !== "").length;
     const uniqueValues = new Set(values.filter(v => v !== null && v !== undefined && v !== "")).size;
-    fieldStats[col] = { filled, empty: rows.length - filled, uniqueValues };
+    fieldStats[col] = { filled, empty: mappedRows.length - filled, uniqueValues };
   }
 
   const requiredFieldIssues = REQUIRED_FIELDS.map(field => {
-    const emptyRows = rows.filter(r => !r[field] || r[field] === "").length;
+    const emptyRows = mappedRows.filter(r => !r[field] || r[field] === "").length;
     return { field, emptyRows };
   }).filter(r => r.emptyRows > 0);
 
-  const ids = rows.map(r => r.id).filter(Boolean);
+  const ids = mappedRows.map(r => r.id).filter(Boolean);
   const duplicateIds = ids.length - new Set(ids).size;
 
-  // Validação forma_pagamento vs insere_na_base
+  // --- Passo 3: Validação forma_pagamento vs insere_na_base ---
   const configMap = new Map(formasConfig.map(f => [f.forma_pagamento, f.insere_na_base]));
   const blockedMap: Record<string, number> = {};
   const nullConfigMap: Record<string, number> = {};
@@ -233,7 +272,7 @@ function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoCo
   let allowedCount = 0;
   let totalWithForma = 0;
 
-  for (const row of rows) {
+  for (const row of mappedRows) {
     const forma = row.forma_pagamento;
     if (!forma || forma === "") continue;
     totalWithForma++;
@@ -260,22 +299,20 @@ function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoCo
     totalWithForma,
   };
 
-  // Filtrar records: só incluir os que têm forma_pagamento permitida ou sem forma
+  // --- Passo 4: Filtrar por forma_pagamento permitida ---
   const allowedFormas = new Set(
     formasConfig.filter(f => f.insere_na_base === true).map(f => f.forma_pagamento)
   );
 
-  const records = rows
+  const records = mappedRows
     .filter(row => {
       const forma = row.forma_pagamento;
-      if (!forma || forma === "") return true; // sem forma → permite
+      if (!forma || forma === "") return true;
       return allowedFormas.has(forma);
     })
-    .map((row, idx) => {
-      const id = row.id || `upload-${Date.now()}-${idx}`;
-      const record: Record<string, any> = { id: String(id) };
+    .map(row => {
+      const record: Record<string, any> = {};
       for (const col of EXPECTED_COLUMNS) {
-        if (col === "id") continue;
         if (["inserido_cedrus", "negativado", "bloqueado"].includes(col)) {
           record[col] = row[col] ?? false;
         } else {
@@ -286,7 +323,7 @@ function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoCo
     });
 
   return {
-    totalRows: rows.length,
+    totalRows: mappedRows.length,
     columns,
     matchedColumns,
     unmatchedColumns,
@@ -296,6 +333,7 @@ function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoCo
     duplicateIds,
     records,
     formaValidation,
+    filteredStats,
   };
 }
 
