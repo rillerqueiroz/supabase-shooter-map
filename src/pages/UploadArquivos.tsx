@@ -536,7 +536,7 @@ export default function UploadArquivos() {
         </div>
 
         {/* Filtros aplicados */}
-        {(analysis.filteredStats.semDocumento > 0 || analysis.filteredStats.lancamentoContabil > 0 || analysis.filteredStats.saldoZero > 0) && (
+        {analysis.filteredStats && (analysis.filteredStats.semDocumento > 0 || analysis.filteredStats.lancamentoContabil > 0 || analysis.filteredStats.saldoZero > 0) && (
           <Card className="border-blue-200 bg-blue-50/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
