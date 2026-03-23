@@ -188,6 +188,13 @@ export default function UploadArquivos() {
     if (!selectedFile) return;
     setAnalyzing(true);
     try {
+      // Buscar config de formas de pagamento
+      const { data: formasConfig, error: formasError } = await supabase
+        .from("base_tudobelo_formas_pagamento")
+        .select("forma_pagamento, insere_na_base");
+
+      if (formasError) throw formasError;
+
       const data = await selectedFile.arrayBuffer();
       const workbook = XLSX.read(data);
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -199,7 +206,7 @@ export default function UploadArquivos() {
         return;
       }
 
-      const result = analyzeData(rows);
+      const result = analyzeData(rows, formasConfig || []);
       setAnalysis(result);
     } catch (err: any) {
       toast.error(`Erro ao analisar arquivo: ${err.message}`);
