@@ -496,7 +496,7 @@ export default function UploadArquivos() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analysis.filteredStats.totalOriginal.toLocaleString("pt-BR")}</div>
+              <div className="text-2xl font-bold">{(analysis.filteredStats?.totalOriginal ?? analysis.totalRows).toLocaleString("pt-BR")}</div>
             </CardContent>
           </Card>
           <Card>
