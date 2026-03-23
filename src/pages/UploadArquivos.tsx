@@ -13,6 +13,58 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+// Mapeamento Excel → Supabase
+const COLUMN_MAP: Record<string, string> = {
+  "Documento": "documento",
+  "Tipo Documento": "tipo_documento",
+  "Série do Documento": "serie_documento",
+  "Serie do Documento": "serie_documento",
+  "Codigo PN": "codigo_parceiro",
+  "Código PN": "codigo_parceiro",
+  "Nome PN": "nome_parceiro",
+  "Nome Fantasia do Parceiro": "nome_fantasia",
+  "CNPJ/CPF": "cnpj_cpf",
+  "Nº Parcela": "numero_parcela",
+  "N° Parcela": "numero_parcela",
+  "No Parcela": "numero_parcela",
+  "Valor Parcela": "valor_parcela",
+  "Saldo Parcela": "saldo_parcela",
+  "Data Documento": "data_documento",
+  "Dt.Vencimento": "data_vencimento",
+  "Data Vencimento": "data_vencimento",
+  "Situação do Boleto": "status_boleto",
+  "Situacao do Boleto": "status_boleto",
+  "Forma de Pagamento": "forma_pagamento",
+  "Observações": "observacoes",
+  "Observacoes": "observacoes",
+  "Linha Digitavel": "linha_digitavel",
+  "Tipo Negocio": "tipo_negocio",
+  "Tipo Negócio": "tipo_negocio",
+  "Filial": "filial",
+  "Vendedor": "vendedor",
+  "UF Cobrança": "uf_cobranca",
+  "UF Cobranca": "uf_cobranca",
+  "Cidade Cobrança": "municipio_cobranca",
+  "Cidade Cobranca": "municipio_cobranca",
+  "Endereço": "endereco",
+  "Endereco": "endereco",
+  "Numero": "numero_endereco",
+  "Número": "numero_endereco",
+  "Complemento": "complemento",
+  "Bairro": "bairro",
+  "Cidade": "cidade",
+  "UF": "uf",
+  "FONE 1": "fone1",
+  "Fone 1": "fone1",
+  "FONE 2": "fone2",
+  "Fone 2": "fone2",
+  "E-mail": "email",
+  "Email": "email",
+};
+
+// Campos de data que podem vir como serial do Excel
+const DATE_FIELDS = ["data_documento", "data_vencimento"];
+
 // Colunas esperadas na tabela
 const EXPECTED_COLUMNS = [
   "id", "documento", "tipo_documento", "serie_documento", "codigo_parceiro",
@@ -28,6 +80,101 @@ const EXPECTED_COLUMNS = [
 
 // Campos obrigatórios
 const REQUIRED_FIELDS = ["id", "nome_parceiro"];
+
+/**
+ * Converte data serial do Excel para string yyyy-MM-dd.
+ * Se já for string de data, tenta parsear diretamente.
+ */
+function convertExcelDate(value: any): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  
+  // Se for número (serial do Excel)
+  if (typeof value === "number") {
+    // Excel serial: dias desde 1900-01-01 (com bug do leap year 1900)
+    const utcDays = Math.floor(value) - 25569; // 25569 = dias entre 1900-01-01 e 1970-01-01
+    const date = new Date(utcDays * 86400 * 1000);
+    if (isNaN(date.getTime())) return null;
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(date.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  // Se for string, tenta parsear
+  const str = String(value).trim();
+  // Formato dd/MM/yyyy
+  const brMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+  // Formato yyyy-MM-dd
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0, 10);
+  
+  return null;
+}
+
+/**
+ * Mapeia uma linha da planilha Excel para o formato do banco.
+ */
+function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
+  const mapped: Record<string, any> = {};
+
+  // Mapear colunas do Excel para colunas do banco
+  for (const [excelCol, dbCol] of Object.entries(COLUMN_MAP)) {
+    if (row[excelCol] !== undefined) {
+      mapped[dbCol] = row[excelCol];
+    }
+  }
+
+  // Também aceitar colunas que já estejam no formato do banco
+  for (const col of EXPECTED_COLUMNS) {
+    if (mapped[col] === undefined && row[col] !== undefined) {
+      mapped[col] = row[col];
+    }
+  }
+
+  // --- REGRAS DE FILTRO ---
+  const documento = mapped.documento;
+  if (!documento || String(documento).trim() === "") return null;
+
+  const tipoDoc = mapped.tipo_documento;
+  if (tipoDoc && String(tipoDoc).trim() === "Lançamento Contábil Manual") return null;
+
+  const saldo = Number(mapped.saldo_parcela);
+  if (isNaN(saldo) || saldo <= 0) return null;
+
+  // --- CAMPOS CALCULADOS ---
+  // id = Documento + "-" + Nº Parcela
+  const parcela = mapped.numero_parcela ?? "1";
+  mapped.id = `${String(documento).trim()}-${String(parcela).trim()}`;
+
+  // Converter datas seriais do Excel
+  for (const dateField of DATE_FIELDS) {
+    if (mapped[dateField] !== undefined) {
+      mapped[dateField] = convertExcelDate(mapped[dateField]);
+    }
+  }
+
+  // status_titulo calculado
+  const vencStr = mapped.data_vencimento;
+  if (vencStr) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const venc = new Date(vencStr + "T00:00:00");
+    mapped.status_titulo = venc >= today ? "A vencer" : "Vencido";
+  }
+
+  // inserido_cedrus sempre false
+  mapped.inserido_cedrus = false;
+
+  return mapped;
+}
+
+interface FilteredStats {
+  totalOriginal: number;
+  semDocumento: number;
+  lancamentoContabil: number;
+  saldoZero: number;
+  totalAposFiltro: number;
+}
 
 interface FormaPagamentoConfig {
   forma_pagamento: string;
@@ -53,31 +200,71 @@ interface AnalysisResult {
   duplicateIds: number;
   records: Record<string, any>[];
   formaValidation: FormaPagamentoValidation | null;
+  filteredStats: FilteredStats;
 }
 
-function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
-  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
+  // --- Passo 1: Mapear e filtrar linhas ---
+  let semDocumento = 0;
+  let lancamentoContabil = 0;
+  let saldoZero = 0;
+  const mappedRows: Record<string, any>[] = [];
+
+  for (const raw of rawRows) {
+    // Verificar filtros antes do mapeamento para contagem
+    const excelDocumento = raw["Documento"] ?? raw["documento"];
+    const excelTipoDoc = raw["Tipo Documento"] ?? raw["tipo_documento"];
+    const excelSaldo = raw["Saldo Parcela"] ?? raw["saldo_parcela"];
+
+    if (!excelDocumento || String(excelDocumento).trim() === "") {
+      semDocumento++;
+      continue;
+    }
+    if (excelTipoDoc && String(excelTipoDoc).trim() === "Lançamento Contábil Manual") {
+      lancamentoContabil++;
+      continue;
+    }
+    const saldoNum = Number(excelSaldo);
+    if (isNaN(saldoNum) || saldoNum <= 0) {
+      saldoZero++;
+      continue;
+    }
+
+    const mapped = mapExcelRow(raw);
+    if (mapped) mappedRows.push(mapped);
+  }
+
+  const filteredStats: FilteredStats = {
+    totalOriginal: rawRows.length,
+    semDocumento,
+    lancamentoContabil,
+    saldoZero,
+    totalAposFiltro: mappedRows.length,
+  };
+
+  // --- Passo 2: Analisar dados mapeados ---
+  const columns = mappedRows.length > 0 ? Object.keys(mappedRows[0]) : [];
   const matchedColumns = columns.filter(c => EXPECTED_COLUMNS.includes(c));
   const unmatchedColumns = columns.filter(c => !EXPECTED_COLUMNS.includes(c));
   const missingExpected = EXPECTED_COLUMNS.filter(c => !columns.includes(c));
 
   const fieldStats: Record<string, { filled: number; empty: number; uniqueValues: number }> = {};
-  for (const col of columns) {
-    const values = rows.map(r => r[col]);
+  for (const col of matchedColumns) {
+    const values = mappedRows.map(r => r[col]);
     const filled = values.filter(v => v !== null && v !== undefined && v !== "").length;
     const uniqueValues = new Set(values.filter(v => v !== null && v !== undefined && v !== "")).size;
-    fieldStats[col] = { filled, empty: rows.length - filled, uniqueValues };
+    fieldStats[col] = { filled, empty: mappedRows.length - filled, uniqueValues };
   }
 
   const requiredFieldIssues = REQUIRED_FIELDS.map(field => {
-    const emptyRows = rows.filter(r => !r[field] || r[field] === "").length;
+    const emptyRows = mappedRows.filter(r => !r[field] || r[field] === "").length;
     return { field, emptyRows };
   }).filter(r => r.emptyRows > 0);
 
-  const ids = rows.map(r => r.id).filter(Boolean);
+  const ids = mappedRows.map(r => r.id).filter(Boolean);
   const duplicateIds = ids.length - new Set(ids).size;
 
-  // Validação forma_pagamento vs insere_na_base
+  // --- Passo 3: Validação forma_pagamento vs insere_na_base ---
   const configMap = new Map(formasConfig.map(f => [f.forma_pagamento, f.insere_na_base]));
   const blockedMap: Record<string, number> = {};
   const nullConfigMap: Record<string, number> = {};
@@ -85,7 +272,7 @@ function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoCo
   let allowedCount = 0;
   let totalWithForma = 0;
 
-  for (const row of rows) {
+  for (const row of mappedRows) {
     const forma = row.forma_pagamento;
     if (!forma || forma === "") continue;
     totalWithForma++;
@@ -112,22 +299,20 @@ function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoCo
     totalWithForma,
   };
 
-  // Filtrar records: só incluir os que têm forma_pagamento permitida ou sem forma
+  // --- Passo 4: Filtrar por forma_pagamento permitida ---
   const allowedFormas = new Set(
     formasConfig.filter(f => f.insere_na_base === true).map(f => f.forma_pagamento)
   );
 
-  const records = rows
+  const records = mappedRows
     .filter(row => {
       const forma = row.forma_pagamento;
-      if (!forma || forma === "") return true; // sem forma → permite
+      if (!forma || forma === "") return true;
       return allowedFormas.has(forma);
     })
-    .map((row, idx) => {
-      const id = row.id || `upload-${Date.now()}-${idx}`;
-      const record: Record<string, any> = { id: String(id) };
+    .map(row => {
+      const record: Record<string, any> = {};
       for (const col of EXPECTED_COLUMNS) {
-        if (col === "id") continue;
         if (["inserido_cedrus", "negativado", "bloqueado"].includes(col)) {
           record[col] = row[col] ?? false;
         } else {
@@ -138,7 +323,7 @@ function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoCo
     });
 
   return {
-    totalRows: rows.length,
+    totalRows: mappedRows.length,
     columns,
     matchedColumns,
     unmatchedColumns,
@@ -148,6 +333,7 @@ function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoCo
     duplicateIds,
     records,
     formaValidation,
+    filteredStats,
   };
 }
 
@@ -304,29 +490,37 @@ export default function UploadArquivos() {
         </div>
 
         {/* Resumo geral */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total de Linhas</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analysis.totalRows.toLocaleString("pt-BR")}</div>
+              <div className="text-2xl font-bold">{analysis.filteredStats.totalOriginal.toLocaleString("pt-BR")}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Colunas Encontradas</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Após Filtros</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analysis.columns.length}</div>
+              <div className="text-2xl font-bold text-green-600">{analysis.totalRows.toLocaleString("pt-BR")}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Colunas Compatíveis</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Colunas Mapeadas</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{analysis.matchedColumns.length}</div>
+              <div className="text-2xl font-bold">{analysis.matchedColumns.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">A Enviar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{analysis.records.length.toLocaleString("pt-BR")}</div>
             </CardContent>
           </Card>
           <Card>
@@ -340,6 +534,43 @@ export default function UploadArquivos() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Filtros aplicados */}
+        {(analysis.filteredStats.semDocumento > 0 || analysis.filteredStats.lancamentoContabil > 0 || analysis.filteredStats.saldoZero > 0) && (
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
+                <FileText className="h-4 w-4" />
+                Filtros de Validação Aplicados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {analysis.filteredStats.semDocumento > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    <span><strong>{analysis.filteredStats.semDocumento}</strong> sem documento (removidos)</span>
+                  </div>
+                )}
+                {analysis.filteredStats.lancamentoContabil > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    <span><strong>{analysis.filteredStats.lancamentoContabil}</strong> Lançamento Contábil Manual (removidos)</span>
+                  </div>
+                )}
+                {analysis.filteredStats.saldoZero > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    <span><strong>{analysis.filteredStats.saldoZero}</strong> com saldo ≤ 0 (removidos)</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-blue-600 mt-2">
+                Total removido: {analysis.filteredStats.totalOriginal - analysis.filteredStats.totalAposFiltro} de {analysis.filteredStats.totalOriginal} linhas
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Alertas */}
         {warnings.length > 0 && (
