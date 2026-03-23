@@ -201,6 +201,88 @@ export function GestaoFormasPagamentoTab() {
         </CardContent>
       </Card>
 
+      {/* Filtros */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros
+            </CardTitle>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="h-4 w-4 mr-1" />
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Forma de Pagamento</label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar..."
+                  value={searchForma}
+                  onChange={(e) => setSearchForma(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Credor Cedrus</label>
+              <Select value={filterCredor} onValueChange={setFilterCredor}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="com_credor">Com credor</SelectItem>
+                  <SelectItem value="sem_credor">Sem credor</SelectItem>
+                  {credorOptions.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Insere na Base</label>
+              <Select value={filterInsereNaBase} onValueChange={setFilterInsereNaBase}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="sim">Sim (true)</SelectItem>
+                  <SelectItem value="nao">Não (false)</SelectItem>
+                  <SelectItem value="null">Não configurado (null)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Prazo Recompra</label>
+              <Select value={filterPrazoRecompra} onValueChange={setFilterPrazoRecompra}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="com_prazo">Com prazo</SelectItem>
+                  <SelectItem value="sem_prazo">Sem prazo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {hasActiveFilters && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Exibindo {filteredData.length} de {formasPagamento?.length ?? 0} registros
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Lista */}
       <Card>
         <CardHeader>
