@@ -200,6 +200,7 @@ interface AnalysisResult {
   duplicateIds: number;
   records: Record<string, any>[];
   formaValidation: FormaPagamentoValidation | null;
+  filteredStats: FilteredStats;
 }
 
 function analyzeData(rows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
