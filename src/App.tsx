@@ -17,6 +17,7 @@ import GestaoTitulosTudoBelo from "./pages/GestaoTitulosTudoBelo";
 import AnalyticsTitulosTudoBelo from "./pages/AnalyticsTitulosTudoBelo";
 import GestaoNegativadosTudoBelo from "./pages/GestaoNegativadosTudoBelo";
 import GestaoAcessoSistemas from "./pages/GestaoAcessoSistemas";
+import UploadArquivos from "./pages/UploadArquivos";
 
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
