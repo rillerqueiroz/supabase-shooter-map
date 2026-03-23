@@ -490,29 +490,37 @@ export default function UploadArquivos() {
         </div>
 
         {/* Resumo geral */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total de Linhas</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analysis.totalRows.toLocaleString("pt-BR")}</div>
+              <div className="text-2xl font-bold">{analysis.filteredStats.totalOriginal.toLocaleString("pt-BR")}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Colunas Encontradas</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Após Filtros</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analysis.columns.length}</div>
+              <div className="text-2xl font-bold text-green-600">{analysis.totalRows.toLocaleString("pt-BR")}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Colunas Compatíveis</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Colunas Mapeadas</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{analysis.matchedColumns.length}</div>
+              <div className="text-2xl font-bold">{analysis.matchedColumns.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">A Enviar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{analysis.records.length.toLocaleString("pt-BR")}</div>
             </CardContent>
           </Card>
           <Card>
@@ -526,6 +534,43 @@ export default function UploadArquivos() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Filtros aplicados */}
+        {(analysis.filteredStats.semDocumento > 0 || analysis.filteredStats.lancamentoContabil > 0 || analysis.filteredStats.saldoZero > 0) && (
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
+                <FileText className="h-4 w-4" />
+                Filtros de Validação Aplicados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {analysis.filteredStats.semDocumento > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    <span><strong>{analysis.filteredStats.semDocumento}</strong> sem documento (removidos)</span>
+                  </div>
+                )}
+                {analysis.filteredStats.lancamentoContabil > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    <span><strong>{analysis.filteredStats.lancamentoContabil}</strong> Lançamento Contábil Manual (removidos)</span>
+                  </div>
+                )}
+                {analysis.filteredStats.saldoZero > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    <span><strong>{analysis.filteredStats.saldoZero}</strong> com saldo ≤ 0 (removidos)</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-blue-600 mt-2">
+                Total removido: {analysis.filteredStats.totalOriginal - analysis.filteredStats.totalAposFiltro} de {analysis.filteredStats.totalOriginal} linhas
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Alertas */}
         {warnings.length > 0 && (
