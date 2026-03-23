@@ -363,6 +363,74 @@ export default function UploadArquivos() {
           </Card>
         )}
 
+        {/* Validação Forma de Pagamento */}
+        {fv && (fv.blocked.length > 0 || fv.nullConfig.length > 0 || fv.notFound.length > 0) && (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-destructive">
+                <XCircle className="h-4 w-4" />
+                Validação: Forma de Pagamento (insere_na_base)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Forma de Pagamento</TableHead>
+                      <TableHead className="text-center">Registros</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {fv.blocked.map(item => (
+                      <TableRow key={item.forma}>
+                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
+                        <TableCell className="text-center text-sm">{item.count}</TableCell>
+                        <TableCell>
+                          <Badge variant="destructive" className="text-xs">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Bloqueado (false)
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {fv.nullConfig.map(item => (
+                      <TableRow key={item.forma}>
+                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
+                        <TableCell className="text-center text-sm">{item.count}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Valor null
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {fv.notFound.map(item => (
+                      <TableRow key={item.forma}>
+                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
+                        <TableCell className="text-center text-sm">{item.count}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Não cadastrada
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {blockedTotal > 0 && (
+                <p className="text-xs text-destructive mt-3">
+                  {blockedTotal} registro(s) serão removidos do envio por terem forma de pagamento com insere_na_base = false.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Mapeamento de colunas */}
         <Card>
           <CardHeader>
