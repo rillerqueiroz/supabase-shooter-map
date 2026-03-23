@@ -13,6 +13,58 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+// Mapeamento Excel → Supabase
+const COLUMN_MAP: Record<string, string> = {
+  "Documento": "documento",
+  "Tipo Documento": "tipo_documento",
+  "Série do Documento": "serie_documento",
+  "Serie do Documento": "serie_documento",
+  "Codigo PN": "codigo_parceiro",
+  "Código PN": "codigo_parceiro",
+  "Nome PN": "nome_parceiro",
+  "Nome Fantasia do Parceiro": "nome_fantasia",
+  "CNPJ/CPF": "cnpj_cpf",
+  "Nº Parcela": "numero_parcela",
+  "N° Parcela": "numero_parcela",
+  "No Parcela": "numero_parcela",
+  "Valor Parcela": "valor_parcela",
+  "Saldo Parcela": "saldo_parcela",
+  "Data Documento": "data_documento",
+  "Dt.Vencimento": "data_vencimento",
+  "Data Vencimento": "data_vencimento",
+  "Situação do Boleto": "status_boleto",
+  "Situacao do Boleto": "status_boleto",
+  "Forma de Pagamento": "forma_pagamento",
+  "Observações": "observacoes",
+  "Observacoes": "observacoes",
+  "Linha Digitavel": "linha_digitavel",
+  "Tipo Negocio": "tipo_negocio",
+  "Tipo Negócio": "tipo_negocio",
+  "Filial": "filial",
+  "Vendedor": "vendedor",
+  "UF Cobrança": "uf_cobranca",
+  "UF Cobranca": "uf_cobranca",
+  "Cidade Cobrança": "municipio_cobranca",
+  "Cidade Cobranca": "municipio_cobranca",
+  "Endereço": "endereco",
+  "Endereco": "endereco",
+  "Numero": "numero_endereco",
+  "Número": "numero_endereco",
+  "Complemento": "complemento",
+  "Bairro": "bairro",
+  "Cidade": "cidade",
+  "UF": "uf",
+  "FONE 1": "fone1",
+  "Fone 1": "fone1",
+  "FONE 2": "fone2",
+  "Fone 2": "fone2",
+  "E-mail": "email",
+  "Email": "email",
+};
+
+// Campos de data que podem vir como serial do Excel
+const DATE_FIELDS = ["data_documento", "data_vencimento"];
+
 // Colunas esperadas na tabela
 const EXPECTED_COLUMNS = [
   "id", "documento", "tipo_documento", "serie_documento", "codigo_parceiro",
@@ -28,6 +80,101 @@ const EXPECTED_COLUMNS = [
 
 // Campos obrigatórios
 const REQUIRED_FIELDS = ["id", "nome_parceiro"];
+
+/**
+ * Converte data serial do Excel para string yyyy-MM-dd.
+ * Se já for string de data, tenta parsear diretamente.
+ */
+function convertExcelDate(value: any): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  
+  // Se for número (serial do Excel)
+  if (typeof value === "number") {
+    // Excel serial: dias desde 1900-01-01 (com bug do leap year 1900)
+    const utcDays = Math.floor(value) - 25569; // 25569 = dias entre 1900-01-01 e 1970-01-01
+    const date = new Date(utcDays * 86400 * 1000);
+    if (isNaN(date.getTime())) return null;
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(date.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  // Se for string, tenta parsear
+  const str = String(value).trim();
+  // Formato dd/MM/yyyy
+  const brMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+  // Formato yyyy-MM-dd
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0, 10);
+  
+  return null;
+}
+
+/**
+ * Mapeia uma linha da planilha Excel para o formato do banco.
+ */
+function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
+  const mapped: Record<string, any> = {};
+
+  // Mapear colunas do Excel para colunas do banco
+  for (const [excelCol, dbCol] of Object.entries(COLUMN_MAP)) {
+    if (row[excelCol] !== undefined) {
+      mapped[dbCol] = row[excelCol];
+    }
+  }
+
+  // Também aceitar colunas que já estejam no formato do banco
+  for (const col of EXPECTED_COLUMNS) {
+    if (mapped[col] === undefined && row[col] !== undefined) {
+      mapped[col] = row[col];
+    }
+  }
+
+  // --- REGRAS DE FILTRO ---
+  const documento = mapped.documento;
+  if (!documento || String(documento).trim() === "") return null;
+
+  const tipoDoc = mapped.tipo_documento;
+  if (tipoDoc && String(tipoDoc).trim() === "Lançamento Contábil Manual") return null;
+
+  const saldo = Number(mapped.saldo_parcela);
+  if (isNaN(saldo) || saldo <= 0) return null;
+
+  // --- CAMPOS CALCULADOS ---
+  // id = Documento + "-" + Nº Parcela
+  const parcela = mapped.numero_parcela ?? "1";
+  mapped.id = `${String(documento).trim()}-${String(parcela).trim()}`;
+
+  // Converter datas seriais do Excel
+  for (const dateField of DATE_FIELDS) {
+    if (mapped[dateField] !== undefined) {
+      mapped[dateField] = convertExcelDate(mapped[dateField]);
+    }
+  }
+
+  // status_titulo calculado
+  const vencStr = mapped.data_vencimento;
+  if (vencStr) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const venc = new Date(vencStr + "T00:00:00");
+    mapped.status_titulo = venc >= today ? "A vencer" : "Vencido";
+  }
+
+  // inserido_cedrus sempre false
+  mapped.inserido_cedrus = false;
+
+  return mapped;
+}
+
+interface FilteredStats {
+  totalOriginal: number;
+  semDocumento: number;
+  lancamentoContabil: number;
+  saldoZero: number;
+  totalAposFiltro: number;
+}
 
 interface FormaPagamentoConfig {
   forma_pagamento: string;
