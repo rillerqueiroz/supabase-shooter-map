@@ -29,6 +29,19 @@ const EXPECTED_COLUMNS = [
 // Campos obrigatórios
 const REQUIRED_FIELDS = ["id", "nome_parceiro"];
 
+interface FormaPagamentoConfig {
+  forma_pagamento: string;
+  insere_na_base: boolean | null;
+}
+
+interface FormaPagamentoValidation {
+  blocked: { forma: string; count: number }[];
+  nullConfig: { forma: string; count: number }[];
+  notFound: { forma: string; count: number }[];
+  allowedCount: number;
+  totalWithForma: number;
+}
+
 interface AnalysisResult {
   totalRows: number;
   columns: string[];
@@ -39,6 +52,7 @@ interface AnalysisResult {
   requiredFieldIssues: { field: string; emptyRows: number }[];
   duplicateIds: number;
   records: Record<string, any>[];
+  formaValidation: FormaPagamentoValidation | null;
 }
 
 function analyzeData(rows: Record<string, any>[]): AnalysisResult {
