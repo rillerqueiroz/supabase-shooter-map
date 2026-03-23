@@ -5,6 +5,7 @@ import {
   Receipt,
   BarChart3,
   ShieldCheck,
+  Upload,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
