@@ -29,6 +29,7 @@ const navigationItems = [
   { title: "Títulos Tudo Belo", url: "/gestao-titulos-tudobelo", icon: Receipt },
   { title: "Analytics Títulos", url: "/analytics-titulos-tudobelo", icon: BarChart3 },
   { title: "Negativados Tudo Belo", url: "/gestao-negativados-tudobelo", icon: AlertTriangle },
+  { title: "Upload de Arquivos", url: "/upload-arquivos", icon: Upload },
   { title: "Acesso Sistemas", url: "/gestao-acesso-sistemas", icon: ShieldCheck },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ]

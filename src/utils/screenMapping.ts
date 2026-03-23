@@ -6,6 +6,7 @@ export const routeToScreenSlug: Record<string, string> = {
   '/gestao-titulos-tudobelo': 'gestao-titulos-tudobelo',
   '/analytics-titulos-tudobelo': 'gestao-titulos-tudobelo',
   '/gestao-negativados-tudobelo': 'gestao-negativados-tudobelo',
+  '/upload-arquivos': 'upload-arquivos',
   '/gestao-acesso-sistemas': 'configuracoes',
 };
 
