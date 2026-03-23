@@ -306,7 +306,7 @@ export function GestaoFormasPagamentoTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {formasPagamento?.map((forma) => (
+                {filteredData.map((forma) => (
                   <TableRow key={forma.id}>
                     <TableCell>
                       {editingId === forma.id ? (
