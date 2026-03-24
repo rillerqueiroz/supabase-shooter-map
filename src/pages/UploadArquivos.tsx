@@ -153,13 +153,23 @@ function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
     }
   }
 
-  // status_titulo calculado
+  // status_titulo calculado com consideração de finais de semana
   const vencStr = mapped.data_vencimento;
   if (vencStr) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const venc = new Date(vencStr + "T00:00:00");
-    mapped.status_titulo = venc >= today ? "A vencer" : "Vencido";
+    if (venc >= today) {
+      mapped.status_titulo = "A vencer";
+    } else {
+      // Verificar se o vencimento caiu em um final de semana (0=dom, 6=sáb)
+      const dayOfWeek = venc.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        mapped.status_titulo = "Vencido em final de semana";
+      } else {
+        mapped.status_titulo = "Vencido";
+      }
+    }
   }
 
   // inserido_cedrus sempre false
@@ -189,6 +199,12 @@ interface FormaPagamentoValidation {
   totalWithForma: number;
 }
 
+interface StatusTituloComparison {
+  totalCompared: number;
+  totalDifferent: number;
+  details: { from: string; to: string; count: number }[];
+}
+
 interface AnalysisResult {
   totalRows: number;
   columns: string[];
@@ -201,6 +217,7 @@ interface AnalysisResult {
   records: Record<string, any>[];
   formaValidation: FormaPagamentoValidation | null;
   filteredStats: FilteredStats;
+  statusComparison: StatusTituloComparison | null;
 }
 
 function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
@@ -334,6 +351,7 @@ function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagament
     records,
     formaValidation,
     filteredStats,
+    statusComparison: null, // será preenchido após consulta ao banco
   };
 }
 
@@ -393,6 +411,52 @@ export default function UploadArquivos() {
       }
 
       const result = analyzeData(rows, formasConfig || []);
+
+      // Comparar status_titulo com o banco de dados
+      const recordIds = result.records.map(r => r.id).filter(Boolean);
+      if (recordIds.length > 0) {
+        // Buscar em lotes de 500
+        const dbRecords: Record<string, string | null> = {};
+        for (let i = 0; i < recordIds.length; i += 500) {
+          const batch = recordIds.slice(i, i + 500);
+          const { data: dbData } = await supabase
+            .from("base_tudobelo_para_testes")
+            .select("id, status_titulo")
+            .in("id", batch);
+          if (dbData) {
+            for (const row of dbData) {
+              dbRecords[row.id] = row.status_titulo;
+            }
+          }
+        }
+
+        // Comparar status calculado vs DB
+        const diffMap: Record<string, number> = {};
+        let totalCompared = 0;
+        let totalDifferent = 0;
+
+        for (const record of result.records) {
+          if (!record.id || !(record.id in dbRecords)) continue;
+          totalCompared++;
+          const dbStatus = dbRecords[record.id] || "Sem status";
+          const calcStatus = record.status_titulo || "Sem status";
+          if (dbStatus !== calcStatus) {
+            totalDifferent++;
+            const key = `${dbStatus} → ${calcStatus}`;
+            diffMap[key] = (diffMap[key] || 0) + 1;
+          }
+        }
+
+        result.statusComparison = {
+          totalCompared,
+          totalDifferent,
+          details: Object.entries(diffMap).map(([key, count]) => {
+            const [from, to] = key.split(" → ");
+            return { from, to, count };
+          }),
+        };
+      }
+
       setAnalysis(result);
     } catch (err: any) {
       toast.error(`Erro ao analisar arquivo: ${err.message}`);
@@ -594,70 +658,59 @@ export default function UploadArquivos() {
           </Card>
         )}
 
-        {/* Validação Forma de Pagamento */}
-        {fv && (fv.blocked.length > 0 || fv.nullConfig.length > 0 || fv.notFound.length > 0) && (
-          <Card className="border-destructive/30 bg-destructive/5">
+        {/* Validação: Status Título (comparativo com banco) */}
+        {analysis.statusComparison && analysis.statusComparison.totalCompared > 0 && (
+          <Card className="border-blue-200 bg-blue-50/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-destructive">
-                <XCircle className="h-4 w-4" />
-                Validação: Forma de Pagamento (insere_na_base)
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
+                <AlertCircle className="h-4 w-4" />
+                Validação: Status do Título (comparativo com banco de dados)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Forma de Pagamento</TableHead>
-                      <TableHead className="text-center">Registros</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fv.blocked.map(item => (
-                      <TableRow key={item.forma}>
-                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
-                        <TableCell className="text-center text-sm">{item.count}</TableCell>
-                        <TableCell>
-                          <Badge variant="destructive" className="text-xs">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Bloqueado (false)
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {fv.nullConfig.map(item => (
-                      <TableRow key={item.forma}>
-                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
-                        <TableCell className="text-center text-sm">{item.count}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Valor null
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {fv.notFound.map(item => (
-                      <TableRow key={item.forma}>
-                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
-                        <TableCell className="text-center text-sm">{item.count}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Não cadastrada
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="text-sm text-blue-700">
+                  <strong>{analysis.statusComparison.totalCompared}</strong> título(s) encontrado(s) no banco
+                </div>
+                <div className={`text-sm font-semibold ${analysis.statusComparison.totalDifferent > 0 ? "text-amber-700" : "text-green-700"}`}>
+                  {analysis.statusComparison.totalDifferent > 0
+                    ? `⚠ ${analysis.statusComparison.totalDifferent} título(s) com status diferente`
+                    : "✓ Todos os status estão consistentes"}
+                </div>
               </div>
-              {blockedTotal > 0 && (
-                <p className="text-xs text-destructive mt-3">
-                  {blockedTotal} registro(s) serão removidos do envio por terem forma de pagamento com insere_na_base = false.
-                </p>
+              {analysis.statusComparison.details.length > 0 && (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Status no Banco</TableHead>
+                        <TableHead>Status Calculado (planilha)</TableHead>
+                        <TableHead className="text-center">Quantidade</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {analysis.statusComparison.details.map((item, i) => (
+                        <TableRow key={i}>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {item.from}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                              {item.to}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center text-sm font-medium">{item.count}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
+              <p className="text-xs text-blue-600 mt-2">
+                O status é recalculado com base na data de vencimento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana".
+              </p>
             </CardContent>
           </Card>
         )}
