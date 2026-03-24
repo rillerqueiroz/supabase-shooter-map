@@ -396,7 +396,7 @@ export default function UploadArquivos() {
       // Buscar config de formas de pagamento
       const { data: formasConfig, error: formasError } = await supabase
         .from("base_tudobelo_formas_pagamento")
-        .select("forma_pagamento, insere_na_base");
+        .select("forma_pagamento, insere_na_base, prazo_liquidacao");
 
       if (formasError) throw formasError;
 
