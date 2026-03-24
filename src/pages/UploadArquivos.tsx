@@ -410,12 +410,13 @@ export default function UploadArquivos() {
     if (!selectedFile) return;
     setAnalyzing(true);
     try {
-      // Buscar config de formas de pagamento
-      const { data: formasConfig, error: formasError } = await supabase
-        .from("base_tudobelo_formas_pagamento")
-        .select("forma_pagamento, insere_na_base, prazo_liquidacao");
+      // Buscar config de formas de pagamento e etapas em paralelo
+      const [formasRes, etapasRes] = await Promise.all([
+        supabase.from("base_tudobelo_formas_pagamento").select("forma_pagamento, insere_na_base, prazo_liquidacao"),
+        supabase.from("base_tudobelo_etapas").select("etapa, ignorar"),
+      ]);
 
-      if (formasError) throw formasError;
+      if (formasRes.error) throw formasRes.error;
 
       const data = await selectedFile.arrayBuffer();
       const workbook = XLSX.read(data);
@@ -428,17 +429,25 @@ export default function UploadArquivos() {
         return;
       }
 
-      const result = analyzeData(rows, formasConfig || []);
+      const result = analyzeData(rows, formasRes.data || []);
 
-      // Comparar status_titulo com o banco de dados
+      // Build set of etapas to ignore
+      const etapasIgnorar = new Set(
+        (etapasRes.data || []).filter(e => e.ignorar === true).map(e => e.etapa)
+      );
+
+      // Fetch ALL DB records to compare (for etapa/bloqueado and somente-banco)
       const recordIds = result.records.map(r => r.id).filter(Boolean);
+      const allSpreadsheetIds = new Set(recordIds);
+      const dbRecordsMap: Record<string, Record<string, any>> = {};
+
+      // Fetch DB records that match spreadsheet
       if (recordIds.length > 0) {
-        const dbRecordsMap: Record<string, Record<string, any>> = {};
         for (let i = 0; i < recordIds.length; i += 500) {
           const batch = recordIds.slice(i, i + 500);
           const { data: dbData } = await supabase
             .from("base_tudobelo_para_testes")
-            .select("id, status_titulo, data_vencimento, forma_pagamento, nome_parceiro, saldo_parcela")
+            .select("id, status_titulo, data_vencimento, forma_pagamento, nome_parceiro, saldo_parcela, etapa, bloqueado")
             .in("id", batch);
           if (dbData) {
             for (const row of dbData) {
@@ -446,37 +455,98 @@ export default function UploadArquivos() {
             }
           }
         }
+      }
 
-        const diffMap: Record<string, { count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }> = {};
-        let totalCompared = 0;
-        let totalDifferent = 0;
+      // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
+      const { data: allDbIds } = await supabase
+        .from("base_tudobelo_para_testes")
+        .select("id, nome_parceiro, status_titulo, etapa, bloqueado")
+        .not("status_titulo", "in", '("Pago","Pago em dia","Pago via renegociação","Cancelado","Suspenso","Não se aplica")');
 
-        for (const record of result.records) {
-          if (!record.id || !(record.id in dbRecordsMap)) continue;
-          totalCompared++;
-          const dbRow = dbRecordsMap[record.id];
-          const dbStatus = dbRow.status_titulo || "Sem status";
-          const calcStatus = record.status_titulo || "Sem status";
-          if (dbStatus !== calcStatus) {
-            totalDifferent++;
-            const key = `${dbStatus} → ${calcStatus}`;
-            if (!diffMap[key]) diffMap[key] = { count: 0, records: [] };
-            diffMap[key].count++;
-            if (diffMap[key].records.length < 100) {
-              diffMap[key].records.push({ id: record.id, db: dbRow, calc: record });
-            }
+      const somenteBancoIds: string[] = [];
+      if (allDbIds) {
+        for (const dbRow of allDbIds) {
+          if (!allSpreadsheetIds.has(dbRow.id)) {
+            somenteBancoIds.push(dbRow.id);
           }
         }
-
-        result.statusComparison = {
-          totalCompared,
-          totalDifferent,
-          details: Object.entries(diffMap).map(([key, val]) => {
-            const [from, to] = key.split(" → ");
-            return { from, to, count: val.count, records: val.records };
-          }),
-        };
       }
+
+      // Etapa/bloqueado validation
+      const etapaIgnoradaMap: Record<string, { count: number; ids: string[] }> = {};
+      let bloqueadoCount = 0;
+      const bloqueadoIds: string[] = [];
+
+      // Check DB records for etapa ignorar and bloqueado
+      for (const record of result.records) {
+        if (!record.id) continue;
+        const dbRow = dbRecordsMap[record.id];
+        if (dbRow) {
+          // Check bloqueado
+          if (dbRow.bloqueado === true) {
+            bloqueadoCount++;
+            if (bloqueadoIds.length < 100) bloqueadoIds.push(record.id);
+          }
+          // Check etapa ignorar
+          if (dbRow.etapa && etapasIgnorar.has(dbRow.etapa)) {
+            if (!etapaIgnoradaMap[dbRow.etapa]) etapaIgnoradaMap[dbRow.etapa] = { count: 0, ids: [] };
+            etapaIgnoradaMap[dbRow.etapa].count++;
+            if (etapaIgnoradaMap[dbRow.etapa].ids.length < 50) etapaIgnoradaMap[dbRow.etapa].ids.push(record.id);
+          }
+        }
+      }
+
+      result.etapaBloqueadoValidation = {
+        etapaIgnoradaCount: Object.values(etapaIgnoradaMap).reduce((s, v) => s + v.count, 0),
+        etapaIgnoradaDetails: Object.entries(etapaIgnoradaMap).map(([etapa, v]) => ({ etapa, count: v.count, ids: v.ids })),
+        bloqueadoCount,
+        bloqueadoIds,
+        somenteBancoCount: somenteBancoIds.length,
+        somenteBancoIds: somenteBancoIds.slice(0, 100),
+      };
+
+      // Filter out records with etapa ignorar or bloqueado from DB
+      const blockedByEtapaOrBloqueado = new Set<string>();
+      for (const record of result.records) {
+        if (!record.id) continue;
+        const dbRow = dbRecordsMap[record.id];
+        if (dbRow) {
+          if (dbRow.bloqueado === true) blockedByEtapaOrBloqueado.add(record.id);
+          if (dbRow.etapa && etapasIgnorar.has(dbRow.etapa)) blockedByEtapaOrBloqueado.add(record.id);
+        }
+      }
+      result.records = result.records.filter(r => !blockedByEtapaOrBloqueado.has(r.id));
+
+      // Status comparison (after filtering)
+      const diffMap: Record<string, { count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }> = {};
+      let totalCompared = 0;
+      let totalDifferent = 0;
+
+      for (const record of result.records) {
+        if (!record.id || !(record.id in dbRecordsMap)) continue;
+        totalCompared++;
+        const dbRow = dbRecordsMap[record.id];
+        const dbStatus = dbRow.status_titulo || "Sem status";
+        const calcStatus = record.status_titulo || "Sem status";
+        if (dbStatus !== calcStatus) {
+          totalDifferent++;
+          const key = `${dbStatus} → ${calcStatus}`;
+          if (!diffMap[key]) diffMap[key] = { count: 0, records: [] };
+          diffMap[key].count++;
+          if (diffMap[key].records.length < 100) {
+            diffMap[key].records.push({ id: record.id, db: dbRow, calc: record });
+          }
+        }
+      }
+
+      result.statusComparison = {
+        totalCompared,
+        totalDifferent,
+        details: Object.entries(diffMap).map(([key, val]) => {
+          const [from, to] = key.split(" → ");
+          return { from, to, count: val.count, records: val.records };
+        }),
+      };
 
       setAnalysis(result);
     } catch (err: any) {
@@ -493,17 +563,57 @@ export default function UploadArquivos() {
     try {
       const batchSize = 500;
       let totalInserted = 0;
-      for (let i = 0; i < analysis.records.length; i += batchSize) {
-        const batch = analysis.records.slice(i, i + batchSize);
-        const { error } = await supabase
-          .from("base_tudobelo_para_testes")
-          .upsert(batch, { onConflict: "id" });
+      let totalUpdated = 0;
 
+      // Determine which records are new vs existing
+      const recordIds = analysis.records.map(r => r.id).filter(Boolean);
+      const existingIds = new Set<string>();
+      for (let i = 0; i < recordIds.length; i += 500) {
+        const batch = recordIds.slice(i, i + 500);
+        const { data: dbData } = await supabase
+          .from("base_tudobelo_para_testes")
+          .select("id")
+          .in("id", batch);
+        if (dbData) dbData.forEach(r => existingIds.add(r.id));
+      }
+
+      const newRecords = analysis.records.filter(r => !existingIds.has(r.id));
+      const updateRecords = analysis.records.filter(r => existingIds.has(r.id));
+
+      // Insert new records
+      for (let i = 0; i < newRecords.length; i += batchSize) {
+        const batch = newRecords.slice(i, i + batchSize);
+        const { error } = await supabase.from("base_tudobelo_para_testes").insert(batch);
         if (error) throw error;
         totalInserted += batch.length;
       }
 
-      toast.success(`${totalInserted} registros inseridos na base de testes!`);
+      // Update existing records
+      for (let i = 0; i < updateRecords.length; i += batchSize) {
+        const batch = updateRecords.slice(i, i + batchSize);
+        const { error } = await supabase.from("base_tudobelo_para_testes").upsert(batch, { onConflict: "id" });
+        if (error) throw error;
+        totalUpdated += batch.length;
+      }
+
+      // Mark somente-banco titles as "Pago"
+      let totalMarkedPago = 0;
+      const somenteBancoIds = analysis.etapaBloqueadoValidation?.somenteBancoIds || [];
+      for (let i = 0; i < somenteBancoIds.length; i += 500) {
+        const batch = somenteBancoIds.slice(i, i + 500);
+        const { error } = await supabase
+          .from("base_tudobelo_para_testes")
+          .update({ status_titulo: "Pago" })
+          .in("id", batch);
+        if (error) throw error;
+        totalMarkedPago += batch.length;
+      }
+
+      const msgs = [];
+      if (totalInserted > 0) msgs.push(`${totalInserted} inserido(s)`);
+      if (totalUpdated > 0) msgs.push(`${totalUpdated} atualizado(s)`);
+      if (totalMarkedPago > 0) msgs.push(`${totalMarkedPago} marcado(s) como Pago`);
+      toast.success(`Concluído: ${msgs.join(", ")}!`);
       setSelectedFile(null);
       setAnalysis(null);
     } catch (err: any) {
