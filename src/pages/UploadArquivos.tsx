@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTitulosInsercoes } from "@/hooks/useTitulosInsercoes";
-import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, FlaskConical, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send } from "lucide-react";
+import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, FlaskConical, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, ChevronRight } from "lucide-react";
 import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -114,24 +115,21 @@ function convertExcelDate(value: any): string | null {
 /**
  * Mapeia uma linha da planilha Excel para o formato do banco.
  */
-function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
+function mapExcelRow(row: Record<string, any>, formasLiquidacao?: Map<string, number>): Record<string, any> | null {
   const mapped: Record<string, any> = {};
 
-  // Mapear colunas do Excel para colunas do banco
   for (const [excelCol, dbCol] of Object.entries(COLUMN_MAP)) {
     if (row[excelCol] !== undefined) {
       mapped[dbCol] = row[excelCol];
     }
   }
 
-  // Também aceitar colunas que já estejam no formato do banco
   for (const col of EXPECTED_COLUMNS) {
     if (mapped[col] === undefined && row[col] !== undefined) {
       mapped[col] = row[col];
     }
   }
 
-  // --- REGRAS DE FILTRO ---
   const documento = mapped.documento;
   if (!documento || String(documento).trim() === "") return null;
 
@@ -141,28 +139,33 @@ function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
   const saldo = Number(mapped.saldo_parcela);
   if (isNaN(saldo) || saldo <= 0) return null;
 
-  // --- CAMPOS CALCULADOS ---
-  // id = Documento + "-" + Nº Parcela
   const parcela = mapped.numero_parcela ?? "1";
   mapped.id = `${String(documento).trim()}-${String(parcela).trim()}`;
 
-  // Converter datas seriais do Excel
   for (const dateField of DATE_FIELDS) {
     if (mapped[dateField] !== undefined) {
       mapped[dateField] = convertExcelDate(mapped[dateField]);
     }
   }
 
-  // status_titulo calculado com consideração de finais de semana
+  // status_titulo: considera prazo_liquidacao da forma de pagamento
   const vencStr = mapped.data_vencimento;
   if (vencStr) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const venc = new Date(vencStr + "T00:00:00");
-    if (venc >= today) {
+    
+    // Calcular data efetiva de vencimento (vencimento + prazo_liquidacao)
+    let prazoLiq = 0;
+    if (formasLiquidacao && mapped.forma_pagamento) {
+      prazoLiq = formasLiquidacao.get(mapped.forma_pagamento) || 0;
+    }
+    const vencEfetivo = new Date(venc);
+    vencEfetivo.setDate(vencEfetivo.getDate() + prazoLiq);
+
+    if (vencEfetivo >= today) {
       mapped.status_titulo = "A vencer";
     } else {
-      // Verificar se o vencimento caiu em um final de semana (0=dom, 6=sáb)
       const dayOfWeek = venc.getDay();
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         mapped.status_titulo = "Vencido em final de semana";
@@ -172,7 +175,6 @@ function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
     }
   }
 
-  // inserido_cedrus sempre false
   mapped.inserido_cedrus = false;
 
   return mapped;
@@ -189,6 +191,7 @@ interface FilteredStats {
 interface FormaPagamentoConfig {
   forma_pagamento: string;
   insere_na_base: boolean | null;
+  prazo_liquidacao: number | null;
 }
 
 interface FormaPagamentoValidation {
@@ -202,7 +205,7 @@ interface FormaPagamentoValidation {
 interface StatusTituloComparison {
   totalCompared: number;
   totalDifferent: number;
-  details: { from: string; to: string; count: number }[];
+  details: { from: string; to: string; count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }[];
 }
 
 interface AnalysisResult {
@@ -221,14 +224,18 @@ interface AnalysisResult {
 }
 
 function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
-  // --- Passo 1: Mapear e filtrar linhas ---
+  // Build prazo_liquidacao map
+  const formasLiquidacao = new Map<string, number>();
+  for (const f of formasConfig) {
+    formasLiquidacao.set(f.forma_pagamento, f.prazo_liquidacao || 0);
+  }
+
   let semDocumento = 0;
   let lancamentoContabil = 0;
   let saldoZero = 0;
   const mappedRows: Record<string, any>[] = [];
 
   for (const raw of rawRows) {
-    // Verificar filtros antes do mapeamento para contagem
     const excelDocumento = raw["Documento"] ?? raw["documento"];
     const excelTipoDoc = raw["Tipo Documento"] ?? raw["tipo_documento"];
     const excelSaldo = raw["Saldo Parcela"] ?? raw["saldo_parcela"];
@@ -247,7 +254,7 @@ function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagament
       continue;
     }
 
-    const mapped = mapExcelRow(raw);
+    const mapped = mapExcelRow(raw, formasLiquidacao);
     if (mapped) mappedRows.push(mapped);
   }
 
@@ -395,7 +402,7 @@ export default function UploadArquivos() {
       // Buscar config de formas de pagamento
       const { data: formasConfig, error: formasError } = await supabase
         .from("base_tudobelo_formas_pagamento")
-        .select("forma_pagamento, insere_na_base");
+        .select("forma_pagamento, insere_na_base, prazo_liquidacao");
 
       if (formasError) throw formasError;
 
@@ -415,44 +422,47 @@ export default function UploadArquivos() {
       // Comparar status_titulo com o banco de dados
       const recordIds = result.records.map(r => r.id).filter(Boolean);
       if (recordIds.length > 0) {
-        // Buscar em lotes de 500
-        const dbRecords: Record<string, string | null> = {};
+        const dbRecordsMap: Record<string, Record<string, any>> = {};
         for (let i = 0; i < recordIds.length; i += 500) {
           const batch = recordIds.slice(i, i + 500);
           const { data: dbData } = await supabase
             .from("base_tudobelo_para_testes")
-            .select("id, status_titulo")
+            .select("id, status_titulo, data_vencimento, forma_pagamento, nome_parceiro, saldo_parcela")
             .in("id", batch);
           if (dbData) {
             for (const row of dbData) {
-              dbRecords[row.id] = row.status_titulo;
+              dbRecordsMap[row.id] = row;
             }
           }
         }
 
-        // Comparar status calculado vs DB
-        const diffMap: Record<string, number> = {};
+        const diffMap: Record<string, { count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }> = {};
         let totalCompared = 0;
         let totalDifferent = 0;
 
         for (const record of result.records) {
-          if (!record.id || !(record.id in dbRecords)) continue;
+          if (!record.id || !(record.id in dbRecordsMap)) continue;
           totalCompared++;
-          const dbStatus = dbRecords[record.id] || "Sem status";
+          const dbRow = dbRecordsMap[record.id];
+          const dbStatus = dbRow.status_titulo || "Sem status";
           const calcStatus = record.status_titulo || "Sem status";
           if (dbStatus !== calcStatus) {
             totalDifferent++;
             const key = `${dbStatus} → ${calcStatus}`;
-            diffMap[key] = (diffMap[key] || 0) + 1;
+            if (!diffMap[key]) diffMap[key] = { count: 0, records: [] };
+            diffMap[key].count++;
+            if (diffMap[key].records.length < 100) {
+              diffMap[key].records.push({ id: record.id, db: dbRow, calc: record });
+            }
           }
         }
 
         result.statusComparison = {
           totalCompared,
           totalDifferent,
-          details: Object.entries(diffMap).map(([key, count]) => {
+          details: Object.entries(diffMap).map(([key, val]) => {
             const [from, to] = key.split(" → ");
-            return { from, to, count };
+            return { from, to, count: val.count, records: val.records };
           }),
         };
       }
@@ -679,37 +689,67 @@ export default function UploadArquivos() {
                 </div>
               </div>
               {analysis.statusComparison.details.length > 0 && (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Status no Banco</TableHead>
-                        <TableHead>Status Calculado (planilha)</TableHead>
-                        <TableHead className="text-center">Quantidade</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {analysis.statusComparison.details.map((item, i) => (
-                        <TableRow key={i}>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {item.from}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                              {item.to}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-center text-sm font-medium">{item.count}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {analysis.statusComparison.details.map((item, i) => (
+                    <Collapsible key={i}>
+                      <div className="flex items-center justify-between border rounded-md p-3 bg-background">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="text-xs">
+                            {item.from}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">→</span>
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                            {item.to}
+                          </Badge>
+                          <span className="text-sm font-medium ml-2">{item.count} título(s)</span>
+                        </div>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-xs gap-1">
+                            <ChevronDown className="h-3.5 w-3.5" />
+                            Ver detalhes
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent>
+                        <div className="border border-t-0 rounded-b-md overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs">ID</TableHead>
+                                <TableHead className="text-xs">Nome</TableHead>
+                                <TableHead className="text-xs">Forma Pagamento</TableHead>
+                                <TableHead className="text-xs">Vencimento</TableHead>
+                                <TableHead className="text-xs">Saldo</TableHead>
+                                <TableHead className="text-xs">Status Banco</TableHead>
+                                <TableHead className="text-xs">Status Calculado</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {item.records.map((rec, j) => (
+                                <TableRow key={j} className="text-xs">
+                                  <TableCell className="font-mono text-xs">{rec.id}</TableCell>
+                                  <TableCell className="text-xs">{rec.db.nome_parceiro || "-"}</TableCell>
+                                  <TableCell className="text-xs">{rec.db.forma_pagamento || "-"}</TableCell>
+                                  <TableCell className="text-xs">{rec.db.data_vencimento || "-"}</TableCell>
+                                  <TableCell className="text-xs">{rec.db.saldo_parcela != null ? Number(rec.db.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-xs">{rec.db.status_titulo || "Sem status"}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">{rec.calc.status_titulo || "Sem status"}</Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
                 </div>
               )}
               <p className="text-xs text-blue-600 mt-2">
-                O status é recalculado com base na data de vencimento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana".
+                O status é recalculado com base na data de vencimento + prazo de liquidação da forma de pagamento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana".
               </p>
             </CardContent>
           </Card>

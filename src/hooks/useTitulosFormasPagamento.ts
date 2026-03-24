@@ -10,6 +10,7 @@ export interface FormaPagamento {
   credor_cedrus: string | null;
   prazo_recompra: number | null;
   insere_na_base: boolean | null;
+  prazo_liquidacao: number | null;
 }
 
 export function useTitulosFormasPagamento() {
@@ -60,19 +61,22 @@ export function useUpdateFormaPagamento() {
       forma_pagamento, 
       credor_cedrus,
       prazo_recompra,
-      insere_na_base
+      insere_na_base,
+      prazo_liquidacao
     }: { 
       id: number; 
       forma_pagamento?: string; 
       credor_cedrus?: string | null;
       prazo_recompra?: number | null;
       insere_na_base?: boolean | null;
+      prazo_liquidacao?: number | null;
     }) => {
       const updateData: Partial<FormaPagamento> = {};
       if (forma_pagamento !== undefined) updateData.forma_pagamento = forma_pagamento;
       if (credor_cedrus !== undefined) updateData.credor_cedrus = credor_cedrus;
       if (prazo_recompra !== undefined) updateData.prazo_recompra = prazo_recompra;
       if (insere_na_base !== undefined) updateData.insere_na_base = insere_na_base;
+      if (prazo_liquidacao !== undefined) updateData.prazo_liquidacao = prazo_liquidacao;
 
       const { data, error } = await supabase
         .from("base_tudobelo_formas_pagamento")
