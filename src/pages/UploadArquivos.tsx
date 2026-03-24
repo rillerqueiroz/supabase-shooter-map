@@ -1092,7 +1092,10 @@ export default function UploadArquivos() {
               <p className="text-sm font-medium">{selectedFile?.name}</p>
               <p className="text-xs text-muted-foreground">
                 {analysis.records.length} de {analysis.totalRows} registros serão enviados
-                {blockedTotal > 0 && ` (${blockedTotal} bloqueado(s))`}
+                {blockedTotal > 0 && ` (${blockedTotal} bloqueado(s) por forma de pagamento)`}
+                {analysis.etapaBloqueadoValidation?.etapaIgnoradaCount ? ` | ${analysis.etapaBloqueadoValidation.etapaIgnoradaCount} ignorado(s) por etapa` : ""}
+                {analysis.etapaBloqueadoValidation?.bloqueadoCount ? ` | ${analysis.etapaBloqueadoValidation.bloqueadoCount} bloqueado(s)` : ""}
+                {analysis.etapaBloqueadoValidation?.somenteBancoCount ? ` | ${analysis.etapaBloqueadoValidation.somenteBancoCount} serão marcados como Pago` : ""}
               </p>
             </div>
           </div>
