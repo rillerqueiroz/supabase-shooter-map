@@ -93,12 +93,12 @@ export interface TitulosFilters {
   bloqueado?: boolean | null;
 }
 
-export function useTitulosTudoBelo(filters?: TitulosFilters) {
+export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string = 'base_tudobelo_intermediaria') {
   return useQuery({
-    queryKey: ['titulos-tudobelo', filters],
+    queryKey: ['titulos-tudobelo', tableName, filters],
     queryFn: async () => {
       let query = supabase
-        .from('base_tudobelo_intermediaria')
+        .from(tableName)
         .select('*')
         .order('data_vencimento', { ascending: false });
 
@@ -205,12 +205,12 @@ export function useTitulosTudoBelo(filters?: TitulosFilters) {
   });
 }
 
-export function useTitulosTudoBeloOptions() {
+export function useTitulosTudoBeloOptions(tableName: string = 'base_tudobelo_intermediaria') {
   return useQuery({
-    queryKey: ['titulos-tudobelo-options'],
+    queryKey: ['titulos-tudobelo-options', tableName],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('base_tudobelo_intermediaria')
+        .from(tableName)
         .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento, tipo_titulo');
 
       if (error) throw error;
@@ -236,13 +236,13 @@ export function useTitulosTudoBeloOptions() {
   });
 }
 
-export function useUpdateTituloTudoBelo() {
+export function useUpdateTituloTudoBelo(tableName: string = 'base_tudobelo_intermediaria') {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<TituloTudoBelo> }) => {
       const { data, error } = await supabase
-        .from('base_tudobelo_intermediaria')
+        .from(tableName)
         .update({ ...updates, ultima_atualizacao: new Date().toISOString() })
         .eq('id', id)
         .select()
@@ -252,7 +252,7 @@ export function useUpdateTituloTudoBelo() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['titulos-tudobelo'] });
+      queryClient.invalidateQueries({ queryKey: ['titulos-tudobelo', tableName] });
       toast.success('Título atualizado com sucesso!');
     },
     onError: (error) => {
@@ -262,13 +262,13 @@ export function useUpdateTituloTudoBelo() {
   });
 }
 
-export function useBulkUpdateTitulosTudoBelo() {
+export function useBulkUpdateTitulosTudoBelo(tableName: string = 'base_tudobelo_intermediaria') {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<TituloTudoBelo> }) => {
       const { data, error } = await supabase
-        .from('base_tudobelo_intermediaria')
+        .from(tableName)
         .update({ ...updates, ultima_atualizacao: new Date().toISOString() })
         .in('id', ids)
         .select();
@@ -277,7 +277,7 @@ export function useBulkUpdateTitulosTudoBelo() {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['titulos-tudobelo'] });
+      queryClient.invalidateQueries({ queryKey: ['titulos-tudobelo', tableName] });
       toast.success(`${variables.ids.length} títulos atualizados com sucesso!`);
     },
     onError: (error) => {

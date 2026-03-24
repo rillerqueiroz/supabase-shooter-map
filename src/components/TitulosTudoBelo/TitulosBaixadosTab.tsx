@@ -66,10 +66,14 @@ const emptyFilters: BaixadosFilters = {
   statusCedrus: [],
 };
 
-export function TitulosBaixadosTab() {
+interface TitulosBaixadosTabProps {
+  tableName?: string;
+}
+
+export function TitulosBaixadosTab({ tableName = 'base_tudobelo_intermediaria' }: TitulosBaixadosTabProps) {
   const [filters, setFilters] = useState<BaixadosFilters>({ ...emptyFilters });
   const [showFilters, setShowFilters] = useState(false);
-  const { data: baixados, isLoading } = useTitulosBaixados();
+  const { data: baixados, isLoading } = useTitulosBaixados(tableName);
   const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 

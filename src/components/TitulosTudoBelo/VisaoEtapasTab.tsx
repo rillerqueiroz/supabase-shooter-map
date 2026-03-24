@@ -63,12 +63,16 @@ const formatDate = (dateString: string | null) => {
   }
 };
 
-export function VisaoEtapasTab() {
+interface VisaoEtapasTabProps {
+  tableName?: string;
+}
+
+export function VisaoEtapasTab({ tableName = 'base_tudobelo_intermediaria' }: VisaoEtapasTabProps) {
   const [filters, setFilters] = useState<TitulosFilters>({});
   const [showFilters, setShowFilters] = useState(false);
   
-  const { data: titulos, isLoading: loadingTitulos } = useTitulosTudoBelo(filters);
-  const { data: options } = useTitulosTudoBeloOptions();
+  const { data: titulos, isLoading: loadingTitulos } = useTitulosTudoBelo(filters, tableName);
+  const { data: options } = useTitulosTudoBeloOptions(tableName);
   const { data: etapas, isLoading: loadingEtapas } = useTitulosEtapas();
   const { mutate: inserirCedrus, isPending: isInserindo } = useInserirCedrusWebhook();
   
