@@ -876,7 +876,130 @@ export default function UploadArquivos() {
           </Card>
         )}
 
-        {/* Mapeamento de colunas */}
+        {/* Validação: Etapa Ignorada e Bloqueados */}
+        {analysis.etapaBloqueadoValidation && (analysis.etapaBloqueadoValidation.etapaIgnoradaCount > 0 || analysis.etapaBloqueadoValidation.bloqueadoCount > 0 || analysis.etapaBloqueadoValidation.somenteBancoCount > 0) && (
+          <Card className="border-purple-200 bg-purple-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-purple-800">
+                <AlertCircle className="h-4 w-4" />
+                Validação: Etapa, Bloqueio e Títulos Ausentes na Planilha
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Etapas com ignorar */}
+              {analysis.etapaBloqueadoValidation.etapaIgnoradaCount > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-purple-700">
+                    🚫 {analysis.etapaBloqueadoValidation.etapaIgnoradaCount} título(s) com etapa marcada como "ignorar" (não serão inseridos/atualizados)
+                  </div>
+                  {analysis.etapaBloqueadoValidation.etapaIgnoradaDetails.map((item, i) => (
+                    <Collapsible key={i}>
+                      <div className="flex items-center justify-between border rounded-md p-3 bg-background">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            Etapa: {item.etapa}
+                          </Badge>
+                          <span className="text-sm font-medium">{item.count} título(s)</span>
+                        </div>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-xs gap-1">
+                            <ChevronDown className="h-3.5 w-3.5" />
+                            Ver IDs
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent>
+                        <div className="border border-t-0 rounded-b-md p-3 bg-background">
+                          <div className="flex flex-wrap gap-1">
+                            {item.ids.map((id, j) => (
+                              <Badge key={j} variant="outline" className="text-xs font-mono">{id}</Badge>
+                            ))}
+                            {item.count > item.ids.length && (
+                              <Badge variant="outline" className="text-xs text-muted-foreground">+{item.count - item.ids.length} mais</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
+                </div>
+              )}
+
+              {/* Bloqueados */}
+              {analysis.etapaBloqueadoValidation.bloqueadoCount > 0 && (
+                <Collapsible>
+                  <div className="flex items-center justify-between border rounded-md p-3 bg-background">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                        🔒 Bloqueados
+                      </Badge>
+                      <span className="text-sm font-semibold text-amber-700">
+                        {analysis.etapaBloqueadoValidation.bloqueadoCount} título(s) bloqueado(s) (não serão inseridos/atualizados)
+                      </span>
+                    </div>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-xs gap-1">
+                        <ChevronDown className="h-3.5 w-3.5" />
+                        Ver IDs
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent>
+                    <div className="border border-t-0 rounded-b-md p-3 bg-background">
+                      <div className="flex flex-wrap gap-1">
+                        {analysis.etapaBloqueadoValidation.bloqueadoIds.map((id, j) => (
+                          <Badge key={j} variant="outline" className="text-xs font-mono">{id}</Badge>
+                        ))}
+                        {analysis.etapaBloqueadoValidation.bloqueadoCount > analysis.etapaBloqueadoValidation.bloqueadoIds.length && (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">+{analysis.etapaBloqueadoValidation.bloqueadoCount - analysis.etapaBloqueadoValidation.bloqueadoIds.length} mais</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {/* Somente banco */}
+              {analysis.etapaBloqueadoValidation.somenteBancoCount > 0 && (
+                <Collapsible>
+                  <div className="flex items-center justify-between border rounded-md p-3 bg-background">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        💰 Somente no banco
+                      </Badge>
+                      <span className="text-sm font-semibold text-green-700">
+                        {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago"
+                      </span>
+                    </div>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-xs gap-1">
+                        <ChevronDown className="h-3.5 w-3.5" />
+                        Ver IDs
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent>
+                    <div className="border border-t-0 rounded-b-md p-3 bg-background">
+                      <div className="flex flex-wrap gap-1">
+                        {analysis.etapaBloqueadoValidation.somenteBancoIds.map((id, j) => (
+                          <Badge key={j} variant="outline" className="text-xs font-mono">{id}</Badge>
+                        ))}
+                        {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoIds.length && (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">+{analysis.etapaBloqueadoValidation.somenteBancoCount - analysis.etapaBloqueadoValidation.somenteBancoIds.length} mais</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              <p className="text-xs text-purple-600 mt-2">
+                Títulos com etapa "ignorar" ou marcados como bloqueados no banco não são atualizados. Títulos existentes apenas no banco (não presentes na planilha) serão marcados como "Pago" ao confirmar.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">Mapeamento de Colunas</CardTitle>
