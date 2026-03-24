@@ -725,7 +725,7 @@ export default function UploadArquivos() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {item.records.map((rec, j) => (
+                              {(item.records || []).map((rec, j) => (
                                 <TableRow key={j} className="text-xs">
                                   <TableCell className="font-mono text-xs">{rec.id}</TableCell>
                                   <TableCell className="text-xs">{rec.db.nome_parceiro || "-"}</TableCell>
