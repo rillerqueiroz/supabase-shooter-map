@@ -658,70 +658,59 @@ export default function UploadArquivos() {
           </Card>
         )}
 
-        {/* Validação Forma de Pagamento */}
-        {fv && (fv.blocked.length > 0 || fv.nullConfig.length > 0 || fv.notFound.length > 0) && (
-          <Card className="border-destructive/30 bg-destructive/5">
+        {/* Validação: Status Título (comparativo com banco) */}
+        {analysis.statusComparison && analysis.statusComparison.totalCompared > 0 && (
+          <Card className="border-blue-200 bg-blue-50/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-destructive">
-                <XCircle className="h-4 w-4" />
-                Validação: Forma de Pagamento (insere_na_base)
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
+                <AlertCircle className="h-4 w-4" />
+                Validação: Status do Título (comparativo com banco de dados)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Forma de Pagamento</TableHead>
-                      <TableHead className="text-center">Registros</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fv.blocked.map(item => (
-                      <TableRow key={item.forma}>
-                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
-                        <TableCell className="text-center text-sm">{item.count}</TableCell>
-                        <TableCell>
-                          <Badge variant="destructive" className="text-xs">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Bloqueado (false)
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {fv.nullConfig.map(item => (
-                      <TableRow key={item.forma}>
-                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
-                        <TableCell className="text-center text-sm">{item.count}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Valor null
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {fv.notFound.map(item => (
-                      <TableRow key={item.forma}>
-                        <TableCell className="text-sm font-medium">{item.forma}</TableCell>
-                        <TableCell className="text-center text-sm">{item.count}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Não cadastrada
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="text-sm text-blue-700">
+                  <strong>{analysis.statusComparison.totalCompared}</strong> título(s) encontrado(s) no banco
+                </div>
+                <div className={`text-sm font-semibold ${analysis.statusComparison.totalDifferent > 0 ? "text-amber-700" : "text-green-700"}`}>
+                  {analysis.statusComparison.totalDifferent > 0
+                    ? `⚠ ${analysis.statusComparison.totalDifferent} título(s) com status diferente`
+                    : "✓ Todos os status estão consistentes"}
+                </div>
               </div>
-              {blockedTotal > 0 && (
-                <p className="text-xs text-destructive mt-3">
-                  {blockedTotal} registro(s) serão removidos do envio por terem forma de pagamento com insere_na_base = false.
-                </p>
+              {analysis.statusComparison.details.length > 0 && (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Status no Banco</TableHead>
+                        <TableHead>Status Calculado (planilha)</TableHead>
+                        <TableHead className="text-center">Quantidade</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {analysis.statusComparison.details.map((item, i) => (
+                        <TableRow key={i}>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {item.from}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                              {item.to}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center text-sm font-medium">{item.count}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
+              <p className="text-xs text-blue-600 mt-2">
+                O status é recalculado com base na data de vencimento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana".
+              </p>
             </CardContent>
           </Card>
         )}
