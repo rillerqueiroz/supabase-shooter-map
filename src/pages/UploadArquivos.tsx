@@ -351,6 +351,7 @@ function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagament
     records,
     formaValidation,
     filteredStats,
+    statusComparison: null, // será preenchido após consulta ao banco
   };
 }
 
