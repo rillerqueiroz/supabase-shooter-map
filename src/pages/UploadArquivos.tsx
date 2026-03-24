@@ -114,24 +114,21 @@ function convertExcelDate(value: any): string | null {
 /**
  * Mapeia uma linha da planilha Excel para o formato do banco.
  */
-function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
+function mapExcelRow(row: Record<string, any>, formasLiquidacao?: Map<string, number>): Record<string, any> | null {
   const mapped: Record<string, any> = {};
 
-  // Mapear colunas do Excel para colunas do banco
   for (const [excelCol, dbCol] of Object.entries(COLUMN_MAP)) {
     if (row[excelCol] !== undefined) {
       mapped[dbCol] = row[excelCol];
     }
   }
 
-  // Também aceitar colunas que já estejam no formato do banco
   for (const col of EXPECTED_COLUMNS) {
     if (mapped[col] === undefined && row[col] !== undefined) {
       mapped[col] = row[col];
     }
   }
 
-  // --- REGRAS DE FILTRO ---
   const documento = mapped.documento;
   if (!documento || String(documento).trim() === "") return null;
 
@@ -141,28 +138,33 @@ function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
   const saldo = Number(mapped.saldo_parcela);
   if (isNaN(saldo) || saldo <= 0) return null;
 
-  // --- CAMPOS CALCULADOS ---
-  // id = Documento + "-" + Nº Parcela
   const parcela = mapped.numero_parcela ?? "1";
   mapped.id = `${String(documento).trim()}-${String(parcela).trim()}`;
 
-  // Converter datas seriais do Excel
   for (const dateField of DATE_FIELDS) {
     if (mapped[dateField] !== undefined) {
       mapped[dateField] = convertExcelDate(mapped[dateField]);
     }
   }
 
-  // status_titulo calculado com consideração de finais de semana
+  // status_titulo: considera prazo_liquidacao da forma de pagamento
   const vencStr = mapped.data_vencimento;
   if (vencStr) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const venc = new Date(vencStr + "T00:00:00");
-    if (venc >= today) {
+    
+    // Calcular data efetiva de vencimento (vencimento + prazo_liquidacao)
+    let prazoLiq = 0;
+    if (formasLiquidacao && mapped.forma_pagamento) {
+      prazoLiq = formasLiquidacao.get(mapped.forma_pagamento) || 0;
+    }
+    const vencEfetivo = new Date(venc);
+    vencEfetivo.setDate(vencEfetivo.getDate() + prazoLiq);
+
+    if (vencEfetivo >= today) {
       mapped.status_titulo = "A vencer";
     } else {
-      // Verificar se o vencimento caiu em um final de semana (0=dom, 6=sáb)
       const dayOfWeek = venc.getDay();
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         mapped.status_titulo = "Vencido em final de semana";
@@ -172,7 +174,6 @@ function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
     }
   }
 
-  // inserido_cedrus sempre false
   mapped.inserido_cedrus = false;
 
   return mapped;
