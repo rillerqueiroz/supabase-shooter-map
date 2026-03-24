@@ -35,9 +35,9 @@ export interface TituloBaixado {
   } | null;
 }
 
-export function useTitulosBaixados() {
+export function useTitulosBaixados(tableName: string = 'base_tudobelo_intermediaria') {
   return useQuery({
-    queryKey: ['titulos-baixados'],
+    queryKey: ['titulos-baixados', tableName],
     queryFn: async () => {
       // Fetch baixados
       let query = supabase
@@ -59,7 +59,7 @@ export function useTitulosBaixados() {
 
       if (tituloIds.length > 0) {
         const { data: titulos, error: titulosError } = await supabase
-          .from('base_tudobelo_intermediaria')
+          .from(tableName)
           .select('id, documento, tipo_documento, nome_parceiro, cnpj_cpf, valor_parcela, saldo_parcela, data_vencimento, dias_atraso, forma_pagamento, status_titulo, status_cedrus, etapa, filial, vendedor, uf_cobranca, credor_cedrus, tipo_titulo, fone1, fone2, email, negativado')
           .in('id', tituloIds);
 
