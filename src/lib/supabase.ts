@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = 'https://supabase.superavit.app.br'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE3OTk1MzU2MDB9.qLEgG6KvcLI_p0Cp9903FeeNbjjVaC3gdIKTFQnKP0Y'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzc0MzkzNzMyLCJleHAiOjE5MzIwNzM3MzJ9.Eidy2Qt1nPu2_FRcf4dwx7wqLZm565TX8blCHThip-I'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
