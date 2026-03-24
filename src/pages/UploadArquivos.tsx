@@ -189,6 +189,7 @@ interface FilteredStats {
 interface FormaPagamentoConfig {
   forma_pagamento: string;
   insere_na_base: boolean | null;
+  prazo_liquidacao: number | null;
 }
 
 interface FormaPagamentoValidation {
