@@ -223,14 +223,18 @@ interface AnalysisResult {
 }
 
 function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
-  // --- Passo 1: Mapear e filtrar linhas ---
+  // Build prazo_liquidacao map
+  const formasLiquidacao = new Map<string, number>();
+  for (const f of formasConfig) {
+    formasLiquidacao.set(f.forma_pagamento, f.prazo_liquidacao || 0);
+  }
+
   let semDocumento = 0;
   let lancamentoContabil = 0;
   let saldoZero = 0;
   const mappedRows: Record<string, any>[] = [];
 
   for (const raw of rawRows) {
-    // Verificar filtros antes do mapeamento para contagem
     const excelDocumento = raw["Documento"] ?? raw["documento"];
     const excelTipoDoc = raw["Tipo Documento"] ?? raw["tipo_documento"];
     const excelSaldo = raw["Saldo Parcela"] ?? raw["saldo_parcela"];
@@ -249,7 +253,7 @@ function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagament
       continue;
     }
 
-    const mapped = mapExcelRow(raw);
+    const mapped = mapExcelRow(raw, formasLiquidacao);
     if (mapped) mappedRows.push(mapped);
   }
 
