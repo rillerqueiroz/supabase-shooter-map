@@ -6,6 +6,7 @@ export interface TituloEtapa {
   id: number;
   created_at: string;
   etapa: string | null;
+  ignorar: boolean | null;
 }
 
 export function useTitulosEtapas() {
