@@ -199,6 +199,12 @@ interface FormaPagamentoValidation {
   totalWithForma: number;
 }
 
+interface StatusTituloComparison {
+  totalCompared: number;
+  totalDifferent: number;
+  details: { from: string; to: string; count: number }[];
+}
+
 interface AnalysisResult {
   totalRows: number;
   columns: string[];
@@ -211,6 +217,7 @@ interface AnalysisResult {
   records: Record<string, any>[];
   formaValidation: FormaPagamentoValidation | null;
   filteredStats: FilteredStats;
+  statusComparison: StatusTituloComparison | null;
 }
 
 function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
