@@ -208,6 +208,15 @@ interface StatusTituloComparison {
   details: { from: string; to: string; count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }[];
 }
 
+interface EtapaBloqueadoValidation {
+  etapaIgnoradaCount: number;
+  etapaIgnoradaDetails: { etapa: string; count: number; ids: string[] }[];
+  bloqueadoCount: number;
+  bloqueadoIds: string[];
+  somenteBancoCount: number;
+  somenteBancoIds: string[];
+}
+
 interface AnalysisResult {
   totalRows: number;
   columns: string[];
@@ -221,6 +230,7 @@ interface AnalysisResult {
   formaValidation: FormaPagamentoValidation | null;
   filteredStats: FilteredStats;
   statusComparison: StatusTituloComparison | null;
+  etapaBloqueadoValidation: EtapaBloqueadoValidation | null;
 }
 
 function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
