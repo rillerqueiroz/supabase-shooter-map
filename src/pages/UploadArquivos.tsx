@@ -203,7 +203,7 @@ interface FormaPagamentoValidation {
 interface StatusTituloComparison {
   totalCompared: number;
   totalDifferent: number;
-  details: { from: string; to: string; count: number }[];
+  details: { from: string; to: string; count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }[];
 }
 
 interface AnalysisResult {
