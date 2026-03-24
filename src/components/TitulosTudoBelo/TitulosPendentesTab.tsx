@@ -77,7 +77,11 @@ const formatDate = (dateString: string | null) => {
   }
 };
 
-export function TitulosPendentesTab() {
+interface TitulosPendentesTabProps {
+  tableName?: string;
+}
+
+export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' }: TitulosPendentesTabProps) {
   const [filters, setFilters] = useState<TitulosFilters>({ processadoInternamente: false });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
@@ -95,10 +99,10 @@ export function TitulosPendentesTab() {
     titulo: TituloTudoBelo | null;
   }>({ open: false, actionType: "inserir", titulo: null });
 
-  const { data: titulos, isLoading, error } = useTitulosTudoBelo(filters);
-  const { data: options } = useTitulosTudoBeloOptions();
+  const { data: titulos, isLoading, error } = useTitulosTudoBelo(filters, tableName);
+  const { data: options } = useTitulosTudoBeloOptions(tableName);
   const { mutate: inserirCedrus, isPending: isInserindo } = useInserirCedrusWebhook();
-  const bulkUpdateMutation = useBulkUpdateTitulosTudoBelo();
+  const bulkUpdateMutation = useBulkUpdateTitulosTudoBelo(tableName);
 
   const { sortedData, sortConfig, requestSort } = useSortableTable(titulos || []);
 
