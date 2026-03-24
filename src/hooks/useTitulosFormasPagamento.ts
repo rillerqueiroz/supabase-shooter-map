@@ -10,6 +10,7 @@ export interface FormaPagamento {
   credor_cedrus: string | null;
   prazo_recompra: number | null;
   insere_na_base: boolean | null;
+  prazo_liquidacao: number | null;
 }
 
 export function useTitulosFormasPagamento() {
