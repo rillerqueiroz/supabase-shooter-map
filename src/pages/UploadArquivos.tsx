@@ -153,13 +153,23 @@ function mapExcelRow(row: Record<string, any>): Record<string, any> | null {
     }
   }
 
-  // status_titulo calculado
+  // status_titulo calculado com consideração de finais de semana
   const vencStr = mapped.data_vencimento;
   if (vencStr) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const venc = new Date(vencStr + "T00:00:00");
-    mapped.status_titulo = venc >= today ? "A vencer" : "Vencido";
+    if (venc >= today) {
+      mapped.status_titulo = "A vencer";
+    } else {
+      // Verificar se o vencimento caiu em um final de semana (0=dom, 6=sáb)
+      const dayOfWeek = venc.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        mapped.status_titulo = "Vencido em final de semana";
+      } else {
+        mapped.status_titulo = "Vencido";
+      }
+    }
   }
 
   // inserido_cedrus sempre false
