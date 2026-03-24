@@ -411,6 +411,52 @@ export default function UploadArquivos() {
       }
 
       const result = analyzeData(rows, formasConfig || []);
+
+      // Comparar status_titulo com o banco de dados
+      const recordIds = result.records.map(r => r.id).filter(Boolean);
+      if (recordIds.length > 0) {
+        // Buscar em lotes de 500
+        const dbRecords: Record<string, string | null> = {};
+        for (let i = 0; i < recordIds.length; i += 500) {
+          const batch = recordIds.slice(i, i + 500);
+          const { data: dbData } = await supabase
+            .from("base_tudobelo_para_testes")
+            .select("id, status_titulo")
+            .in("id", batch);
+          if (dbData) {
+            for (const row of dbData) {
+              dbRecords[row.id] = row.status_titulo;
+            }
+          }
+        }
+
+        // Comparar status calculado vs DB
+        const diffMap: Record<string, number> = {};
+        let totalCompared = 0;
+        let totalDifferent = 0;
+
+        for (const record of result.records) {
+          if (!record.id || !(record.id in dbRecords)) continue;
+          totalCompared++;
+          const dbStatus = dbRecords[record.id] || "Sem status";
+          const calcStatus = record.status_titulo || "Sem status";
+          if (dbStatus !== calcStatus) {
+            totalDifferent++;
+            const key = `${dbStatus} → ${calcStatus}`;
+            diffMap[key] = (diffMap[key] || 0) + 1;
+          }
+        }
+
+        result.statusComparison = {
+          totalCompared,
+          totalDifferent,
+          details: Object.entries(diffMap).map(([key, count]) => {
+            const [from, to] = key.split(" → ");
+            return { from, to, count };
+          }),
+        };
+      }
+
       setAnalysis(result);
     } catch (err: any) {
       toast.error(`Erro ao analisar arquivo: ${err.message}`);
