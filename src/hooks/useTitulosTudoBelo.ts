@@ -93,12 +93,12 @@ export interface TitulosFilters {
   bloqueado?: boolean | null;
 }
 
-export function useTitulosTudoBelo(filters?: TitulosFilters) {
+export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string = 'base_tudobelo_intermediaria') {
   return useQuery({
-    queryKey: ['titulos-tudobelo', filters],
+    queryKey: ['titulos-tudobelo', tableName, filters],
     queryFn: async () => {
       let query = supabase
-        .from('base_tudobelo_intermediaria')
+        .from(tableName)
         .select('*')
         .order('data_vencimento', { ascending: false });
 
