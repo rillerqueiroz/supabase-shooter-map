@@ -421,44 +421,47 @@ export default function UploadArquivos() {
       // Comparar status_titulo com o banco de dados
       const recordIds = result.records.map(r => r.id).filter(Boolean);
       if (recordIds.length > 0) {
-        // Buscar em lotes de 500
-        const dbRecords: Record<string, string | null> = {};
+        const dbRecordsMap: Record<string, Record<string, any>> = {};
         for (let i = 0; i < recordIds.length; i += 500) {
           const batch = recordIds.slice(i, i + 500);
           const { data: dbData } = await supabase
             .from("base_tudobelo_para_testes")
-            .select("id, status_titulo")
+            .select("id, status_titulo, data_vencimento, forma_pagamento, nome_parceiro, saldo_parcela")
             .in("id", batch);
           if (dbData) {
             for (const row of dbData) {
-              dbRecords[row.id] = row.status_titulo;
+              dbRecordsMap[row.id] = row;
             }
           }
         }
 
-        // Comparar status calculado vs DB
-        const diffMap: Record<string, number> = {};
+        const diffMap: Record<string, { count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }> = {};
         let totalCompared = 0;
         let totalDifferent = 0;
 
         for (const record of result.records) {
-          if (!record.id || !(record.id in dbRecords)) continue;
+          if (!record.id || !(record.id in dbRecordsMap)) continue;
           totalCompared++;
-          const dbStatus = dbRecords[record.id] || "Sem status";
+          const dbRow = dbRecordsMap[record.id];
+          const dbStatus = dbRow.status_titulo || "Sem status";
           const calcStatus = record.status_titulo || "Sem status";
           if (dbStatus !== calcStatus) {
             totalDifferent++;
             const key = `${dbStatus} → ${calcStatus}`;
-            diffMap[key] = (diffMap[key] || 0) + 1;
+            if (!diffMap[key]) diffMap[key] = { count: 0, records: [] };
+            diffMap[key].count++;
+            if (diffMap[key].records.length < 100) {
+              diffMap[key].records.push({ id: record.id, db: dbRow, calc: record });
+            }
           }
         }
 
         result.statusComparison = {
           totalCompared,
           totalDifferent,
-          details: Object.entries(diffMap).map(([key, count]) => {
+          details: Object.entries(diffMap).map(([key, val]) => {
             const [from, to] = key.split(" → ");
-            return { from, to, count };
+            return { from, to, count: val.count, records: val.records };
           }),
         };
       }
