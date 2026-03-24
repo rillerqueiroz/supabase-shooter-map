@@ -205,12 +205,12 @@ export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string =
   });
 }
 
-export function useTitulosTudoBeloOptions() {
+export function useTitulosTudoBeloOptions(tableName: string = 'base_tudobelo_intermediaria') {
   return useQuery({
-    queryKey: ['titulos-tudobelo-options'],
+    queryKey: ['titulos-tudobelo-options', tableName],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('base_tudobelo_intermediaria')
+        .from(tableName)
         .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento, tipo_titulo');
 
       if (error) throw error;
