@@ -689,37 +689,67 @@ export default function UploadArquivos() {
                 </div>
               </div>
               {analysis.statusComparison.details.length > 0 && (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Status no Banco</TableHead>
-                        <TableHead>Status Calculado (planilha)</TableHead>
-                        <TableHead className="text-center">Quantidade</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {analysis.statusComparison.details.map((item, i) => (
-                        <TableRow key={i}>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {item.from}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                              {item.to}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-center text-sm font-medium">{item.count}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {analysis.statusComparison.details.map((item, i) => (
+                    <Collapsible key={i}>
+                      <div className="flex items-center justify-between border rounded-md p-3 bg-background">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="text-xs">
+                            {item.from}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">→</span>
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                            {item.to}
+                          </Badge>
+                          <span className="text-sm font-medium ml-2">{item.count} título(s)</span>
+                        </div>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-xs gap-1">
+                            <ChevronDown className="h-3.5 w-3.5" />
+                            Ver detalhes
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent>
+                        <div className="border border-t-0 rounded-b-md overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs">ID</TableHead>
+                                <TableHead className="text-xs">Nome</TableHead>
+                                <TableHead className="text-xs">Forma Pagamento</TableHead>
+                                <TableHead className="text-xs">Vencimento</TableHead>
+                                <TableHead className="text-xs">Saldo</TableHead>
+                                <TableHead className="text-xs">Status Banco</TableHead>
+                                <TableHead className="text-xs">Status Calculado</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {item.records.map((rec, j) => (
+                                <TableRow key={j} className="text-xs">
+                                  <TableCell className="font-mono text-xs">{rec.id}</TableCell>
+                                  <TableCell className="text-xs">{rec.db.nome_parceiro || "-"}</TableCell>
+                                  <TableCell className="text-xs">{rec.db.forma_pagamento || "-"}</TableCell>
+                                  <TableCell className="text-xs">{rec.db.data_vencimento || "-"}</TableCell>
+                                  <TableCell className="text-xs">{rec.db.saldo_parcela != null ? Number(rec.db.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-xs">{rec.db.status_titulo || "Sem status"}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">{rec.calc.status_titulo || "Sem status"}</Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
                 </div>
               )}
               <p className="text-xs text-blue-600 mt-2">
-                O status é recalculado com base na data de vencimento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana".
+                O status é recalculado com base na data de vencimento + prazo de liquidação da forma de pagamento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana".
               </p>
             </CardContent>
           </Card>
