@@ -894,7 +894,7 @@ export default function UploadArquivosOficial() {
             </div>
           </div>
           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 h-8 px-3">
-            <Shield className="h-3.5 w-3.5 mr-1" />
+            <ShieldCheck className="h-3.5 w-3.5 mr-1" />
             AMBIENTE OFICIAL
           </Badge>
         </div>
@@ -1045,7 +1045,7 @@ export default function UploadArquivosOficial() {
             </div>
           </div>
           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 h-8 px-3">
-            <Shield className="h-3.5 w-3.5 mr-1" />
+            <ShieldCheck className="h-3.5 w-3.5 mr-1" />
             AMBIENTE OFICIAL
           </Badge>
         </div>
@@ -1659,7 +1659,7 @@ export default function UploadArquivosOficial() {
             <Upload className="h-5 w-5" />
             Enviar Arquivo para Base Oficial
             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 ml-2">
-              <Shield className="h-3 w-3 mr-1" />
+              <ShieldCheck className="h-3 w-3 mr-1" />
               Testes
             </Badge>
           </CardTitle>
