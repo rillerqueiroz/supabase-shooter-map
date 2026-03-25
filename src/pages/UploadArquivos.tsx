@@ -881,6 +881,39 @@ export default function UploadArquivos() {
                   ))}
                 </div>
               )}
+              {/* Somente banco - títulos ausentes na planilha */}
+              {analysis.etapaBloqueadoValidation?.somenteBancoCount > 0 && (
+                <Collapsible>
+                  <div className="flex items-center justify-between border rounded-md p-3 bg-background mt-3">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        💰 Somente no banco
+                      </Badge>
+                      <span className="text-sm font-semibold text-green-700">
+                        {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago"
+                      </span>
+                    </div>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-xs gap-1">
+                        <ChevronDown className="h-3.5 w-3.5" />
+                        Ver IDs
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent>
+                    <div className="border border-t-0 rounded-b-md p-3 bg-background">
+                      <div className="flex flex-wrap gap-1">
+                        {analysis.etapaBloqueadoValidation.somenteBancoIds.map((id, j) => (
+                          <Badge key={j} variant="outline" className="text-xs font-mono">{id}</Badge>
+                        ))}
+                        {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoIds.length && (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">+{analysis.etapaBloqueadoValidation.somenteBancoCount - analysis.etapaBloqueadoValidation.somenteBancoIds.length} mais</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
               <p className="text-xs text-blue-600 mt-2">
                 O status é recalculado com base na data de vencimento + prazo de liquidação da forma de pagamento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana" apenas às segundas-feiras. Títulos com status "Pago" no banco são preservados.
               </p>
@@ -889,12 +922,12 @@ export default function UploadArquivos() {
         )}
 
         {/* Validação: Etapa Ignorada e Bloqueados */}
-        {analysis.etapaBloqueadoValidation && (analysis.etapaBloqueadoValidation.etapaIgnoradaCount > 0 || analysis.etapaBloqueadoValidation.bloqueadoCount > 0 || analysis.etapaBloqueadoValidation.somenteBancoCount > 0) && (
+        {analysis.etapaBloqueadoValidation && (analysis.etapaBloqueadoValidation.etapaIgnoradaCount > 0 || analysis.etapaBloqueadoValidation.bloqueadoCount > 0) && (
           <Card className="border-purple-200 bg-purple-50/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2 text-purple-800">
                 <AlertCircle className="h-4 w-4" />
-                Validação: Etapa, Bloqueio e Títulos Ausentes na Planilha
+                Validação: Etapa e Bloqueio
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -971,42 +1004,8 @@ export default function UploadArquivos() {
                 </Collapsible>
               )}
 
-              {/* Somente banco */}
-              {analysis.etapaBloqueadoValidation.somenteBancoCount > 0 && (
-                <Collapsible>
-                  <div className="flex items-center justify-between border rounded-md p-3 bg-background">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                        💰 Somente no banco
-                      </Badge>
-                      <span className="text-sm font-semibold text-green-700">
-                        {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago"
-                      </span>
-                    </div>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-xs gap-1">
-                        <ChevronDown className="h-3.5 w-3.5" />
-                        Ver IDs
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
-                  <CollapsibleContent>
-                    <div className="border border-t-0 rounded-b-md p-3 bg-background">
-                      <div className="flex flex-wrap gap-1">
-                        {analysis.etapaBloqueadoValidation.somenteBancoIds.map((id, j) => (
-                          <Badge key={j} variant="outline" className="text-xs font-mono">{id}</Badge>
-                        ))}
-                        {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoIds.length && (
-                          <Badge variant="outline" className="text-xs text-muted-foreground">+{analysis.etapaBloqueadoValidation.somenteBancoCount - analysis.etapaBloqueadoValidation.somenteBancoIds.length} mais</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-
               <p className="text-xs text-purple-600 mt-2">
-                Títulos com etapa "ignorar" ou marcados como bloqueados no banco não são atualizados. Títulos existentes apenas no banco (não presentes na planilha) serão marcados como "Pago" ao confirmar.
+                Títulos com etapa "ignorar" ou marcados como bloqueados no banco não são atualizados.
               </p>
             </CardContent>
           </Card>
