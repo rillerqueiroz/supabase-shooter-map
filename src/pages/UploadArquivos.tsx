@@ -655,8 +655,14 @@ export default function UploadArquivos() {
         analysis.etapaBloqueadoValidation.bloqueadoIds.forEach(id => blockedByEtapaOrBloqueado.add(id));
       }
 
-      const newRecords = analysis.records.filter(r => !existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id));
-      const updateRecords = analysis.records.filter(r => existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id));
+      // Deduplicate by ID (keep last occurrence) to avoid "ON CONFLICT DO UPDATE cannot affect row a second time"
+      const dedup = (records: typeof analysis.records) => {
+        const map = new Map<string, typeof records[0]>();
+        for (const r of records) map.set(r.id, r);
+        return Array.from(map.values());
+      };
+      const newRecords = dedup(analysis.records.filter(r => !existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id)));
+      const updateRecords = dedup(analysis.records.filter(r => existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id)));
       const somenteBancoIds = analysis.etapaBloqueadoValidation?.somenteBancoIds || [];
 
       const totalOperations = newRecords.length + updateRecords.length + somenteBancoIds.length;
