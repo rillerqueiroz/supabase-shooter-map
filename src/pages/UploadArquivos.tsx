@@ -500,6 +500,8 @@ export default function UploadArquivos() {
       if (allDbIds) {
         for (const dbRow of allDbIds) {
           if (!allSpreadsheetIds.has(dbRow.id)) {
+            // Ignorar títulos cuja etapa está marcada como ignorar
+            if (dbRow.etapa && etapasIgnorar.has(dbRow.etapa)) continue;
             somenteBancoIds.push(dbRow.id);
             if (somenteBancoRecords.length < 100) somenteBancoRecords.push(dbRow);
           }
@@ -705,20 +707,21 @@ export default function UploadArquivos() {
       // Step 2: Insert new records
       setUploadProgressLabel(`Inserindo novos registros (0/${newRecords.length})...`);
       for (let i = 0; i < newRecords.length; i += batchSize) {
-        const batch = newRecords.slice(i, i + batchSize);
-        const { error } = await supabase.from("base_tudobelo_para_testes").insert(batch);
+        const batchRaw = newRecords.slice(i, i + batchSize);
+        batchRaw.forEach(r => { r.processado_internamente = false; });
+        const { error } = await supabase.from("base_tudobelo_para_testes").insert(batchRaw);
         if (error) {
-          batch.forEach(r => {
+          batchRaw.forEach(r => {
             resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Inserido", status: "Erro", erro: error.message });
             totalErrors++;
           });
         } else {
-          batch.forEach(r => {
+          batchRaw.forEach(r => {
             resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Inserido", status: "Sucesso" });
             totalInserted++;
           });
         }
-        completedOperations += batch.length;
+        completedOperations += batchRaw.length;
         const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
         setUploadProgress(pct);
         setUploadProgressLabel(`Inserindo novos registros (${Math.min(i + batchSize, newRecords.length)}/${newRecords.length})...`);
@@ -738,7 +741,14 @@ export default function UploadArquivos() {
 
       setUploadProgressLabel(`Atualizando registros existentes (0/${updateRecords.length})...`);
       for (let i = 0; i < updateRecords.length; i += batchSize) {
-        const batch = updateRecords.slice(i, i + batchSize);
+        const batch = updateRecords.slice(i, i + batchSize).map(r => {
+          const dbRow = dbCurrentMap.get(r.id);
+          const dbStatus = dbRow?.status_titulo || "";
+          const newStatus = (r as any).status_titulo || "";
+          // Marcar processado_internamente=false se status mudou para Vencido ou Pago
+          const statusMudou = dbStatus !== newStatus && (newStatus.startsWith("Vencido") || newStatus.startsWith("Pago"));
+          return statusMudou ? { ...r, processado_internamente: false } : r;
+        });
         const { error } = await supabase.from("base_tudobelo_para_testes").upsert(batch, { onConflict: "id" });
         if (error) {
           batch.forEach(r => {
@@ -774,7 +784,7 @@ export default function UploadArquivos() {
         const batch = somenteBancoIds.slice(i, i + batchSize);
         const { error } = await supabase
           .from("base_tudobelo_para_testes")
-          .update({ status_titulo: "Pago" })
+          .update({ status_titulo: "Pago", processado_internamente: false })
           .in("id", batch);
         if (error) {
           batch.forEach(id => {
