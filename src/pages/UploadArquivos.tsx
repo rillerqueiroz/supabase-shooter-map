@@ -707,8 +707,9 @@ export default function UploadArquivos() {
       // Step 2: Insert new records
       setUploadProgressLabel(`Inserindo novos registros (0/${newRecords.length})...`);
       for (let i = 0; i < newRecords.length; i += batchSize) {
-        const batch = newRecords.slice(i, i + batchSize).map(r => ({ ...r, processado_internamente: false }));
-        const { error } = await supabase.from("base_tudobelo_para_testes").insert(batch);
+        const batchRaw = newRecords.slice(i, i + batchSize);
+        batchRaw.forEach(r => { r.processado_internamente = false; });
+        const { error } = await supabase.from("base_tudobelo_para_testes").insert(batchRaw);
         if (error) {
           batch.forEach(r => {
             resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Inserido", status: "Erro", erro: error.message });
