@@ -19,6 +19,7 @@ import GestaoNegativadosTudoBelo from "./pages/GestaoNegativadosTudoBelo";
 import GestaoAcessoSistemas from "./pages/GestaoAcessoSistemas";
 import UploadArquivos from "./pages/UploadArquivos";
 import GestaoTitulosParaTestes from "./pages/GestaoTitulosParaTestes";
+import UploadArquivosOficial from "./pages/UploadArquivosOficial";
 
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -68,6 +69,7 @@ const App = () => {
               <Route path="/editar-usuario/:userId" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-usuarios')!}><EditarUsuario /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/gestao-usuarios" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-usuarios')!}><GestaoUsuarios /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/upload-arquivos" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/upload-arquivos')!}><UploadArquivos /></ProtectedScreen></ProtectedRoute>} />
+              <Route path="/upload-arquivos-oficial" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/upload-arquivos-oficial')!}><UploadArquivosOficial /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/gestao-titulos-testes" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-titulos-testes')!}><GestaoTitulosParaTestes /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/gestao-acesso-sistemas" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-acesso-sistemas')!}><GestaoAcessoSistemas /></ProtectedScreen></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
