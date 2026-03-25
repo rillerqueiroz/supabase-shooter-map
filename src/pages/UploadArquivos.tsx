@@ -486,9 +486,11 @@ export default function UploadArquivos() {
 
       // Track novos títulos (in spreadsheet but not in DB)
       const novosTitulosRecords: Record<string, any>[] = [];
+      let novosTitulosCount = 0;
       for (const record of result.records) {
         if (!record.id) continue;
         if (!dbRecordsMap[record.id]) {
+          novosTitulosCount++;
           if (novosTitulosRecords.length < 100) novosTitulosRecords.push(record);
         }
       }
