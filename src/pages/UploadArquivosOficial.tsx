@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTitulosInsercoes } from "@/hooks/useTitulosInsercoes";
-import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, FlaskConical, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, ChevronRight, Plus, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, ShieldCheck, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, ChevronRight, Plus, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
@@ -400,7 +400,7 @@ interface UploadResult {
   totalErrors: number;
 }
 
-export default function UploadArquivos() {
+export default function UploadArquivosOficial() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -478,7 +478,7 @@ export default function UploadArquivos() {
         for (let i = 0; i < recordIds.length; i += 500) {
           const batch = recordIds.slice(i, i + 500);
           const { data: dbData } = await supabase
-            .from("base_tudobelo_para_testes")
+            .from("base_tudobelo_intermediaria")
             .select("id, status_titulo, data_vencimento, forma_pagamento, nome_parceiro, saldo_parcela, etapa, bloqueado")
             .in("id", batch);
           if (dbData) {
@@ -491,7 +491,7 @@ export default function UploadArquivos() {
 
       // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
       const { data: allDbIds } = await supabase
-        .from("base_tudobelo_para_testes")
+        .from("base_tudobelo_intermediaria")
         .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela")
         .not("status_titulo", "in", '("Pago","Pago em dia","Pago via renegociação","Cancelado","Suspenso","Não se aplica")');
 
@@ -643,7 +643,7 @@ export default function UploadArquivos() {
       for (let i = 0; i < recordIds.length; i += 500) {
         const batch = recordIds.slice(i, i + 500);
         const { data: dbData } = await supabase
-          .from("base_tudobelo_para_testes")
+          .from("base_tudobelo_intermediaria")
           .select("id")
           .in("id", batch);
         if (dbData) dbData.forEach(r => existingIds.add(r.id));
@@ -709,7 +709,7 @@ export default function UploadArquivos() {
       for (let i = 0; i < newRecords.length; i += batchSize) {
         const batchRaw = newRecords.slice(i, i + batchSize);
         batchRaw.forEach(r => { r.processado_internamente = false; });
-        const { error } = await supabase.from("base_tudobelo_para_testes").insert(batchRaw);
+        const { error } = await supabase.from("base_tudobelo_intermediaria").insert(batchRaw);
         if (error) {
           batchRaw.forEach(r => {
             resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Inserido", status: "Erro", erro: error.message });
@@ -733,7 +733,7 @@ export default function UploadArquivos() {
       const updateIds = updateRecords.map(r => r.id);
       for (let i = 0; i < updateIds.length; i += 500) {
         const idBatch = updateIds.slice(i, i + 500);
-        const { data: dbRows } = await supabase.from("base_tudobelo_para_testes").select("*").in("id", idBatch);
+        const { data: dbRows } = await supabase.from("base_tudobelo_intermediaria").select("*").in("id", idBatch);
         if (dbRows) dbRows.forEach(r => dbCurrentMap.set(r.id, r));
       }
 
@@ -749,7 +749,7 @@ export default function UploadArquivos() {
           const statusMudou = dbStatus !== newStatus && (newStatus.startsWith("Vencido") || newStatus.startsWith("Pago"));
           return statusMudou ? { ...r, processado_internamente: false } : r;
         });
-        const { error } = await supabase.from("base_tudobelo_para_testes").upsert(batch, { onConflict: "id" });
+        const { error } = await supabase.from("base_tudobelo_intermediaria").upsert(batch, { onConflict: "id" });
         if (error) {
           batch.forEach(r => {
             resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Erro", erro: error.message });
@@ -783,7 +783,7 @@ export default function UploadArquivos() {
       for (let i = 0; i < somenteBancoIds.length; i += batchSize) {
         const batch = somenteBancoIds.slice(i, i + batchSize);
         const { error } = await supabase
-          .from("base_tudobelo_para_testes")
+          .from("base_tudobelo_intermediaria")
           .update({ status_titulo: "Pago", processado_internamente: false })
           .in("id", batch);
         if (error) {
@@ -893,9 +893,9 @@ export default function UploadArquivos() {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 h-8 px-3">
-            <FlaskConical className="h-3.5 w-3.5 mr-1" />
-            AMBIENTE DE TESTES
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 h-8 px-3">
+            <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+            AMBIENTE OFICIAL
           </Badge>
         </div>
 
@@ -1040,13 +1040,13 @@ export default function UploadArquivos() {
             <div>
               <h1 className="text-2xl font-bold">Análise do Arquivo</h1>
               <p className="text-muted-foreground text-sm">
-                Revise os dados antes de enviar para a base de testes
+                Revise os dados antes de enviar para a base oficial
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 h-8 px-3">
-            <FlaskConical className="h-3.5 w-3.5 mr-1" />
-            AMBIENTE DE TESTES
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 h-8 px-3">
+            <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+            AMBIENTE OFICIAL
           </Badge>
         </div>
 
@@ -1262,7 +1262,7 @@ export default function UploadArquivos() {
                             <TableBody>
                               {(item.records || []).map((rec, j) => (
                                 <TableRow key={j} className="text-xs cursor-pointer hover:bg-muted/50" onClick={async () => {
-                                  const { data } = await supabase.from("base_tudobelo_para_testes").select("*").eq("id", rec.id).single();
+                                  const { data } = await supabase.from("base_tudobelo_intermediaria").select("*").eq("id", rec.id).single();
                                   if (data) {
                                     setSelectedTitulo(data as TituloTudoBelo);
                                     setDetailsOpen(true);
@@ -1327,7 +1327,7 @@ export default function UploadArquivos() {
                         <TableBody>
                           {analysis.etapaBloqueadoValidation.somenteBancoRecords.map((rec, j) => (
                             <TableRow key={j} className="text-xs cursor-pointer hover:bg-muted/50" onClick={async () => {
-                              const { data } = await supabase.from("base_tudobelo_para_testes").select("*").eq("id", rec.id).single();
+                              const { data } = await supabase.from("base_tudobelo_intermediaria").select("*").eq("id", rec.id).single();
                               if (data) {
                                 setSelectedTitulo(data as TituloTudoBelo);
                                 setDetailsOpen(true);
@@ -1645,9 +1645,9 @@ export default function UploadArquivos() {
       <div className="flex items-center gap-4">
         <img src={logoSuperavit} alt="Superávit" className="h-10" />
         <div>
-          <h1 className="text-2xl font-bold">Envio de Títulos - Testes</h1>
-            <p className="text-muted-foreground text-sm">
-              Envio de títulos para a base de testes
+          <h1 className="text-2xl font-bold">Envio de Títulos - Oficial</h1>
+          <p className="text-muted-foreground text-sm">
+            Envio de títulos para a base oficial de produção
           </p>
         </div>
       </div>
@@ -1657,10 +1657,10 @@ export default function UploadArquivos() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Enviar Arquivo para Base de Testes
-            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 ml-2">
-              <FlaskConical className="h-3 w-3 mr-1" />
-              Testes
+            Enviar Arquivo para Base Oficial
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 ml-2">
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              Oficial
             </Badge>
           </CardTitle>
         </CardHeader>
