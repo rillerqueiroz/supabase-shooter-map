@@ -213,7 +213,7 @@ export function GestaoEtapasTab() {
                 ))}
                 {(!etapas || etapas.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                       Nenhuma etapa cadastrada
                     </TableCell>
                   </TableRow>
