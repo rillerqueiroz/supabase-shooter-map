@@ -708,7 +708,17 @@ export default function UploadArquivosOficial() {
       setUploadProgressLabel(`Inserindo novos registros (0/${newRecords.length})...`);
       for (let i = 0; i < newRecords.length; i += batchSize) {
         const batchRaw = newRecords.slice(i, i + batchSize);
-        batchRaw.forEach(r => { r.processado_internamente = false; });
+        batchRaw.forEach(r => {
+          r.processado_internamente = false;
+          // Tratativa especial: Vendedor "Superavit Cobrança"
+          if (r.vendedor && String(r.vendedor).trim().toLowerCase() === "superavit cobrança") {
+            r.etapa = "Boletos de Acordo Superavit";
+            r.inserido_cedrus = true;
+            r.tipo_titulo = "Título Negociação";
+            r.processado_internamente = true;
+            r.bloqueado = true;
+          }
+        });
         const { error } = await supabase.from("base_tudobelo_intermediaria").insert(batchRaw);
         if (error) {
           batchRaw.forEach(r => {
@@ -1143,11 +1153,22 @@ export default function UploadArquivosOficial() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4 mb-3">
-                <div className="text-sm text-muted-foreground">
-                  <strong>{analysis.etapaBloqueadoValidation.novosTitulosCount}</strong> título(s) serão inseridos como novos registros no banco
-                </div>
-              </div>
+              {(() => {
+                const superavitCount = (analysis.etapaBloqueadoValidation?.novosTitulosRecords || []).filter(r => r.vendedor && String(r.vendedor).trim().toLowerCase() === "superavit cobrança").length;
+                const totalSuperavit = analysis.records.filter(r => !r.id || true).length; // approximate
+                return (
+                  <div className="flex items-center gap-4 mb-3 flex-wrap">
+                    <div className="text-sm text-muted-foreground">
+                      <strong>{analysis.etapaBloqueadoValidation!.novosTitulosCount}</strong> título(s) serão inseridos como novos registros no banco
+                    </div>
+                    {superavitCount > 0 && (
+                      <Badge className="bg-amber-500 text-white text-xs">
+                        {superavitCount} Superavit Cobrança — Etapa: Boletos de Acordo Superavit | Cedrus: ✓ | Tipo: Título Negociação | Bloqueado: ✓
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })()}
               <Collapsible>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2">
@@ -1166,24 +1187,33 @@ export default function UploadArquivosOficial() {
                           <TableHead className="text-xs">Vencimento</TableHead>
                           <TableHead className="text-xs">Saldo</TableHead>
                           <TableHead className="text-xs">Status Calculado</TableHead>
+                          <TableHead className="text-xs">Tratativa</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {analysis.etapaBloqueadoValidation.novosTitulosRecords.map((rec, j) => (
-                          <TableRow key={j} className="text-xs">
-                            <TableCell className="font-mono text-xs">{rec.id}</TableCell>
-                            <TableCell className="text-xs">{rec.nome_parceiro || "-"}</TableCell>
-                            <TableCell className="text-xs">{rec.forma_pagamento || "-"}</TableCell>
-                            <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
-                            <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {analysis.etapaBloqueadoValidation.novosTitulosRecords.map((rec, j) => {
+                          const isSuperavit = rec.vendedor && String(rec.vendedor).trim().toLowerCase() === "superavit cobrança";
+                          return (
+                            <TableRow key={j} className={`text-xs ${isSuperavit ? "bg-amber-50 dark:bg-amber-950/30" : ""}`}>
+                              <TableCell className="font-mono text-xs">{rec.id}</TableCell>
+                              <TableCell className="text-xs">{rec.nome_parceiro || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.forma_pagamento || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {isSuperavit && (
+                                  <Badge className="bg-amber-500 text-white text-[10px]">Superavit Cobrança</Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                         {analysis.etapaBloqueadoValidation.novosTitulosCount > analysis.etapaBloqueadoValidation.novosTitulosRecords.length && (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-xs text-center text-muted-foreground">
+                            <TableCell colSpan={7} className="text-xs text-center text-muted-foreground">
                               +{analysis.etapaBloqueadoValidation.novosTitulosCount - analysis.etapaBloqueadoValidation.novosTitulosRecords.length} título(s) adicionais não exibidos
                             </TableCell>
                           </TableRow>
