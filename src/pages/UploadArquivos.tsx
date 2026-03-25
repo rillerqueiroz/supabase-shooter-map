@@ -806,6 +806,72 @@ export default function UploadArquivos() {
           </Card>
         )}
 
+        {/* Novos Títulos - presentes na planilha mas não no banco */}
+        {analysis.etapaBloqueadoValidation?.novosTitulosCount > 0 && (
+          <Card className="border-emerald-200 bg-emerald-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-emerald-800">
+                <Plus className="h-4 w-4" />
+                Novos Títulos ({analysis.etapaBloqueadoValidation.novosTitulosCount})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="text-sm text-emerald-700">
+                  <strong>{analysis.etapaBloqueadoValidation.novosTitulosCount}</strong> título(s) serão inseridos como novos registros no banco
+                </div>
+              </div>
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                    Ver detalhes
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">ID</TableHead>
+                          <TableHead className="text-xs">Nome</TableHead>
+                          <TableHead className="text-xs">Forma Pagamento</TableHead>
+                          <TableHead className="text-xs">Vencimento</TableHead>
+                          <TableHead className="text-xs">Saldo</TableHead>
+                          <TableHead className="text-xs">Status Calculado</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {analysis.etapaBloqueadoValidation.novosTitulosRecords.map((rec, j) => (
+                          <TableRow key={j} className="text-xs">
+                            <TableCell className="font-mono text-xs">{rec.id}</TableCell>
+                            <TableCell className="text-xs">{rec.nome_parceiro || "-"}</TableCell>
+                            <TableCell className="text-xs">{rec.forma_pagamento || "-"}</TableCell>
+                            <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
+                            <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">{rec.status_titulo || "Sem status"}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {analysis.etapaBloqueadoValidation.novosTitulosCount > analysis.etapaBloqueadoValidation.novosTitulosRecords.length && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-xs text-center text-muted-foreground">
+                              +{analysis.etapaBloqueadoValidation.novosTitulosCount - analysis.etapaBloqueadoValidation.novosTitulosRecords.length} título(s) adicionais não exibidos
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+              <p className="text-xs text-emerald-600 mt-2">
+                Estes títulos não existem no banco de dados e serão inseridos como novos registros ao confirmar o envio.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Validação: Status Título (comparativo com banco) */}
         {analysis.statusComparison && analysis.statusComparison.totalCompared > 0 && (
