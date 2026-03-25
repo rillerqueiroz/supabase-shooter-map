@@ -1376,10 +1376,10 @@ export default function UploadArquivos() {
                 <Collapsible>
                   <div className="flex items-center justify-between border rounded-md p-3 bg-background">
                     <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                      <Badge variant="secondary" className="text-xs">
                         🔒 Bloqueados
                       </Badge>
-                      <span className="text-sm font-semibold text-amber-700">
+                      <span className="text-sm font-medium text-muted-foreground">
                         {analysis.etapaBloqueadoValidation.bloqueadoCount} título(s) bloqueado(s) (não serão inseridos/atualizados)
                       </span>
                     </div>
