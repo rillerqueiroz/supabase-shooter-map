@@ -197,7 +197,7 @@ export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string =
         query = query.eq('bloqueado', filters.bloqueado);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.range(0, 49999);
 
       if (error) throw error;
       return data as TituloTudoBelo[];
@@ -211,7 +211,8 @@ export function useTitulosTudoBeloOptions(tableName: string = 'base_tudobelo_int
     queryFn: async () => {
       const { data, error } = await supabase
         .from(tableName)
-        .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento, tipo_titulo');
+        .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento, tipo_titulo')
+        .range(0, 49999);
 
       if (error) throw error;
 

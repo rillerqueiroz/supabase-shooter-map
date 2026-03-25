@@ -43,7 +43,8 @@ export function useTitulosBaixados(tableName: string = 'base_tudobelo_intermedia
       let query = supabase
         .from('base_tudobelo_titulos_baixados_automaticamente')
         .select('*')
-        .order('data_baixa', { ascending: false });
+        .order('data_baixa', { ascending: false })
+        .range(0, 49999);
 
       const { data: baixados, error } = await query;
       if (error) throw error;
@@ -61,7 +62,8 @@ export function useTitulosBaixados(tableName: string = 'base_tudobelo_intermedia
         const { data: titulos, error: titulosError } = await supabase
           .from(tableName)
           .select('id, documento, tipo_documento, nome_parceiro, cnpj_cpf, valor_parcela, saldo_parcela, data_vencimento, dias_atraso, forma_pagamento, status_titulo, status_cedrus, etapa, filial, vendedor, uf_cobranca, credor_cedrus, tipo_titulo, fone1, fone2, email, negativado')
-          .in('id', tituloIds);
+          .in('id', tituloIds)
+          .range(0, 49999);
 
         if (!titulosError && titulos) {
           titulos.forEach(t => titulosMap.set(t.id, t));
