@@ -384,7 +384,8 @@ export default function UploadArquivos() {
   const [uploading, setUploading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const { data: insercoes, isLoading } = useTitulosInsercoes();
+  const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
