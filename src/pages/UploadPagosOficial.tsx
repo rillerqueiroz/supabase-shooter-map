@@ -646,27 +646,54 @@ export default function UploadPagosOficial() {
 
           return (
             <>
-              {pagos.length > 0 && (
-                <Card className="border-l-4 border-l-emerald-500">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      Títulos a Atualizar como Pago ({pagos.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Estes títulos serão atualizados com valor pago, data de pagamento e status "Pago".
-                    </p>
-                    <Collapsible defaultOpen={pagos.length <= 20}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>{renderTable(pagos)}</CollapsibleContent>
-                    </Collapsible>
-                  </CardContent>
-                </Card>
-              )}
+              {pagos.length > 0 && (() => {
+                const pagosInseridosCedrus = pagos.filter(({ db }) => db.inserido_cedrus === true);
+                const pagosNaoInseridosCedrus = pagos.filter(({ db }) => db.inserido_cedrus !== true);
+                return (
+                  <Card className="border-l-4 border-l-emerald-500">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        Títulos a Atualizar como Pago ({pagos.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Estes títulos serão atualizados com valor pago, data de pagamento e status "Pago".
+                      </p>
+
+                      {pagosNaoInseridosCedrus.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                            Não inseridos no Cedrus ({pagosNaoInseridosCedrus.length})
+                          </h4>
+                          <Collapsible defaultOpen={pagosNaoInseridosCedrus.length <= 20}>
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>{renderTable(pagosNaoInseridosCedrus)}</CollapsibleContent>
+                          </Collapsible>
+                        </div>
+                      )}
+
+                      {pagosInseridosCedrus.length > 0 && (
+                        <div className="border-t pt-4">
+                          <h4 className="text-xs font-semibold text-orange-700 mb-2 uppercase tracking-wide flex items-center gap-1">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Inseridos no Cedrus ({pagosInseridosCedrus.length}) — etapa será alterada para "A faturar - Negociação realizada"
+                          </h4>
+                          <Collapsible defaultOpen={pagosInseridosCedrus.length <= 20}>
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>{renderTable(pagosInseridosCedrus)}</CollapsibleContent>
+                          </Collapsible>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               {negociados.length > 0 && (
                 <Card className="border-l-4 border-l-yellow-500">
