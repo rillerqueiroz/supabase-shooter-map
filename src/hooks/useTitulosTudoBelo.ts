@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { fetchAllSupabaseRows } from '@/lib/supabaseBatch';
 import { toast } from 'sonner';
 
 // Status do título disponíveis
@@ -97,110 +98,110 @@ export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string =
   return useQuery({
     queryKey: ['titulos-tudobelo', tableName, filters],
     queryFn: async () => {
-      let query = supabase
-        .from(tableName)
-        .select('*')
-        .order('data_vencimento', { ascending: false });
+      const data = await fetchAllSupabaseRows<TituloTudoBelo>(async (from, to) => {
+        let query = supabase
+          .from(tableName)
+          .select('*')
+          .order('data_vencimento', { ascending: false });
 
-      if (filters?.search) {
-        query = query.or(`documento.ilike.%${filters.search}%,nome_parceiro.ilike.%${filters.search}%,cnpj_cpf.ilike.%${filters.search}%,fone1.ilike.%${filters.search}%,fone2.ilike.%${filters.search}%,id_titulo_cedrus.ilike.%${filters.search}%`);
-      }
-
-      if (filters?.nomesParceiros?.length) {
-        query = query.in('nome_parceiro', filters.nomesParceiros);
-      }
-
-      if (filters?.statusTitulo?.length) {
-        query = query.in('status_titulo', filters.statusTitulo);
-      }
-
-      if (filters?.filiais?.length) {
-        query = query.in('filial', filters.filiais);
-      }
-
-      if (filters?.vendedores?.length) {
-        query = query.in('vendedor', filters.vendedores);
-      }
-
-      if (filters?.tiposTitulo?.length) {
-        // Handle "Não informado" as null
-        const hasNaoInformado = filters.tiposTitulo.includes('Não informado');
-        const otherValues = filters.tiposTitulo.filter(v => v !== 'Não informado');
-        
-        if (hasNaoInformado && otherValues.length > 0) {
-          query = query.or(`tipo_documento.is.null,tipo_documento.in.(${otherValues.join(',')})`);
-        } else if (hasNaoInformado) {
-          query = query.is('tipo_documento', null);
-        } else {
-          query = query.in('tipo_documento', otherValues);
+        if (filters?.search) {
+          query = query.or(`documento.ilike.%${filters.search}%,nome_parceiro.ilike.%${filters.search}%,cnpj_cpf.ilike.%${filters.search}%,fone1.ilike.%${filters.search}%,fone2.ilike.%${filters.search}%,id_titulo_cedrus.ilike.%${filters.search}%`);
         }
-      }
 
-      if (filters?.ufs?.length) {
-        query = query.in('uf_cobranca', filters.ufs);
-      }
+        if (filters?.nomesParceiros?.length) {
+          query = query.in('nome_parceiro', filters.nomesParceiros);
+        }
 
-      if (filters?.formasPagamento?.length) {
-        query = query.in('forma_pagamento', filters.formasPagamento);
-      }
+        if (filters?.statusTitulo?.length) {
+          query = query.in('status_titulo', filters.statusTitulo);
+        }
 
-      if (filters?.etapas?.length) {
-        query = query.in('etapa', filters.etapas);
-      }
+        if (filters?.filiais?.length) {
+          query = query.in('filial', filters.filiais);
+        }
 
-      if (filters?.tipoTitulo?.length) {
-        query = query.in('tipo_titulo', filters.tipoTitulo);
-      }
+        if (filters?.vendedores?.length) {
+          query = query.in('vendedor', filters.vendedores);
+        }
 
-      if (filters?.dataVencimentoRange?.from) {
-        const fromDate = filters.dataVencimentoRange.from;
-        const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
-        query = query.gte('data_vencimento', fromStr);
-      }
-      if (filters?.dataVencimentoRange?.to) {
-        const toDate = filters.dataVencimentoRange.to;
-        const toStr = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
-        query = query.lte('data_vencimento', toStr);
-      }
+        if (filters?.tiposTitulo?.length) {
+          const hasNaoInformado = filters.tiposTitulo.includes('Não informado');
+          const otherValues = filters.tiposTitulo.filter(v => v !== 'Não informado');
 
-      if (filters?.dataDocumentoRange?.from) {
-        const fromDate = filters.dataDocumentoRange.from;
-        const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
-        query = query.gte('data_documento', fromStr);
-      }
-      if (filters?.dataDocumentoRange?.to) {
-        const toDate = filters.dataDocumentoRange.to;
-        const toStr = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
-        query = query.lte('data_documento', toStr);
-      }
+          if (hasNaoInformado && otherValues.length > 0) {
+            query = query.or(`tipo_documento.is.null,tipo_documento.in.(${otherValues.join(',')})`);
+          } else if (hasNaoInformado) {
+            query = query.is('tipo_documento', null);
+          } else {
+            query = query.in('tipo_documento', otherValues);
+          }
+        }
 
-      if (filters?.dataPagamentoRange?.from) {
-        const fromDate = filters.dataPagamentoRange.from;
-        const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
-        query = query.gte('data_pagamento', fromStr);
-      }
-      if (filters?.dataPagamentoRange?.to) {
-        const toDate = filters.dataPagamentoRange.to;
-        const toStr = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
-        query = query.lte('data_pagamento', toStr);
-      }
+        if (filters?.ufs?.length) {
+          query = query.in('uf_cobranca', filters.ufs);
+        }
 
-      if (filters?.inseridoCedrus !== undefined && filters?.inseridoCedrus !== null) {
-        query = query.eq('inserido_cedrus', filters.inseridoCedrus);
-      }
+        if (filters?.formasPagamento?.length) {
+          query = query.in('forma_pagamento', filters.formasPagamento);
+        }
 
-      if (filters?.processadoInternamente !== undefined && filters?.processadoInternamente !== null) {
-        query = query.eq('processado_internamente', filters.processadoInternamente);
-      }
+        if (filters?.etapas?.length) {
+          query = query.in('etapa', filters.etapas);
+        }
 
-      if (filters?.bloqueado !== undefined && filters?.bloqueado !== null) {
-        query = query.eq('bloqueado', filters.bloqueado);
-      }
+        if (filters?.tipoTitulo?.length) {
+          query = query.in('tipo_titulo', filters.tipoTitulo);
+        }
 
-      const { data, error } = await query.range(0, 49999);
+        if (filters?.dataVencimentoRange?.from) {
+          const fromDate = filters.dataVencimentoRange.from;
+          const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+          query = query.gte('data_vencimento', fromStr);
+        }
+        if (filters?.dataVencimentoRange?.to) {
+          const toDate = filters.dataVencimentoRange.to;
+          const toStr = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
+          query = query.lte('data_vencimento', toStr);
+        }
 
-      if (error) throw error;
-      return data as TituloTudoBelo[];
+        if (filters?.dataDocumentoRange?.from) {
+          const fromDate = filters.dataDocumentoRange.from;
+          const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+          query = query.gte('data_documento', fromStr);
+        }
+        if (filters?.dataDocumentoRange?.to) {
+          const toDate = filters.dataDocumentoRange.to;
+          const toStr = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
+          query = query.lte('data_documento', toStr);
+        }
+
+        if (filters?.dataPagamentoRange?.from) {
+          const fromDate = filters.dataPagamentoRange.from;
+          const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+          query = query.gte('data_pagamento', fromStr);
+        }
+        if (filters?.dataPagamentoRange?.to) {
+          const toDate = filters.dataPagamentoRange.to;
+          const toStr = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
+          query = query.lte('data_pagamento', toStr);
+        }
+
+        if (filters?.inseridoCedrus !== undefined && filters?.inseridoCedrus !== null) {
+          query = query.eq('inserido_cedrus', filters.inseridoCedrus);
+        }
+
+        if (filters?.processadoInternamente !== undefined && filters?.processadoInternamente !== null) {
+          query = query.eq('processado_internamente', filters.processadoInternamente);
+        }
+
+        if (filters?.bloqueado !== undefined && filters?.bloqueado !== null) {
+          query = query.eq('bloqueado', filters.bloqueado);
+        }
+
+        return query.range(from, to);
+      });
+
+      return data;
     },
   });
 }
@@ -209,12 +210,15 @@ export function useTitulosTudoBeloOptions(tableName: string = 'base_tudobelo_int
   return useQuery({
     queryKey: ['titulos-tudobelo-options', tableName],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento, tipo_titulo')
-        .range(0, 49999);
+      const data = await fetchAllSupabaseRows<any>(async (from, to) => {
+        const result = await supabase
+          .from(tableName)
+          .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento, tipo_titulo')
+          .order('nome_parceiro', { ascending: true })
+          .range(from, to);
 
-      if (error) throw error;
+        return result;
+      });
 
       const unique = (arr: (string | null)[]) => [...new Set(arr.filter(Boolean))].sort() as string[];
       
