@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTitulosInsercoes } from "@/hooks/useTitulosInsercoes";
-import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, Shield, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, ChevronRight, Plus, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, ShieldCheck, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, ChevronRight, Plus, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
