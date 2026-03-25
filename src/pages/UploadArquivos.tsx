@@ -521,9 +521,21 @@ export default function UploadArquivos() {
       result.records = result.records.filter(r => !blockedByEtapaOrBloqueado.has(r.id));
 
       // Status comparison (after filtering)
+      // Títulos com status "Pago" ou "Vencido" no banco mantêm o status do banco
+      const statusProtegidos = ["Pago", "Pago em dia", "Pago via renegociação"];
+      for (const record of result.records) {
+        if (!record.id || !(record.id in dbRecordsMap)) continue;
+        const dbRow = dbRecordsMap[record.id];
+        const dbStatus = dbRow.status_titulo;
+        if (dbStatus && statusProtegidos.includes(dbStatus)) {
+          record.status_titulo = dbStatus;
+        }
+      }
+
       const diffMap: Record<string, { count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }> = {};
       let totalCompared = 0;
       let totalDifferent = 0;
+      let totalIdentical = 0;
 
       for (const record of result.records) {
         if (!record.id || !(record.id in dbRecordsMap)) continue;
@@ -539,12 +551,15 @@ export default function UploadArquivos() {
           if (diffMap[key].records.length < 100) {
             diffMap[key].records.push({ id: record.id, db: dbRow, calc: record });
           }
+        } else {
+          totalIdentical++;
         }
       }
 
       result.statusComparison = {
         totalCompared,
         totalDifferent,
+        totalIdentical,
         details: Object.entries(diffMap).map(([key, val]) => {
           const [from, to] = key.split(" → ");
           return { from, to, count: val.count, records: val.records };
