@@ -62,6 +62,10 @@ export function GestaoEtapasTab() {
     setEditingValue("");
   };
 
+  const handleToggleIgnorar = async (etapa: TituloEtapa) => {
+    await updateMutation.mutateAsync({ id: etapa.id, ignorar: !etapa.ignorar });
+  };
+
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditingValue("");
