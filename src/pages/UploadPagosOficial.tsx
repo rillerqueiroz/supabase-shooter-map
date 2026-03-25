@@ -304,7 +304,8 @@ export default function UploadPagosOficial() {
         for (const { pago, db } of batch) {
           const isCedrus = db.inserido_cedrus === true;
           const statusCedrusUp = String(db.status_cedrus || "").trim().toUpperCase();
-          const isNegociado = statusCedrusUp === "N" || statusCedrusUp === "NEGOCIADO";
+          const statusCedrusLetra = statusCedrusUp.charAt(0);
+          const isNegociado = statusCedrusLetra === "N";
           const novoStatus = isNegociado ? "Negociado" : "Pago";
           const updates: Record<string, any> = {
             valor_pago: pago.valor_pago,
@@ -594,8 +595,9 @@ export default function UploadPagosOficial() {
                         {analysis.encontradosNoBanco.slice(0, 100).map(({ pago, db }) => {
                           const isCedrus = db.inserido_cedrus === true;
                           const statusCedrus = String(db.status_cedrus || "").trim().toUpperCase();
-                          const isNegociado = statusCedrus === "N" || statusCedrus === "NEGOCIADO";
-                          const cedrusCorresponde = statusCedrus === "P" || statusCedrus === "PAGO";
+                          const statusCedrusLetra = statusCedrus.charAt(0);
+                          const isNegociado = statusCedrusLetra === "N";
+                          const cedrusCorresponde = statusCedrusLetra === "P";
                           const novoStatus = isNegociado ? "Negociado" : "Pago";
                           return (
                             <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
