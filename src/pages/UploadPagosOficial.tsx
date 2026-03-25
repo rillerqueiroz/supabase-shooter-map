@@ -303,10 +303,13 @@ export default function UploadPagosOficial() {
 
         for (const { pago, db } of batch) {
           const isCedrus = db.inserido_cedrus === true;
+          const statusCedrusUp = String(db.status_cedrus || "").trim().toUpperCase();
+          const isNegociado = statusCedrusUp === "N" || statusCedrusUp === "NEGOCIADO";
+          const novoStatus = isNegociado ? "Negociado" : "Pago";
           const updates: Record<string, any> = {
             valor_pago: pago.valor_pago,
             data_pagamento: pago.data_pagamento,
-            status_titulo: "Pago",
+            status_titulo: novoStatus,
             processado_internamente: false,
             ultima_atualizacao: new Date().toISOString(),
           };
@@ -323,16 +326,17 @@ export default function UploadPagosOficial() {
           const alteracoes: { campo: string; antes: string; depois: string }[] = [];
           alteracoes.push({ campo: "valor_pago", antes: String(db.valor_pago ?? "(vazio)"), depois: String(pago.valor_pago ?? "(vazio)") });
           alteracoes.push({ campo: "data_pagamento", antes: String(db.data_pagamento ?? "(vazio)"), depois: String(pago.data_pagamento ?? "(vazio)") });
-          alteracoes.push({ campo: "status_titulo", antes: String(db.status_titulo ?? "(vazio)"), depois: "Pago" });
+          alteracoes.push({ campo: "status_titulo", antes: String(db.status_titulo ?? "(vazio)"), depois: novoStatus });
           if (isCedrus) {
             alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "Inserir no Cedrus" });
           }
 
+          const acaoLabel = isNegociado ? `Atualizar → Negociado${isCedrus ? " (Cedrus)" : ""}` : (isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento");
           if (error) {
-            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento", status: "Erro", erro: error.message, alteracoes });
+            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: acaoLabel, status: "Erro", erro: error.message, alteracoes });
             totalErrors++;
           } else {
-            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento", status: "Sucesso", alteracoes });
+            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: acaoLabel, status: "Sucesso", alteracoes });
             totalUpdated++;
           }
         }
@@ -572,17 +576,25 @@ export default function UploadPagosOficial() {
                         {analysis.encontradosNoBanco.slice(0, 100).map(({ pago, db }) => {
                           const isCedrus = db.inserido_cedrus === true;
                           const statusCedrus = String(db.status_cedrus || "").trim().toUpperCase();
+                          const isNegociado = statusCedrus === "N" || statusCedrus === "NEGOCIADO";
                           const cedrusCorresponde = statusCedrus === "P" || statusCedrus === "PAGO";
+                          const novoStatus = isNegociado ? "Negociado" : "Pago";
                           return (
-                            <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                            <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
                               <TableCell className="font-mono text-xs">{pago.id}</TableCell>
                               <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
                               <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
                               <TableCell>
                                 {db.status_cedrus ? (
-                                  <Badge variant="outline" className={`text-xs ${cedrusCorresponde ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}`}>
-                                    {db.status_cedrus} {cedrusCorresponde ? "✓" : "≠ Pago"}
-                                  </Badge>
+                                  isNegociado ? (
+                                    <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-800 border-yellow-400">
+                                      {db.status_cedrus} → Negociado
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className={`text-xs ${cedrusCorresponde ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}`}>
+                                      {db.status_cedrus} {cedrusCorresponde ? "✓" : "≠ Pago"}
+                                    </Badge>
+                                  )
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
                               <TableCell>{isCedrus ? <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">Sim</Badge> : <span className="text-muted-foreground">Não</span>}</TableCell>
@@ -590,7 +602,11 @@ export default function UploadPagosOficial() {
                               <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
                               <TableCell className="text-xs">{formatDate(pago.data_pagamento)}</TableCell>
                               <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
-                              <TableCell>{isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ Inserir no Cedrus</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
+                              <TableCell>
+                                {isNegociado ? <Badge className="text-xs bg-yellow-500 text-white">→ Negociado</Badge> :
+                                 isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ Inserir no Cedrus</Badge> :
+                                 <span className="text-muted-foreground">-</span>}
+                              </TableCell>
                             </TableRow>
                           );
                         })}
