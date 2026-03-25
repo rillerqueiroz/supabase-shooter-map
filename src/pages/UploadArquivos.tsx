@@ -835,6 +835,132 @@ export default function UploadArquivos() {
     }
   };
 
+  // Tela de resultado do upload
+  if (uploadResult) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <img src={logoSuperavit} alt="Superávit" className="h-10" />
+            <div>
+              <h1 className="text-2xl font-bold">Resultado do Envio</h1>
+              <p className="text-muted-foreground text-sm">
+                Processamento concluído — confira o resumo abaixo
+              </p>
+            </div>
+          </div>
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 h-8 px-3">
+            <FlaskConical className="h-3.5 w-3.5 mr-1" />
+            AMBIENTE DE TESTES
+          </Badge>
+        </div>
+
+        {/* Resumo */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Inseridos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{uploadResult.totalInserted}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Atualizados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{uploadResult.totalUpdated}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Marcados Pago</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-emerald-600">{uploadResult.totalMarkedPago}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Ignorados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-muted-foreground">
+                {uploadResult.records.filter(r => r.acao.startsWith("Ignorado")).length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Erros</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${uploadResult.totalErrors > 0 ? "text-destructive" : "text-green-600"}`}>
+                {uploadResult.totalErrors}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Ações */}
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <div>
+              <p className="text-sm font-medium">Processamento finalizado</p>
+              <p className="text-xs text-muted-foreground">
+                {uploadResult.records.length} registro(s) processado(s) no total
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={generateExcelReport}>
+              <Download className="h-4 w-4 mr-1" />
+              Baixar Relatório Excel
+            </Button>
+            <Button size="sm" onClick={() => { setUploadResult(null); setAnalysis(null); setSelectedFile(null); }}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Novo Upload
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Tela de progresso do upload
+  if (uploading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <img src={logoSuperavit} alt="Superávit" className="h-10" />
+          <div>
+            <h1 className="text-2xl font-bold">Enviando Dados...</h1>
+            <p className="text-muted-foreground text-sm">
+              Aguarde enquanto os registros são processados
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{uploadProgressLabel}</span>
+                <span className="font-medium">{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="h-3" />
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Não feche esta página durante o processamento
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Se a análise estiver ativa, mostra a tela de análise
   if (analysis) {
     const fv = analysis.formaValidation;
