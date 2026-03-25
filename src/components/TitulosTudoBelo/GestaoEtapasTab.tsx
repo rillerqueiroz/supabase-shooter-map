@@ -27,7 +27,9 @@ import {
   useDeleteTituloEtapa,
   TituloEtapa,
 } from "@/hooks/useTitulosEtapas";
-import { Plus, Pencil, Trash2, Loader2, Save, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Save, X, EyeOff, Eye } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
