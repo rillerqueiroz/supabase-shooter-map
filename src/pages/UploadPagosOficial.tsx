@@ -1090,6 +1090,16 @@ export default function UploadPagosOficial() {
           </div>
         </div>
 
+        <TitulosBulkEditModal
+          selectedIds={Array.from(checkedIds)}
+          open={bulkEditOpen}
+          onOpenChange={setBulkEditOpen}
+          onSuccess={() => {
+            setCheckedIds(new Set());
+            toast.success("Títulos atualizados com sucesso!");
+          }}
+        />
+
         <TituloDetailsModal
           titulo={selectedTitulo}
           open={detailsOpen}
