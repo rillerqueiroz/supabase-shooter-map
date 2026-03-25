@@ -586,9 +586,13 @@ export default function UploadPagosOficial() {
             const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
             return letra === "N";
           });
+          const boletosAcordo = analysis.encontradosNoBanco.filter(({ db }) => {
+            const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+            return letra !== "N" && String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
+          });
           const pagos = analysis.encontradosNoBanco.filter(({ db }) => {
             const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
-            return letra !== "N";
+            return letra !== "N" && String(db.etapa || "").trim() !== "Boletos de Acordo Superavit";
           });
 
           const renderTable = (items: typeof analysis.encontradosNoBanco) => (
