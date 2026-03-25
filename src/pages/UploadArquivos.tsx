@@ -871,7 +871,15 @@ export default function UploadArquivos() {
                             </TableHeader>
                             <TableBody>
                               {(item.records || []).map((rec, j) => (
-                                <TableRow key={j} className="text-xs">
+                                <TableRow key={j} className="text-xs cursor-pointer hover:bg-muted/50" onClick={async () => {
+                                  const { data } = await supabase.from("base_tudobelo_para_testes").select("*").eq("id", rec.id).single();
+                                  if (data) {
+                                    setSelectedTitulo(data as TituloTudoBelo);
+                                    setDetailsOpen(true);
+                                  } else {
+                                    toast.error("Título não encontrado no banco de dados");
+                                  }
+                                }}>
                                   <TableCell className="font-mono text-xs">{rec.id}</TableCell>
                                   <TableCell className="text-xs">{rec.db.nome_parceiro || "-"}</TableCell>
                                   <TableCell className="text-xs">{rec.db.forma_pagamento || "-"}</TableCell>
