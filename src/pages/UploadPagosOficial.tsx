@@ -306,6 +306,7 @@ export default function UploadPagosOficial() {
           const statusCedrusUp = String(db.status_cedrus || "").trim().toUpperCase();
           const statusCedrusLetra = statusCedrusUp.charAt(0);
           const isNegociado = statusCedrusLetra === "N";
+          const isBoletoAcordo = String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
           const novoStatus = isNegociado ? "Negociado" : "Pago";
           const updates: Record<string, any> = {
             valor_pago: pago.valor_pago,
@@ -315,7 +316,7 @@ export default function UploadPagosOficial() {
             ultima_atualizacao: new Date().toISOString(),
           };
 
-          if (isCedrus) {
+          if (isCedrus && !isBoletoAcordo) {
             updates.etapa = "A faturar - Negociação realizada";
           }
 
@@ -332,7 +333,11 @@ export default function UploadPagosOficial() {
             alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "A faturar - Negociação realizada" });
           }
 
-          const acaoLabel = isNegociado ? `Atualizar → Negociado${isCedrus ? " (Cedrus)" : ""}` : (isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento");
+          if (isCedrus && !isBoletoAcordo) {
+            alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "A faturar - Negociação realizada" });
+          }
+
+          const acaoLabel = isBoletoAcordo ? "Boleto Acordo Superavit → Pago" : isNegociado ? `Atualizar → Negociado${isCedrus ? " (Cedrus)" : ""}` : (isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento");
           if (error) {
             resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: acaoLabel, status: "Erro", erro: error.message, alteracoes });
             totalErrors++;
