@@ -99,7 +99,7 @@ export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string =
     queryFn: async () => {
       let query = supabase
         .from(tableName)
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('data_vencimento', { ascending: false });
 
       if (filters?.search) {
