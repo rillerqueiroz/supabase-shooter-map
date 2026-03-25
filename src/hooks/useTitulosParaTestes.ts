@@ -123,13 +123,15 @@ export function useTitulosParaTestesOptions() {
   return useQuery({
     queryKey: [`${QUERY_KEY}-options`],
     queryFn: async () => {
-      const data = await fetchAllSupabaseRows<any>((from, to) =>
-        supabase
+      const data = await fetchAllSupabaseRows<any>(async (from, to) => {
+        const result = await supabase
           .from(TABLE_NAME)
           .select('nome_parceiro, status_titulo, filial, vendedor, tipo_documento, uf_cobranca, forma_pagamento, tipo_titulo')
           .order('nome_parceiro', { ascending: true })
-          .range(from, to)
-      );
+          .range(from, to);
+
+        return result;
+      });
 
       const unique = (arr: (string | null)[]) => [...new Set(arr.filter(Boolean))].sort() as string[];
       

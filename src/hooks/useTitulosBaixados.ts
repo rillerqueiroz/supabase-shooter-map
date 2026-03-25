@@ -40,13 +40,15 @@ export function useTitulosBaixados(tableName: string = 'base_tudobelo_intermedia
   return useQuery({
     queryKey: ['titulos-baixados', tableName],
     queryFn: async () => {
-      const baixados = await fetchAllSupabaseRows<any>((from, to) =>
-        supabase
+      const baixados = await fetchAllSupabaseRows<any>(async (from, to) => {
+        const result = await supabase
           .from('base_tudobelo_titulos_baixados_automaticamente')
           .select('*')
           .order('data_baixa', { ascending: false })
-          .range(from, to)
-      );
+          .range(from, to);
+
+        return result;
+      });
 
       if (!baixados || baixados.length === 0) return [];
 
