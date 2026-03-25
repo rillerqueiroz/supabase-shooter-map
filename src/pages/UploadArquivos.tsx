@@ -711,17 +711,17 @@ export default function UploadArquivos() {
         batchRaw.forEach(r => { r.processado_internamente = false; });
         const { error } = await supabase.from("base_tudobelo_para_testes").insert(batchRaw);
         if (error) {
-          batch.forEach(r => {
+          batchRaw.forEach(r => {
             resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Inserido", status: "Erro", erro: error.message });
             totalErrors++;
           });
         } else {
-          batch.forEach(r => {
+          batchRaw.forEach(r => {
             resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Inserido", status: "Sucesso" });
             totalInserted++;
           });
         }
-        completedOperations += batch.length;
+        completedOperations += batchRaw.length;
         const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
         setUploadProgress(pct);
         setUploadProgressLabel(`Inserindo novos registros (${Math.min(i + batchSize, newRecords.length)}/${newRecords.length})...`);
