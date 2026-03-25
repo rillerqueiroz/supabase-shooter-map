@@ -559,24 +559,31 @@ export default function UploadPagosOficial() {
                           <TableHead className="text-xs">ID</TableHead>
                           <TableHead className="text-xs">Nome</TableHead>
                           <TableHead className="text-xs">Status Atual</TableHead>
+                          <TableHead className="text-xs">Cedrus</TableHead>
                           <TableHead className="text-xs">Saldo Parcela</TableHead>
                           <TableHead className="text-xs">Valor Pago</TableHead>
                           <TableHead className="text-xs">Data Pagamento</TableHead>
                           <TableHead className="text-xs">Vencimento</TableHead>
+                          <TableHead className="text-xs">Tratativa</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {analysis.encontradosNoBanco.slice(0, 100).map(({ pago, db }) => (
-                          <TableRow key={pago.id} className="text-xs cursor-pointer hover:bg-muted/50" onClick={() => openTituloDetails(pago.id)}>
-                            <TableCell className="font-mono text-xs">{pago.id}</TableCell>
-                            <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
-                            <TableCell className="text-xs">{formatCurrency(db.saldo_parcela)}</TableCell>
-                            <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
-                            <TableCell className="text-xs">{formatDate(pago.data_pagamento)}</TableCell>
-                            <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
-                          </TableRow>
-                        ))}
+                        {analysis.encontradosNoBanco.slice(0, 100).map(({ pago, db }) => {
+                          const isCedrus = db.inserido_cedrus === true;
+                          return (
+                            <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                              <TableCell className="font-mono text-xs">{pago.id}</TableCell>
+                              <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
+                              <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
+                              <TableCell>{isCedrus ? <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">Sim</Badge> : <span className="text-muted-foreground">Não</span>}</TableCell>
+                              <TableCell className="text-xs">{formatCurrency(db.saldo_parcela)}</TableCell>
+                              <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
+                              <TableCell className="text-xs">{formatDate(pago.data_pagamento)}</TableCell>
+                              <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
+                              <TableCell>{isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ Inserir no Cedrus</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
+                            </TableRow>
+                          );
+                        })}
                         {analysis.encontradosNoBanco.length > 100 && (
                           <TableRow><TableCell colSpan={7} className="text-xs text-center text-muted-foreground">+{analysis.encontradosNoBanco.length - 100} registro(s) adicionais</TableCell></TableRow>
                         )}
