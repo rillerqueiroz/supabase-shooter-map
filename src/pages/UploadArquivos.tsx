@@ -724,7 +724,18 @@ export default function UploadArquivos() {
         setUploadProgressLabel(`Inserindo novos registros (${Math.min(i + batchSize, newRecords.length)}/${newRecords.length})...`);
       }
 
-      // Step 3: Update existing records
+      // Step 3: Update existing records - fetch current DB data first for comparison
+      setUploadProgressLabel(`Buscando dados atuais para comparação...`);
+      const dbCurrentMap = new Map<string, Record<string, any>>();
+      const updateIds = updateRecords.map(r => r.id);
+      for (let i = 0; i < updateIds.length; i += 500) {
+        const idBatch = updateIds.slice(i, i + 500);
+        const { data: dbRows } = await supabase.from("base_tudobelo_para_testes").select("*").in("id", idBatch);
+        if (dbRows) dbRows.forEach(r => dbCurrentMap.set(r.id, r));
+      }
+
+      const COMPARE_FIELDS = ["nome_parceiro","cnpj_cpf","valor_parcela","saldo_parcela","data_vencimento","status_boleto","forma_pagamento","vendedor","uf_cobranca","municipio_cobranca","filial","status_titulo","etapa","observacoes","tipo_negocio","email","fone1","fone2","endereco","numero_endereco","complemento","bairro","cidade","uf","linha_digitavel","nome_fantasia","serie_documento","tipo_documento","codigo_parceiro","numero_parcela","data_documento"];
+
       setUploadProgressLabel(`Atualizando registros existentes (0/${updateRecords.length})...`);
       for (let i = 0; i < updateRecords.length; i += batchSize) {
         const batch = updateRecords.slice(i, i + batchSize);
@@ -736,7 +747,18 @@ export default function UploadArquivos() {
           });
         } else {
           batch.forEach(r => {
-            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Sucesso" });
+            const dbRow = dbCurrentMap.get(r.id);
+            const alteracoes: { campo: string; antes: string; depois: string }[] = [];
+            if (dbRow) {
+              for (const campo of COMPARE_FIELDS) {
+                const antes = String(dbRow[campo] ?? "");
+                const depois = String((r as any)[campo] ?? "");
+                if (antes !== depois) {
+                  alteracoes.push({ campo, antes, depois });
+                }
+              }
+            }
+            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Sucesso", alteracoes });
             totalUpdated++;
           });
         }
