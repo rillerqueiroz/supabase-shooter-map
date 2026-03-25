@@ -1054,10 +1054,10 @@ export default function UploadArquivos() {
 
         {/* Filtros aplicados */}
         {analysis.filteredStats && (analysis.filteredStats.semDocumento > 0 || analysis.filteredStats.lancamentoContabil > 0 || analysis.filteredStats.saldoZero > 0) && (
-          <Card className="border-blue-200 bg-blue-50/50">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
-                <FileText className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
                 Filtros de Validação Aplicados
               </CardTitle>
             </CardHeader>
