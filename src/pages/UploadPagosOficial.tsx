@@ -663,11 +663,40 @@ export default function UploadPagosOficial() {
             return letra !== "N" && String(db.etapa || "").trim() !== "Boletos de Acordo Superavit";
           });
 
-          const renderTable = (items: typeof analysis.encontradosNoBanco, showProcessButtons = false) => (
-            <div className="border rounded-md overflow-x-auto">
+          const renderTable = (items: typeof analysis.encontradosNoBanco, showProcessButtons = false) => {
+            const itemIds = items.map(i => i.pago.id);
+            const allChecked = itemIds.length > 0 && itemIds.every(id => checkedIds.has(id));
+            const someChecked = itemIds.some(id => checkedIds.has(id));
+            const selectedInGroup = itemIds.filter(id => checkedIds.has(id));
+            
+            return (
+            <div className="space-y-2">
+              {selectedInGroup.length > 0 && (
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md border">
+                  <Badge variant="outline" className="text-xs">{selectedInGroup.length} selecionado(s)</Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => {
+                      setBulkEditOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Editar selecionados
+                  </Button>
+                </div>
+              )}
+              <div className="border rounded-md overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="text-xs w-8" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={allChecked ? true : someChecked ? "indeterminate" : false}
+                        onCheckedChange={() => toggleCheckAll(itemIds)}
+                      />
+                    </TableHead>
                     <TableHead className="text-xs">ID</TableHead>
                     <TableHead className="text-xs">Nome</TableHead>
                     <TableHead className="text-xs">Status Atual</TableHead>
@@ -693,8 +722,15 @@ export default function UploadPagosOficial() {
                     const encargos = (pago.valor_pago != null && db.saldo_parcela != null) ? pago.valor_pago - db.saldo_parcela : null;
                     const isProcessed = processedIds.has(pago.id);
                     const isProcessing = processingIds.has(pago.id);
+                    const isChecked = checkedIds.has(pago.id);
                     return (
-                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isProcessed ? "opacity-50 bg-green-50" : isNegociado ? "bg-yellow-50" : isBoletoAcordo ? "bg-purple-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isChecked ? "bg-primary/5" : isProcessed ? "opacity-50 bg-green-50" : isNegociado ? "bg-yellow-50" : isBoletoAcordo ? "bg-purple-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                        <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={() => toggleCheck(pago.id)}
+                          />
+                        </TableCell>
                         <TableCell className="font-mono text-xs">{pago.id}</TableCell>
                         <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
@@ -746,12 +782,14 @@ export default function UploadPagosOficial() {
                     );
                   })}
                   {items.length > 100 && (
-                    <TableRow><TableCell colSpan={showProcessButtons ? 13 : 12} className="text-xs text-center text-muted-foreground">+{items.length - 100} registro(s) adicionais</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={showProcessButtons ? 14 : 13} className="text-xs text-center text-muted-foreground">+{items.length - 100} registro(s) adicionais</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
+              </div>
             </div>
           );
+          };
 
           return (
             <>
