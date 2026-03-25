@@ -297,6 +297,10 @@ export function TitulosBaixadosTab({ tableName = 'base_tudobelo_intermediaria' }
               <Filter className="h-4 w-4 mr-1" />
               Filtros
             </Button>
+            <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={filteredData.length === 0}>
+              <Download className="h-4 w-4 mr-1" />
+              Exportar Excel
+            </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="h-4 w-4 mr-1" />
