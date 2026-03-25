@@ -470,15 +470,26 @@ export default function UploadArquivos() {
       // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
       const { data: allDbIds } = await supabase
         .from("base_tudobelo_para_testes")
-        .select("id, nome_parceiro, status_titulo, etapa, bloqueado")
+        .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela")
         .not("status_titulo", "in", '("Pago","Pago em dia","Pago via renegociação","Cancelado","Suspenso","Não se aplica")');
 
       const somenteBancoIds: string[] = [];
+      const somenteBancoRecords: Record<string, any>[] = [];
       if (allDbIds) {
         for (const dbRow of allDbIds) {
           if (!allSpreadsheetIds.has(dbRow.id)) {
             somenteBancoIds.push(dbRow.id);
+            if (somenteBancoRecords.length < 100) somenteBancoRecords.push(dbRow);
           }
+        }
+      }
+
+      // Track novos títulos (in spreadsheet but not in DB)
+      const novosTitulosRecords: Record<string, any>[] = [];
+      for (const record of result.records) {
+        if (!record.id) continue;
+        if (!dbRecordsMap[record.id]) {
+          if (novosTitulosRecords.length < 100) novosTitulosRecords.push(record);
         }
       }
 
