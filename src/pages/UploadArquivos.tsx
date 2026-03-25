@@ -13,6 +13,8 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
+import { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
 
 // Mapeamento Excel → Supabase
 const COLUMN_MAP: Record<string, string> = {
@@ -382,6 +384,8 @@ export default function UploadArquivos() {
   const [uploading, setUploading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const { data: insercoes, isLoading } = useTitulosInsercoes();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -868,7 +872,15 @@ export default function UploadArquivos() {
                             </TableHeader>
                             <TableBody>
                               {(item.records || []).map((rec, j) => (
-                                <TableRow key={j} className="text-xs">
+                                <TableRow key={j} className="text-xs cursor-pointer hover:bg-muted/50" onClick={async () => {
+                                  const { data } = await supabase.from("base_tudobelo_para_testes").select("*").eq("id", rec.id).single();
+                                  if (data) {
+                                    setSelectedTitulo(data as TituloTudoBelo);
+                                    setDetailsOpen(true);
+                                  } else {
+                                    toast.error("Título não encontrado no banco de dados");
+                                  }
+                                }}>
                                   <TableCell className="font-mono text-xs">{rec.id}</TableCell>
                                   <TableCell className="text-xs">{rec.db.nome_parceiro || "-"}</TableCell>
                                   <TableCell className="text-xs">{rec.db.forma_pagamento || "-"}</TableCell>
@@ -1135,6 +1147,13 @@ export default function UploadArquivos() {
             </Button>
           </div>
         </div>
+
+        <TituloDetailsModal
+          titulo={selectedTitulo}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          onTituloUpdated={(updated) => setSelectedTitulo(updated)}
+        />
       </div>
     );
   }
