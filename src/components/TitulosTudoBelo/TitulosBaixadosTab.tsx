@@ -19,9 +19,10 @@ import { usePagination } from "@/hooks/usePagination";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { TituloDetailsModal } from "./TituloDetailsModal";
 import { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
-import { Search, Loader2, ChevronUp, ChevronDown, Filter, X } from "lucide-react";
+import { Search, Loader2, ChevronUp, ChevronDown, Filter, X, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import * as XLSX from "xlsx";
 
 const formatCurrency = (value: number | null) => {
   if (value === null || value === undefined) return "R$ 0,00";
@@ -188,6 +189,41 @@ export function TitulosBaixadosTab({ tableName = 'base_tudobelo_intermediaria' }
 
   const clearFilters = () => setFilters({ ...emptyFilters });
 
+  const handleExportExcel = () => {
+    const t = (row: typeof filteredData[0]) => row.titulo;
+    const exportData = filteredData.map(row => ({
+      "ID Título Cedrus": row.id_titulo_cedrus || "",
+      "Documento": t(row)?.documento || "",
+      "Tipo Documento": t(row)?.tipo_documento || "",
+      "Nome Parceiro": t(row)?.nome_parceiro || "",
+      "CNPJ/CPF": t(row)?.cnpj_cpf || "",
+      "Valor Parcela": t(row)?.valor_parcela || 0,
+      "Saldo Parcela": t(row)?.saldo_parcela || 0,
+      "Valor Pago": row.valor_pago || 0,
+      "Data Vencimento": formatDate(t(row)?.data_vencimento || null),
+      "Data Baixa": formatDate(row.data_baixa || null),
+      "Dias Atraso": t(row)?.dias_atraso || "",
+      "Status Título": t(row)?.status_titulo || "",
+      "Status Cedrus": t(row)?.status_cedrus || "",
+      "Etapa": t(row)?.etapa || "",
+      "Forma Pagamento": t(row)?.forma_pagamento || "",
+      "Filial": t(row)?.filial || "",
+      "Vendedor": t(row)?.vendedor || "",
+      "UF": t(row)?.uf_cobranca || "",
+      "Credor Cedrus": t(row)?.credor_cedrus || "",
+      "Tipo Título": t(row)?.tipo_titulo || "",
+      "Negativado": t(row)?.negativado ? "Sim" : "Não",
+      "Fone 1": t(row)?.fone1 || "",
+      "Fone 2": t(row)?.fone2 || "",
+      "Email": t(row)?.email || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Títulos Baixados");
+    XLSX.writeFile(wb, `titulos_baixados_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`);
+  };
+
   const handleRowClick = (row: any) => {
     if (row.titulo) {
       setSelectedTitulo(row.titulo as TituloTudoBelo);
@@ -260,6 +296,10 @@ export function TitulosBaixadosTab({ tableName = 'base_tudobelo_intermediaria' }
             >
               <Filter className="h-4 w-4 mr-1" />
               Filtros
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={filteredData.length === 0}>
+              <Download className="h-4 w-4 mr-1" />
+              Exportar Excel
             </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
