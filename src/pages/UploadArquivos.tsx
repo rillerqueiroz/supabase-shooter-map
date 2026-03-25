@@ -1167,13 +1167,13 @@ export default function UploadArquivos() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4 mb-3 flex-wrap">
-                <div className="text-sm text-blue-700">
+                <div className="text-sm">
                   <strong>{analysis.statusComparison.totalCompared}</strong> título(s) encontrado(s) no banco
                 </div>
-                <div className="text-sm font-semibold text-green-700">
+                <div className="text-sm font-semibold text-muted-foreground">
                   ✓ {analysis.statusComparison.totalIdentical} título(s) idêntico(s)
                 </div>
-                <div className={`text-sm font-semibold ${analysis.statusComparison.totalDifferent > 0 ? "text-amber-700" : "text-green-700"}`}>
+                <div className={`text-sm font-semibold ${analysis.statusComparison.totalDifferent > 0 ? "text-foreground" : "text-muted-foreground"}`}>
                   {analysis.statusComparison.totalDifferent > 0
                     ? `⚠ ${analysis.statusComparison.totalDifferent} título(s) com status diferente`
                     : "✓ Todos os status estão consistentes"}
