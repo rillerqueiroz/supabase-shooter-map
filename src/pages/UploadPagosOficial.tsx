@@ -306,6 +306,7 @@ export default function UploadPagosOficial() {
           const statusCedrusUp = String(db.status_cedrus || "").trim().toUpperCase();
           const statusCedrusLetra = statusCedrusUp.charAt(0);
           const isNegociado = statusCedrusLetra === "N";
+          const isBoletoAcordo = String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
           const novoStatus = isNegociado ? "Negociado" : "Pago";
           const updates: Record<string, any> = {
             valor_pago: pago.valor_pago,
@@ -315,7 +316,7 @@ export default function UploadPagosOficial() {
             ultima_atualizacao: new Date().toISOString(),
           };
 
-          if (isCedrus) {
+          if (isCedrus && !isBoletoAcordo) {
             updates.etapa = "A faturar - Negociação realizada";
           }
 
@@ -332,7 +333,11 @@ export default function UploadPagosOficial() {
             alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "A faturar - Negociação realizada" });
           }
 
-          const acaoLabel = isNegociado ? `Atualizar → Negociado${isCedrus ? " (Cedrus)" : ""}` : (isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento");
+          if (isCedrus && !isBoletoAcordo) {
+            alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "A faturar - Negociação realizada" });
+          }
+
+          const acaoLabel = isBoletoAcordo ? "Boleto Acordo Superavit → Pago" : isNegociado ? `Atualizar → Negociado${isCedrus ? " (Cedrus)" : ""}` : (isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento");
           if (error) {
             resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: acaoLabel, status: "Erro", erro: error.message, alteracoes });
             totalErrors++;
@@ -512,15 +517,20 @@ export default function UploadPagosOficial() {
             const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
             return letra === "N";
           });
+          const boletosAcordo = analysis.encontradosNoBanco.filter(({ db }) => {
+            const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+            return letra !== "N" && String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
+          });
           const pagos = analysis.encontradosNoBanco.filter(({ db }) => {
             const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
-            return letra !== "N";
+            return letra !== "N" && String(db.etapa || "").trim() !== "Boletos de Acordo Superavit";
           });
           return (
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{analysis.totalRows}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Válidos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{analysis.totalValidos}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">A Atualizar (Pago)</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-emerald-600">{pagos.length}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Boletos Acordo</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-purple-600">{boletosAcordo.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Negociados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-600">{negociados.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Já Pagos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{analysis.jaMaracadosPago.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Não Encontrados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{analysis.naoEncontradosNoBanco.length}</div></CardContent></Card>
@@ -576,9 +586,13 @@ export default function UploadPagosOficial() {
             const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
             return letra === "N";
           });
+          const boletosAcordo = analysis.encontradosNoBanco.filter(({ db }) => {
+            const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+            return letra !== "N" && String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
+          });
           const pagos = analysis.encontradosNoBanco.filter(({ db }) => {
             const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
-            return letra !== "N";
+            return letra !== "N" && String(db.etapa || "").trim() !== "Boletos de Acordo Superavit";
           });
 
           const renderTable = (items: typeof analysis.encontradosNoBanco) => (
@@ -600,13 +614,14 @@ export default function UploadPagosOficial() {
                 </TableHeader>
                 <TableBody>
                   {items.slice(0, 100).map(({ pago, db }) => {
+                    const isBoletoAcordo = String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
                     const isCedrus = db.inserido_cedrus === true;
                     const statusCedrus = String(db.status_cedrus || "").trim().toUpperCase();
                     const statusCedrusLetra = statusCedrus.charAt(0);
                     const isNegociado = statusCedrusLetra === "N";
                     const cedrusCorresponde = statusCedrusLetra === "P";
                     return (
-                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isBoletoAcordo ? "bg-purple-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
                         <TableCell className="font-mono text-xs">{pago.id}</TableCell>
                         <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
@@ -630,6 +645,7 @@ export default function UploadPagosOficial() {
                         <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
                         <TableCell>
                           {isNegociado ? <Badge className="text-xs bg-yellow-500 text-white">→ Negociado</Badge> :
+                           isBoletoAcordo ? <Badge className="text-xs bg-purple-500 text-white">→ Pago (sem mudar etapa)</Badge> :
                            isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ A faturar - Neg. realizada</Badge> :
                            <span className="text-muted-foreground">-</span>}
                         </TableCell>
@@ -694,6 +710,28 @@ export default function UploadPagosOficial() {
                   </Card>
                 );
               })()}
+
+              {boletosAcordo.length > 0 && (
+                <Card className="border-l-4 border-l-purple-500">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600" />
+                      Boletos de Acordo Superavit Pagos ({boletosAcordo.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Estes títulos estão na etapa "Boletos de Acordo Superavit" e serão marcados como <strong>Pago</strong> sem alterar a etapa.
+                    </p>
+                    <Collapsible defaultOpen={boletosAcordo.length <= 20}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>{renderTable(boletosAcordo)}</CollapsibleContent>
+                    </Collapsible>
+                  </CardContent>
+                </Card>
+              )}
 
               {negociados.length > 0 && (
                 <Card className="border-l-4 border-l-yellow-500">
