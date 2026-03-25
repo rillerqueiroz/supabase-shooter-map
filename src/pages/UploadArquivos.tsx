@@ -167,7 +167,9 @@ function mapExcelRow(row: Record<string, any>, formasLiquidacao?: Map<string, nu
       mapped.status_titulo = "A vencer";
     } else {
       const dayOfWeek = venc.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
+      const todayDayOfWeek = today.getDay();
+      // "Vencido em final de semana" só aparece às segundas-feiras
+      if ((dayOfWeek === 0 || dayOfWeek === 6) && todayDayOfWeek === 1) {
         mapped.status_titulo = "Vencido em final de semana";
       } else {
         mapped.status_titulo = "Vencido";
@@ -205,6 +207,7 @@ interface FormaPagamentoValidation {
 interface StatusTituloComparison {
   totalCompared: number;
   totalDifferent: number;
+  totalIdentical: number;
   details: { from: string; to: string; count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }[];
 }
 
@@ -518,9 +521,21 @@ export default function UploadArquivos() {
       result.records = result.records.filter(r => !blockedByEtapaOrBloqueado.has(r.id));
 
       // Status comparison (after filtering)
+      // Títulos com status "Pago" ou "Vencido" no banco mantêm o status do banco
+      const statusProtegidos = ["Pago", "Pago em dia", "Pago via renegociação"];
+      for (const record of result.records) {
+        if (!record.id || !(record.id in dbRecordsMap)) continue;
+        const dbRow = dbRecordsMap[record.id];
+        const dbStatus = dbRow.status_titulo;
+        if (dbStatus && statusProtegidos.includes(dbStatus)) {
+          record.status_titulo = dbStatus;
+        }
+      }
+
       const diffMap: Record<string, { count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }> = {};
       let totalCompared = 0;
       let totalDifferent = 0;
+      let totalIdentical = 0;
 
       for (const record of result.records) {
         if (!record.id || !(record.id in dbRecordsMap)) continue;
@@ -536,12 +551,15 @@ export default function UploadArquivos() {
           if (diffMap[key].records.length < 100) {
             diffMap[key].records.push({ id: record.id, db: dbRow, calc: record });
           }
+        } else {
+          totalIdentical++;
         }
       }
 
       result.statusComparison = {
         totalCompared,
         totalDifferent,
+        totalIdentical,
         details: Object.entries(diffMap).map(([key, val]) => {
           const [from, to] = key.split(" → ");
           return { from, to, count: val.count, records: val.records };
@@ -799,9 +817,12 @@ export default function UploadArquivos() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4 mb-3">
+              <div className="flex items-center gap-4 mb-3 flex-wrap">
                 <div className="text-sm text-blue-700">
                   <strong>{analysis.statusComparison.totalCompared}</strong> título(s) encontrado(s) no banco
+                </div>
+                <div className="text-sm font-semibold text-green-700">
+                  ✓ {analysis.statusComparison.totalIdentical} título(s) idêntico(s)
                 </div>
                 <div className={`text-sm font-semibold ${analysis.statusComparison.totalDifferent > 0 ? "text-amber-700" : "text-green-700"}`}>
                   {analysis.statusComparison.totalDifferent > 0
@@ -870,7 +891,7 @@ export default function UploadArquivos() {
                 </div>
               )}
               <p className="text-xs text-blue-600 mt-2">
-                O status é recalculado com base na data de vencimento + prazo de liquidação da forma de pagamento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana".
+                O status é recalculado com base na data de vencimento + prazo de liquidação da forma de pagamento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana" apenas às segundas-feiras. Títulos com status "Pago" no banco são preservados.
               </p>
             </CardContent>
           </Card>
