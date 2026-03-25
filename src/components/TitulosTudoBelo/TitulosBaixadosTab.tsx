@@ -19,9 +19,10 @@ import { usePagination } from "@/hooks/usePagination";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { TituloDetailsModal } from "./TituloDetailsModal";
 import { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
-import { Search, Loader2, ChevronUp, ChevronDown, Filter, X } from "lucide-react";
+import { Search, Loader2, ChevronUp, ChevronDown, Filter, X, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import * as XLSX from "xlsx";
 
 const formatCurrency = (value: number | null) => {
   if (value === null || value === undefined) return "R$ 0,00";

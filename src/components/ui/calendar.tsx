@@ -146,9 +146,9 @@ function Calendar({
           nav_button_previous: "hidden",
           nav_button_next: "hidden",
           table: "w-full border-collapse",
-          head_row: "flex gap-1",
+          head_row: "flex",
           head_cell: "text-muted-foreground w-9 font-normal text-xs flex items-center justify-center h-9",
-          row: "flex w-full gap-1",
+          row: "flex w-full mt-1",
           cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
           day: cn(
             buttonVariants({ variant: "ghost" }),
