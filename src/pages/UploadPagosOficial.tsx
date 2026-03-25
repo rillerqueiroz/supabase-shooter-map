@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, Download, DollarSign } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, Download, DollarSign, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
