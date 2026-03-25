@@ -559,6 +559,7 @@ export default function UploadPagosOficial() {
                           <TableHead className="text-xs">ID</TableHead>
                           <TableHead className="text-xs">Nome</TableHead>
                           <TableHead className="text-xs">Status Atual</TableHead>
+                          <TableHead className="text-xs">Status Cedrus</TableHead>
                           <TableHead className="text-xs">Cedrus</TableHead>
                           <TableHead className="text-xs">Saldo Parcela</TableHead>
                           <TableHead className="text-xs">Valor Pago</TableHead>
@@ -570,11 +571,20 @@ export default function UploadPagosOficial() {
                       <TableBody>
                         {analysis.encontradosNoBanco.slice(0, 100).map(({ pago, db }) => {
                           const isCedrus = db.inserido_cedrus === true;
+                          const statusCedrus = String(db.status_cedrus || "").trim().toUpperCase();
+                          const cedrusCorresponde = statusCedrus === "P" || statusCedrus === "PAGO";
                           return (
                             <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
                               <TableCell className="font-mono text-xs">{pago.id}</TableCell>
                               <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
                               <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
+                              <TableCell>
+                                {db.status_cedrus ? (
+                                  <Badge variant="outline" className={`text-xs ${cedrusCorresponde ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}`}>
+                                    {db.status_cedrus} {cedrusCorresponde ? "✓" : "≠ Pago"}
+                                  </Badge>
+                                ) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
                               <TableCell>{isCedrus ? <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">Sim</Badge> : <span className="text-muted-foreground">Não</span>}</TableCell>
                               <TableCell className="text-xs">{formatCurrency(db.saldo_parcela)}</TableCell>
                               <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
@@ -585,7 +595,7 @@ export default function UploadPagosOficial() {
                           );
                         })}
                         {analysis.encontradosNoBanco.length > 100 && (
-                          <TableRow><TableCell colSpan={9} className="text-xs text-center text-muted-foreground">+{analysis.encontradosNoBanco.length - 100} registro(s) adicionais</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={10} className="text-xs text-center text-muted-foreground">+{analysis.encontradosNoBanco.length - 100} registro(s) adicionais</TableCell></TableRow>
                         )}
                       </TableBody>
                     </Table>
