@@ -1405,7 +1405,7 @@ export default function UploadArquivos() {
                 </Collapsible>
               )}
 
-              <p className="text-xs text-purple-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Títulos com etapa "ignorar" ou marcados como bloqueados no banco não são atualizados.
               </p>
             </CardContent>
