@@ -585,7 +585,7 @@ export default function UploadPagosOficial() {
                           );
                         })}
                         {analysis.encontradosNoBanco.length > 100 && (
-                          <TableRow><TableCell colSpan={7} className="text-xs text-center text-muted-foreground">+{analysis.encontradosNoBanco.length - 100} registro(s) adicionais</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={9} className="text-xs text-center text-muted-foreground">+{analysis.encontradosNoBanco.length - 100} registro(s) adicionais</TableCell></TableRow>
                         )}
                       </TableBody>
                     </Table>
