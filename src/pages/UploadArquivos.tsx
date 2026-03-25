@@ -382,6 +382,23 @@ function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagament
   };
 }
 
+interface UploadResultRecord {
+  id: string;
+  nome_parceiro: string;
+  forma_pagamento: string;
+  acao: "Inserido" | "Atualizado" | "Marcado como Pago" | "Ignorado (etapa)" | "Ignorado (bloqueado)";
+  status: "Sucesso" | "Erro";
+  erro?: string;
+}
+
+interface UploadResult {
+  records: UploadResultRecord[];
+  totalInserted: number;
+  totalUpdated: number;
+  totalMarkedPago: number;
+  totalErrors: number;
+}
+
 export default function UploadArquivos() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -390,6 +407,9 @@ export default function UploadArquivos() {
   const [analyzing, setAnalyzing] = useState(false);
   const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgressLabel, setUploadProgressLabel] = useState("");
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const { data: insercoes, isLoading } = useTitulosInsercoes();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
