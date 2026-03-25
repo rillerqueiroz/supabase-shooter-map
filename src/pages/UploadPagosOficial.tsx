@@ -517,15 +517,20 @@ export default function UploadPagosOficial() {
             const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
             return letra === "N";
           });
+          const boletosAcordo = analysis.encontradosNoBanco.filter(({ db }) => {
+            const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+            return letra !== "N" && String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
+          });
           const pagos = analysis.encontradosNoBanco.filter(({ db }) => {
             const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
-            return letra !== "N";
+            return letra !== "N" && String(db.etapa || "").trim() !== "Boletos de Acordo Superavit";
           });
           return (
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{analysis.totalRows}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Válidos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{analysis.totalValidos}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">A Atualizar (Pago)</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-emerald-600">{pagos.length}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Boletos Acordo</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-purple-600">{boletosAcordo.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Negociados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-600">{negociados.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Já Pagos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{analysis.jaMaracadosPago.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Não Encontrados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{analysis.naoEncontradosNoBanco.length}</div></CardContent></Card>
