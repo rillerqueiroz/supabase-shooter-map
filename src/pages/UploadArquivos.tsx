@@ -1054,35 +1054,35 @@ export default function UploadArquivos() {
 
         {/* Filtros aplicados */}
         {analysis.filteredStats && (analysis.filteredStats.semDocumento > 0 || analysis.filteredStats.lancamentoContabil > 0 || analysis.filteredStats.saldoZero > 0) && (
-          <Card className="border-blue-200 bg-blue-50/50">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
-                <FileText className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
                 Filtros de Validação Aplicados
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {analysis.filteredStats.semDocumento > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <XCircle className="h-4 w-4 shrink-0" />
                     <span><strong>{analysis.filteredStats.semDocumento}</strong> sem documento (removidos)</span>
                   </div>
                 )}
                 {analysis.filteredStats.lancamentoContabil > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <XCircle className="h-4 w-4 shrink-0" />
                     <span><strong>{analysis.filteredStats.lancamentoContabil}</strong> Lançamento Contábil Manual (removidos)</span>
                   </div>
                 )}
                 {analysis.filteredStats.saldoZero > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <XCircle className="h-4 w-4 shrink-0" />
                     <span><strong>{analysis.filteredStats.saldoZero}</strong> com saldo ≤ 0 (removidos)</span>
                   </div>
                 )}
               </div>
-              <p className="text-xs text-blue-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Total removido: {analysis.filteredStats.totalOriginal - analysis.filteredStats.totalAposFiltro} de {analysis.filteredStats.totalOriginal} linhas
               </p>
             </CardContent>
@@ -1091,16 +1091,16 @@ export default function UploadArquivos() {
 
         {/* Novos Títulos - presentes na planilha mas não no banco */}
         {analysis.etapaBloqueadoValidation?.novosTitulosCount > 0 && (
-          <Card className="border-emerald-200 bg-emerald-50/50">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-emerald-800">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Novos Títulos ({analysis.etapaBloqueadoValidation.novosTitulosCount})
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4 mb-3">
-                <div className="text-sm text-emerald-700">
+                <div className="text-sm text-muted-foreground">
                   <strong>{analysis.etapaBloqueadoValidation.novosTitulosCount}</strong> título(s) serão inseridos como novos registros no banco
                 </div>
               </div>
@@ -1133,7 +1133,7 @@ export default function UploadArquivos() {
                             <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
                             <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">{rec.status_titulo || "Sem status"}</Badge>
+                              <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1149,7 +1149,7 @@ export default function UploadArquivos() {
                   </div>
                 </CollapsibleContent>
               </Collapsible>
-              <p className="text-xs text-emerald-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Estes títulos não existem no banco de dados e serão inseridos como novos registros ao confirmar o envio.
               </p>
             </CardContent>
@@ -1158,22 +1158,22 @@ export default function UploadArquivos() {
 
         {/* Validação: Status Título (comparativo com banco) */}
         {analysis.statusComparison && analysis.statusComparison.totalCompared > 0 && (
-          <Card className="border-blue-200 bg-blue-50/50">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
-                <AlertCircle className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 Validação: Status do Título (comparativo com banco de dados)
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4 mb-3 flex-wrap">
-                <div className="text-sm text-blue-700">
+                <div className="text-sm">
                   <strong>{analysis.statusComparison.totalCompared}</strong> título(s) encontrado(s) no banco
                 </div>
-                <div className="text-sm font-semibold text-green-700">
+                <div className="text-sm font-semibold text-muted-foreground">
                   ✓ {analysis.statusComparison.totalIdentical} título(s) idêntico(s)
                 </div>
-                <div className={`text-sm font-semibold ${analysis.statusComparison.totalDifferent > 0 ? "text-amber-700" : "text-green-700"}`}>
+                <div className={`text-sm font-semibold ${analysis.statusComparison.totalDifferent > 0 ? "text-foreground" : "text-muted-foreground"}`}>
                   {analysis.statusComparison.totalDifferent > 0
                     ? `⚠ ${analysis.statusComparison.totalDifferent} título(s) com status diferente`
                     : "✓ Todos os status estão consistentes"}
@@ -1189,7 +1189,7 @@ export default function UploadArquivos() {
                             {item.from}
                           </Badge>
                           <span className="text-xs text-muted-foreground">→</span>
-                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                          <Badge variant="secondary" className="text-xs">
                             {item.to}
                           </Badge>
                           <span className="text-sm font-medium ml-2">{item.count} título(s)</span>
@@ -1235,7 +1235,7 @@ export default function UploadArquivos() {
                                     <Badge variant="outline" className="text-xs">{rec.db.status_titulo || "Sem status"}</Badge>
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">{rec.calc.status_titulo || "Sem status"}</Badge>
+                                    <Badge variant="secondary" className="text-xs">{rec.calc.status_titulo || "Sem status"}</Badge>
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -1252,10 +1252,10 @@ export default function UploadArquivos() {
                 <Collapsible>
                   <div className="flex items-center justify-between border rounded-md p-3 bg-background mt-3">
                     <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                        💰 Somente no banco
+                      <Badge variant="outline" className="text-xs">
+                        Somente no banco
                       </Badge>
-                      <span className="text-sm font-semibold text-green-700">
+                      <span className="text-sm font-medium text-muted-foreground">
                         {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago"
                       </span>
                     </div>
@@ -1315,7 +1315,7 @@ export default function UploadArquivos() {
                   </CollapsibleContent>
                 </Collapsible>
               )}
-              <p className="text-xs text-blue-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 O status é recalculado com base na data de vencimento + prazo de liquidação da forma de pagamento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana" apenas às segundas-feiras. Títulos com status "Pago" no banco são preservados.
               </p>
             </CardContent>
@@ -1324,10 +1324,10 @@ export default function UploadArquivos() {
 
         {/* Validação: Etapa Ignorada e Bloqueados */}
         {analysis.etapaBloqueadoValidation && (analysis.etapaBloqueadoValidation.etapaIgnoradaCount > 0 || analysis.etapaBloqueadoValidation.bloqueadoCount > 0) && (
-          <Card className="border-purple-200 bg-purple-50/50">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-purple-800">
-                <AlertCircle className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 Validação: Etapa e Bloqueio
               </CardTitle>
             </CardHeader>
@@ -1335,14 +1335,14 @@ export default function UploadArquivos() {
               {/* Etapas com ignorar */}
               {analysis.etapaBloqueadoValidation.etapaIgnoradaCount > 0 && (
                 <div className="space-y-2">
-                  <div className="text-sm font-semibold text-purple-700">
+                  <div className="text-sm font-medium text-muted-foreground">
                     🚫 {analysis.etapaBloqueadoValidation.etapaIgnoradaCount} título(s) com etapa marcada como "ignorar" (não serão inseridos/atualizados)
                   </div>
                   {analysis.etapaBloqueadoValidation.etapaIgnoradaDetails.map((item, i) => (
                     <Collapsible key={i}>
                       <div className="flex items-center justify-between border rounded-md p-3 bg-background">
                         <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          <Badge variant="secondary" className="text-xs">
                             Etapa: {item.etapa}
                           </Badge>
                           <span className="text-sm font-medium">{item.count} título(s)</span>
@@ -1376,10 +1376,10 @@ export default function UploadArquivos() {
                 <Collapsible>
                   <div className="flex items-center justify-between border rounded-md p-3 bg-background">
                     <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                      <Badge variant="secondary" className="text-xs">
                         🔒 Bloqueados
                       </Badge>
-                      <span className="text-sm font-semibold text-amber-700">
+                      <span className="text-sm font-medium text-muted-foreground">
                         {analysis.etapaBloqueadoValidation.bloqueadoCount} título(s) bloqueado(s) (não serão inseridos/atualizados)
                       </span>
                     </div>
@@ -1405,7 +1405,7 @@ export default function UploadArquivos() {
                 </Collapsible>
               )}
 
-              <p className="text-xs text-purple-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Títulos com etapa "ignorar" ou marcados como bloqueados no banco não são atualizados.
               </p>
             </CardContent>
