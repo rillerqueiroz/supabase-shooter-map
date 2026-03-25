@@ -197,10 +197,10 @@ export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string =
         query = query.eq('bloqueado', filters.bloqueado);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query.range(0, 49999);
 
       if (error) throw error;
-      return data as TituloTudoBelo[];
+      return { data: data as TituloTudoBelo[], totalCount: count || 0 };
     },
   });
 }
