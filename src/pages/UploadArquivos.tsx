@@ -1149,7 +1149,7 @@ export default function UploadArquivos() {
                   </div>
                 </CollapsibleContent>
               </Collapsible>
-              <p className="text-xs text-emerald-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Estes títulos não existem no banco de dados e serão inseridos como novos registros ao confirmar o envio.
               </p>
             </CardContent>
