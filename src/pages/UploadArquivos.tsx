@@ -167,7 +167,9 @@ function mapExcelRow(row: Record<string, any>, formasLiquidacao?: Map<string, nu
       mapped.status_titulo = "A vencer";
     } else {
       const dayOfWeek = venc.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
+      const todayDayOfWeek = today.getDay();
+      // "Vencido em final de semana" só aparece às segundas-feiras
+      if ((dayOfWeek === 0 || dayOfWeek === 6) && todayDayOfWeek === 1) {
         mapped.status_titulo = "Vencido em final de semana";
       } else {
         mapped.status_titulo = "Vencido";
