@@ -621,13 +621,20 @@ export default function UploadArquivos() {
   const handleUpload = async () => {
     if (!analysis) return;
     setUploading(true);
+    setUploadProgress(0);
+    setUploadProgressLabel("Preparando envio...");
+
+    const resultRecords: UploadResultRecord[] = [];
+    let totalInserted = 0;
+    let totalUpdated = 0;
+    let totalMarkedPago = 0;
+    let totalErrors = 0;
 
     try {
       const batchSize = 500;
-      let totalInserted = 0;
-      let totalUpdated = 0;
 
-      // Determine which records are new vs existing
+      // Step 1: Determine which records are new vs existing
+      setUploadProgressLabel("Verificando registros existentes...");
       const recordIds = analysis.records.map(r => r.id).filter(Boolean);
       const existingIds = new Set<string>();
       for (let i = 0; i < recordIds.length; i += 500) {
@@ -639,51 +646,178 @@ export default function UploadArquivos() {
         if (dbData) dbData.forEach(r => existingIds.add(r.id));
       }
 
-      const newRecords = analysis.records.filter(r => !existingIds.has(r.id));
-      const updateRecords = analysis.records.filter(r => existingIds.has(r.id));
+      // Build sets for ignored/blocked
+      const blockedByEtapaOrBloqueado = new Set<string>();
+      if (analysis.etapaBloqueadoValidation) {
+        for (const detail of analysis.etapaBloqueadoValidation.etapaIgnoradaDetails) {
+          detail.ids.forEach(id => blockedByEtapaOrBloqueado.add(id));
+        }
+        analysis.etapaBloqueadoValidation.bloqueadoIds.forEach(id => blockedByEtapaOrBloqueado.add(id));
+      }
 
-      // Insert new records
+      const newRecords = analysis.records.filter(r => !existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id));
+      const updateRecords = analysis.records.filter(r => existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id));
+      const somenteBancoIds = analysis.etapaBloqueadoValidation?.somenteBancoIds || [];
+
+      const totalOperations = newRecords.length + updateRecords.length + somenteBancoIds.length;
+      let completedOperations = 0;
+
+      const updateProgress = (label: string) => {
+        completedOperations++;
+        const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
+        setUploadProgress(pct);
+        setUploadProgressLabel(label);
+      };
+
+      // Add ignored/blocked records to report
+      if (analysis.etapaBloqueadoValidation) {
+        for (const detail of analysis.etapaBloqueadoValidation.etapaIgnoradaDetails) {
+          for (const id of detail.ids) {
+            const rec = analysis.records.find(r => r.id === id);
+            resultRecords.push({
+              id,
+              nome_parceiro: rec?.nome_parceiro || "-",
+              forma_pagamento: rec?.forma_pagamento || "-",
+              acao: "Ignorado (etapa)",
+              status: "Sucesso",
+            });
+          }
+        }
+        for (const id of analysis.etapaBloqueadoValidation.bloqueadoIds) {
+          const rec = analysis.records.find(r => r.id === id);
+          resultRecords.push({
+            id,
+            nome_parceiro: rec?.nome_parceiro || "-",
+            forma_pagamento: rec?.forma_pagamento || "-",
+            acao: "Ignorado (bloqueado)",
+            status: "Sucesso",
+          });
+        }
+      }
+
+      // Step 2: Insert new records
+      setUploadProgressLabel(`Inserindo novos registros (0/${newRecords.length})...`);
       for (let i = 0; i < newRecords.length; i += batchSize) {
         const batch = newRecords.slice(i, i + batchSize);
         const { error } = await supabase.from("base_tudobelo_para_testes").insert(batch);
-        if (error) throw error;
-        totalInserted += batch.length;
+        if (error) {
+          batch.forEach(r => {
+            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Inserido", status: "Erro", erro: error.message });
+            totalErrors++;
+          });
+        } else {
+          batch.forEach(r => {
+            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Inserido", status: "Sucesso" });
+            totalInserted++;
+          });
+        }
+        completedOperations += batch.length;
+        const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
+        setUploadProgress(pct);
+        setUploadProgressLabel(`Inserindo novos registros (${Math.min(i + batchSize, newRecords.length)}/${newRecords.length})...`);
       }
 
-      // Update existing records
+      // Step 3: Update existing records
+      setUploadProgressLabel(`Atualizando registros existentes (0/${updateRecords.length})...`);
       for (let i = 0; i < updateRecords.length; i += batchSize) {
         const batch = updateRecords.slice(i, i + batchSize);
         const { error } = await supabase.from("base_tudobelo_para_testes").upsert(batch, { onConflict: "id" });
-        if (error) throw error;
-        totalUpdated += batch.length;
+        if (error) {
+          batch.forEach(r => {
+            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Erro", erro: error.message });
+            totalErrors++;
+          });
+        } else {
+          batch.forEach(r => {
+            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Sucesso" });
+            totalUpdated++;
+          });
+        }
+        completedOperations += batch.length;
+        const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
+        setUploadProgress(pct);
+        setUploadProgressLabel(`Atualizando registros existentes (${Math.min(i + batchSize, updateRecords.length)}/${updateRecords.length})...`);
       }
 
-      // Mark somente-banco titles as "Pago"
-      let totalMarkedPago = 0;
-      const somenteBancoIds = analysis.etapaBloqueadoValidation?.somenteBancoIds || [];
-      for (let i = 0; i < somenteBancoIds.length; i += 500) {
-        const batch = somenteBancoIds.slice(i, i + 500);
+      // Step 4: Mark somente-banco titles as "Pago"
+      setUploadProgressLabel(`Marcando títulos como Pago (0/${somenteBancoIds.length})...`);
+      for (let i = 0; i < somenteBancoIds.length; i += batchSize) {
+        const batch = somenteBancoIds.slice(i, i + batchSize);
         const { error } = await supabase
           .from("base_tudobelo_para_testes")
           .update({ status_titulo: "Pago" })
           .in("id", batch);
-        if (error) throw error;
-        totalMarkedPago += batch.length;
+        if (error) {
+          batch.forEach(id => {
+            resultRecords.push({ id, nome_parceiro: "-", forma_pagamento: "-", acao: "Marcado como Pago", status: "Erro", erro: error.message });
+            totalErrors++;
+          });
+        } else {
+          batch.forEach(id => {
+            resultRecords.push({ id, nome_parceiro: "-", forma_pagamento: "-", acao: "Marcado como Pago", status: "Sucesso" });
+            totalMarkedPago++;
+          });
+        }
+        completedOperations += batch.length;
+        const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
+        setUploadProgress(pct);
+        setUploadProgressLabel(`Marcando títulos como Pago (${Math.min(i + batchSize, somenteBancoIds.length)}/${somenteBancoIds.length})...`);
       }
 
-      const msgs = [];
-      if (totalInserted > 0) msgs.push(`${totalInserted} inserido(s)`);
-      if (totalUpdated > 0) msgs.push(`${totalUpdated} atualizado(s)`);
-      if (totalMarkedPago > 0) msgs.push(`${totalMarkedPago} marcado(s) como Pago`);
-      toast.success(`Concluído: ${msgs.join(", ")}!`);
-      setSelectedFile(null);
-      setAnalysis(null);
+      setUploadProgress(100);
+      setUploadProgressLabel("Concluído!");
+      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors });
+
     } catch (err: any) {
       console.error("Erro no upload:", err);
       toast.error(`Erro ao enviar dados: ${err.message}`);
+      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors: totalErrors + 1 });
     } finally {
       setUploading(false);
     }
+  };
+
+  const generateExcelReport = () => {
+    if (!uploadResult) return;
+    const wsData = [
+      ["ID", "Nome Parceiro", "Forma Pagamento", "Ação", "Status", "Erro"],
+      ...uploadResult.records.map(r => [r.id, r.nome_parceiro, r.forma_pagamento, r.acao, r.status, r.erro || ""])
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Auto-width columns
+    const colWidths = wsData[0].map((_, colIdx) => {
+      const maxLen = wsData.reduce((max, row) => Math.max(max, String(row[colIdx] || "").length), 0);
+      return { wch: Math.min(maxLen + 2, 50) };
+    });
+    ws["!cols"] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Resultado Upload");
+
+    // Summary sheet
+    const summaryData = [
+      ["Resumo do Upload"],
+      [],
+      ["Métrica", "Quantidade"],
+      ["Total de registros processados", uploadResult.records.length],
+      ["Inseridos com sucesso", uploadResult.totalInserted],
+      ["Atualizados com sucesso", uploadResult.totalUpdated],
+      ["Marcados como Pago", uploadResult.totalMarkedPago],
+      ["Ignorados (etapa)", uploadResult.records.filter(r => r.acao === "Ignorado (etapa)").length],
+      ["Ignorados (bloqueado)", uploadResult.records.filter(r => r.acao === "Ignorado (bloqueado)").length],
+      ["Erros", uploadResult.totalErrors],
+      [],
+      ["Data/Hora", new Date().toLocaleString("pt-BR")],
+      ["Arquivo", selectedFile?.name || "-"],
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    wsSummary["!cols"] = [{ wch: 35 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Resumo");
+
+    const fileName = `resultado-upload-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast.success(`Relatório baixado: ${fileName}`);
   };
 
   const handleCancel = () => {
