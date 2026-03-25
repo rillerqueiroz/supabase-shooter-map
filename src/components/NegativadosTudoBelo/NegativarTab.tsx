@@ -474,6 +474,12 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TituloDetailsModal
+        titulo={selectedTitulo}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
     </div>
   );
 }
