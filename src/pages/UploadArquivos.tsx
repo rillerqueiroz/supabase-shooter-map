@@ -1645,9 +1645,9 @@ export default function UploadArquivos() {
       <div className="flex items-center gap-4">
         <img src={logoSuperavit} alt="Superávit" className="h-10" />
         <div>
-          <h1 className="text-2xl font-bold">Upload de Arquivos</h1>
-          <p className="text-muted-foreground text-sm">
-            Envio de planilhas e arquivos CSV para importação de dados
+          <h1 className="text-2xl font-bold">Envio de Títulos - Testes</h1>
+            <p className="text-muted-foreground text-sm">
+              Envio de títulos para a base de testes
           </p>
         </div>
       </div>
