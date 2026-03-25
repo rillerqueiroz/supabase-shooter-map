@@ -316,7 +316,7 @@ export default function UploadPagosOficial() {
           };
 
           if (isCedrus) {
-            updates.etapa = "Inserir no Cedrus";
+            updates.etapa = "A faturar - Negociação realizada";
           }
 
           const { error } = await supabase
@@ -329,7 +329,7 @@ export default function UploadPagosOficial() {
           alteracoes.push({ campo: "data_pagamento", antes: String(db.data_pagamento ?? "(vazio)"), depois: String(pago.data_pagamento ?? "(vazio)") });
           alteracoes.push({ campo: "status_titulo", antes: String(db.status_titulo ?? "(vazio)"), depois: novoStatus });
           if (isCedrus) {
-            alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "Inserir no Cedrus" });
+            alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "A faturar - Negociação realizada" });
           }
 
           const acaoLabel = isNegociado ? `Atualizar → Negociado${isCedrus ? " (Cedrus)" : ""}` : (isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento");
@@ -551,7 +551,7 @@ export default function UploadPagosOficial() {
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2 text-sm text-orange-800">
                       <AlertTriangle className="h-4 w-4 text-orange-600" />
-                      <strong>{cedrusCount}</strong> título(s) com <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs mx-1">inserido_cedrus = true</Badge> serão movidos para a etapa <strong>"Inserir no Cedrus"</strong> e marcados como pendentes de análise.
+                      <strong>{cedrusCount}</strong> título(s) com <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs mx-1">inserido_cedrus = true</Badge> serão movidos para a etapa <strong>"A faturar - Negociação realizada"</strong> e marcados como pendentes de análise.
                     </div>
                   </CardContent>
                 </Card>
@@ -618,7 +618,7 @@ export default function UploadPagosOficial() {
                               </Badge>
                             ) : (
                               <Badge variant="outline" className={`text-xs ${cedrusCorresponde ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}`}>
-                                {db.status_cedrus} {cedrusCorresponde ? "✓" : "≠ Pago"}
+                                {db.status_cedrus} {cedrusCorresponde ? "✓" : ""}
                               </Badge>
                             )
                           ) : <span className="text-muted-foreground">-</span>}
@@ -630,7 +630,7 @@ export default function UploadPagosOficial() {
                         <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
                         <TableCell>
                           {isNegociado ? <Badge className="text-xs bg-yellow-500 text-white">→ Negociado</Badge> :
-                           isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ Inserir no Cedrus</Badge> :
+                           isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ A faturar - Neg. realizada</Badge> :
                            <span className="text-muted-foreground">-</span>}
                         </TableCell>
                       </TableRow>
@@ -646,27 +646,54 @@ export default function UploadPagosOficial() {
 
           return (
             <>
-              {pagos.length > 0 && (
-                <Card className="border-l-4 border-l-emerald-500">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      Títulos a Atualizar como Pago ({pagos.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Estes títulos serão atualizados com valor pago, data de pagamento e status "Pago".
-                    </p>
-                    <Collapsible defaultOpen={pagos.length <= 20}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>{renderTable(pagos)}</CollapsibleContent>
-                    </Collapsible>
-                  </CardContent>
-                </Card>
-              )}
+              {pagos.length > 0 && (() => {
+                const pagosInseridosCedrus = pagos.filter(({ db }) => db.inserido_cedrus === true);
+                const pagosNaoInseridosCedrus = pagos.filter(({ db }) => db.inserido_cedrus !== true);
+                return (
+                  <Card className="border-l-4 border-l-emerald-500">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        Títulos a Atualizar como Pago ({pagos.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Estes títulos serão atualizados com valor pago, data de pagamento e status "Pago".
+                      </p>
+
+                      {pagosNaoInseridosCedrus.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                            Não inseridos no Cedrus ({pagosNaoInseridosCedrus.length})
+                          </h4>
+                          <Collapsible defaultOpen={pagosNaoInseridosCedrus.length <= 20}>
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>{renderTable(pagosNaoInseridosCedrus)}</CollapsibleContent>
+                          </Collapsible>
+                        </div>
+                      )}
+
+                      {pagosInseridosCedrus.length > 0 && (
+                        <div className="border-t pt-4">
+                          <h4 className="text-xs font-semibold text-orange-700 mb-2 uppercase tracking-wide flex items-center gap-1">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Inseridos no Cedrus ({pagosInseridosCedrus.length}) — etapa será alterada para "A faturar - Negociação realizada"
+                          </h4>
+                          <Collapsible defaultOpen={pagosInseridosCedrus.length <= 20}>
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>{renderTable(pagosInseridosCedrus)}</CollapsibleContent>
+                          </Collapsible>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               {negociados.length > 0 && (
                 <Card className="border-l-4 border-l-yellow-500">
