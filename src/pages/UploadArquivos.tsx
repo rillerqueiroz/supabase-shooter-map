@@ -1133,7 +1133,7 @@ export default function UploadArquivos() {
                             <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
                             <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">{rec.status_titulo || "Sem status"}</Badge>
+                              <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
                             </TableCell>
                           </TableRow>
                         ))}
