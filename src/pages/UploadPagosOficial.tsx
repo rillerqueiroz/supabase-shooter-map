@@ -183,6 +183,8 @@ export default function UploadPagosOficial() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadProgressLabel, setUploadProgressLabel] = useState("");
   const [uploadResult, setUploadResult] = useState<UploadPagosResult | null>(null);
+  const [processedIds, setProcessedIds] = useState<Set<string>>(new Set());
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -416,7 +418,48 @@ export default function UploadPagosOficial() {
     toast.success(`Relatório baixado: ${fileName}`);
   };
 
-  const handleCancel = () => { setAnalysis(null); setSelectedFile(null); setUploadResult(null); };
+  const handleCancel = () => { setAnalysis(null); setSelectedFile(null); setUploadResult(null); setProcessedIds(new Set()); setProcessingIds(new Set()); };
+
+  const handleProcessItems = async (items: { pago: PagoRecord; db: Record<string, any> }[]) => {
+    const ids = items.map(i => i.pago.id);
+    setProcessingIds(prev => new Set([...prev, ...ids]));
+
+    for (const { pago, db } of items) {
+      const isCedrus = db.inserido_cedrus === true;
+      const statusCedrusLetra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+      const isNegociado = statusCedrusLetra === "N";
+      const isBoletoAcordo = String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
+      const novoStatus = isNegociado ? "Negociado" : "Pago";
+      const updates: Record<string, any> = {
+        valor_pago: pago.valor_pago,
+        data_pagamento: pago.data_pagamento,
+        status_titulo: novoStatus,
+        processado_internamente: false,
+        ultima_atualizacao: new Date().toISOString(),
+      };
+      if (isCedrus && !isBoletoAcordo) {
+        updates.etapa = "A faturar - Negociação realizada";
+      }
+      const { error } = await supabase
+        .from("base_tudobelo_intermediaria")
+        .update(updates)
+        .eq("id", pago.id);
+
+      if (error) {
+        toast.error(`Erro ao processar ${pago.id}: ${error.message}`);
+      } else {
+        setProcessedIds(prev => new Set([...prev, pago.id]));
+      }
+    }
+
+    setProcessingIds(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => next.delete(id));
+      return next;
+    });
+
+    toast.success(`${items.length} título(s) processado(s) com sucesso!`);
+  };
 
   const formatCurrency = (v: number | null) => v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-";
   const formatDate = (d: string | null) => {
@@ -595,7 +638,7 @@ export default function UploadPagosOficial() {
             return letra !== "N" && String(db.etapa || "").trim() !== "Boletos de Acordo Superavit";
           });
 
-          const renderTable = (items: typeof analysis.encontradosNoBanco) => (
+          const renderTable = (items: typeof analysis.encontradosNoBanco, showProcessButtons = false) => (
             <div className="border rounded-md overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -607,9 +650,11 @@ export default function UploadPagosOficial() {
                     <TableHead className="text-xs">Cedrus</TableHead>
                     <TableHead className="text-xs">Saldo Parcela</TableHead>
                     <TableHead className="text-xs">Valor Pago</TableHead>
+                    <TableHead className="text-xs">Encargos</TableHead>
                     <TableHead className="text-xs">Data Pagamento</TableHead>
                     <TableHead className="text-xs">Vencimento</TableHead>
                     <TableHead className="text-xs">Tratativa</TableHead>
+                    {showProcessButtons && <TableHead className="text-xs text-center">Ação</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -620,8 +665,11 @@ export default function UploadPagosOficial() {
                     const statusCedrusLetra = statusCedrus.charAt(0);
                     const isNegociado = statusCedrusLetra === "N";
                     const cedrusCorresponde = statusCedrusLetra === "P";
+                    const encargos = (pago.valor_pago != null && db.saldo_parcela != null) ? pago.valor_pago - db.saldo_parcela : null;
+                    const isProcessed = processedIds.has(pago.id);
+                    const isProcessing = processingIds.has(pago.id);
                     return (
-                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isBoletoAcordo ? "bg-purple-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isProcessed ? "opacity-50 bg-green-50" : isNegociado ? "bg-yellow-50" : isBoletoAcordo ? "bg-purple-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
                         <TableCell className="font-mono text-xs">{pago.id}</TableCell>
                         <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
@@ -641,6 +689,9 @@ export default function UploadPagosOficial() {
                         <TableCell>{isCedrus ? <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">Sim</Badge> : <span className="text-muted-foreground">Não</span>}</TableCell>
                         <TableCell className="text-xs">{formatCurrency(db.saldo_parcela)}</TableCell>
                         <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
+                        <TableCell className={`text-xs font-medium ${encargos != null && encargos > 0 ? "text-red-600" : encargos != null && encargos < 0 ? "text-blue-600" : "text-muted-foreground"}`}>
+                          {encargos != null ? formatCurrency(encargos) : "-"}
+                        </TableCell>
                         <TableCell className="text-xs">{formatDate(pago.data_pagamento)}</TableCell>
                         <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
                         <TableCell>
@@ -649,11 +700,28 @@ export default function UploadPagosOficial() {
                            isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ A faturar - Neg. realizada</Badge> :
                            <span className="text-muted-foreground">-</span>}
                         </TableCell>
+                        {showProcessButtons && (
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            {isProcessed ? (
+                              <Badge className="text-xs bg-green-600 text-white"><CheckCircle2 className="h-3 w-3 mr-1" />Processado</Badge>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-6 px-2"
+                                disabled={isProcessing}
+                                onClick={() => handleProcessItems([{ pago, db }])}
+                              >
+                                {isProcessing ? "..." : "Processar"}
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
                   {items.length > 100 && (
-                    <TableRow><TableCell colSpan={10} className="text-xs text-center text-muted-foreground">+{items.length - 100} registro(s) adicionais</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={showProcessButtons ? 13 : 12} className="text-xs text-center text-muted-foreground">+{items.length - 100} registro(s) adicionais</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -663,8 +731,60 @@ export default function UploadPagosOficial() {
           return (
             <>
               {pagos.length > 0 && (() => {
-                const pagosInseridosCedrus = pagos.filter(({ db }) => db.inserido_cedrus === true);
-                const pagosNaoInseridosCedrus = pagos.filter(({ db }) => db.inserido_cedrus !== true);
+                const comEncargos = pagos.filter(({ pago, db }) => {
+                  if (pago.valor_pago == null || db.saldo_parcela == null) return false;
+                  return pago.valor_pago - db.saldo_parcela > 0;
+                });
+                const semEncargos = pagos.filter(({ pago, db }) => {
+                  if (pago.valor_pago == null || db.saldo_parcela == null) return true;
+                  return pago.valor_pago - db.saldo_parcela <= 0;
+                });
+
+                const totalEncargos = comEncargos.reduce((sum, { pago, db }) => {
+                  return sum + ((pago.valor_pago ?? 0) - (db.saldo_parcela ?? 0));
+                }, 0);
+
+                const renderGroup = (
+                  items: typeof pagos,
+                  title: string,
+                  subtitle: string,
+                  colorClass: string,
+                  badgeClass: string,
+                  defaultOpen: boolean
+                ) => {
+                  const unprocessed = items.filter(i => !processedIds.has(i.pago.id));
+                  const allProcessed = unprocessed.length === 0 && items.length > 0;
+                  return (
+                    <div className="border-t pt-4 first:border-t-0 first:pt-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className={`text-xs font-semibold uppercase tracking-wide flex items-center gap-1 ${colorClass}`}>
+                          {title} ({items.length})
+                          {allProcessed && <Badge className="text-xs bg-green-600 text-white ml-2">Todos processados</Badge>}
+                        </h4>
+                        {!allProcessed && unprocessed.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={`text-xs h-7 ${badgeClass}`}
+                            disabled={processingIds.size > 0}
+                            onClick={() => handleProcessItems(unprocessed)}
+                          >
+                            <Send className="h-3 w-3 mr-1" />
+                            Processar lote ({unprocessed.length})
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">{subtitle}</p>
+                      <Collapsible defaultOpen={defaultOpen}>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>{renderTable(items, true)}</CollapsibleContent>
+                      </Collapsible>
+                    </div>
+                  );
+                };
+
                 return (
                   <Card className="border-l-4 border-l-emerald-500">
                     <CardHeader className="pb-2">
@@ -678,33 +798,33 @@ export default function UploadPagosOficial() {
                         Estes títulos serão atualizados com valor pago, data de pagamento e status "Pago".
                       </p>
 
-                      {pagosNaoInseridosCedrus.length > 0 && (
-                        <div>
-                          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                            Não inseridos no Cedrus ({pagosNaoInseridosCedrus.length})
-                          </h4>
-                          <Collapsible defaultOpen={pagosNaoInseridosCedrus.length <= 20}>
-                            <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>{renderTable(pagosNaoInseridosCedrus)}</CollapsibleContent>
-                          </Collapsible>
+                      {comEncargos.length > 0 && (
+                        <div className="bg-red-50/50 border border-red-200 rounded-md p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                            <span className="text-sm font-medium text-red-700">
+                              Total de encargos: {formatCurrency(totalEncargos)}
+                            </span>
+                          </div>
                         </div>
                       )}
 
-                      {pagosInseridosCedrus.length > 0 && (
-                        <div className="border-t pt-4">
-                          <h4 className="text-xs font-semibold text-orange-700 mb-2 uppercase tracking-wide flex items-center gap-1">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            Inseridos no Cedrus ({pagosInseridosCedrus.length}) — etapa será alterada para "A faturar - Negociação realizada"
-                          </h4>
-                          <Collapsible defaultOpen={pagosInseridosCedrus.length <= 20}>
-                            <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>{renderTable(pagosInseridosCedrus)}</CollapsibleContent>
-                          </Collapsible>
-                        </div>
+                      {comEncargos.length > 0 && renderGroup(
+                        comEncargos,
+                        `Com Encargos`,
+                        `Títulos onde o valor pago é maior que o saldo (valor pago > saldo parcela)`,
+                        "text-red-700",
+                        "border-red-300 text-red-700 hover:bg-red-50",
+                        comEncargos.length <= 20
+                      )}
+
+                      {semEncargos.length > 0 && renderGroup(
+                        semEncargos,
+                        `Sem Encargos`,
+                        `Títulos onde o valor pago é igual ou menor que o saldo`,
+                        "text-muted-foreground",
+                        "border-emerald-300 text-emerald-700 hover:bg-emerald-50",
+                        semEncargos.length <= 20
                       )}
                     </CardContent>
                   </Card>
