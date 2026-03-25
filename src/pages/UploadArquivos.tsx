@@ -524,6 +524,9 @@ export default function UploadArquivos() {
         bloqueadoIds,
         somenteBancoCount: somenteBancoIds.length,
         somenteBancoIds: somenteBancoIds.slice(0, 100),
+        somenteBancoRecords: somenteBancoRecords,
+        novosTitulosCount: novosTitulosRecords.length,
+        novosTitulosRecords: novosTitulosRecords,
       };
 
       // Filter out records with etapa ignorar or bloqueado from DB
