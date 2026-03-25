@@ -516,16 +516,34 @@ export default function UploadPagosOficial() {
 
         {(() => {
           const cedrusCount = analysis.encontradosNoBanco.filter(({ db }) => db.inserido_cedrus === true).length;
-          return cedrusCount > 0 ? (
-            <Card className="border-orange-400 bg-orange-50">
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-sm text-orange-800">
-                  <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  <strong>{cedrusCount}</strong> título(s) com <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs mx-1">inserido_cedrus = true</Badge> serão movidos para a etapa <strong>"Inserir no Cedrus"</strong> e marcados como pendentes de análise.
-                </div>
-              </CardContent>
-            </Card>
-          ) : null;
+          const negociadoCount = analysis.encontradosNoBanco.filter(({ db }) => {
+            const sc = String(db.status_cedrus || "").trim().toUpperCase();
+            return sc === "N" || sc === "NEGOCIADO";
+          }).length;
+          return (
+            <>
+              {negociadoCount > 0 && (
+                <Card className="border-yellow-400 bg-yellow-50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 text-sm text-yellow-800">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                      <strong>{negociadoCount}</strong> título(s) com <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-400 text-xs mx-1">status_cedrus = Negociado</Badge> serão atualizados para o status <strong>"Negociado"</strong> ao invés de "Pago".
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {cedrusCount > 0 && (
+                <Card className="border-orange-400 bg-orange-50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 text-sm text-orange-800">
+                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                      <strong>{cedrusCount}</strong> título(s) com <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs mx-1">inserido_cedrus = true</Badge> serão movidos para a etapa <strong>"Inserir no Cedrus"</strong> e marcados como pendentes de análise.
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          );
         })()}
 
         {analysis.totalSemDocumento > 0 && (
