@@ -1342,7 +1342,7 @@ export default function UploadArquivos() {
                     <Collapsible key={i}>
                       <div className="flex items-center justify-between border rounded-md p-3 bg-background">
                         <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          <Badge variant="secondary" className="text-xs">
                             Etapa: {item.etapa}
                           </Badge>
                           <span className="text-sm font-medium">{item.count} título(s)</span>
