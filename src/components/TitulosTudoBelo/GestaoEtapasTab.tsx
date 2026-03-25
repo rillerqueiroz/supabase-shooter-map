@@ -165,6 +165,26 @@ export function GestaoEtapasTab() {
                         <span className="font-medium">{etapa.etapa || "-"}</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Switch
+                          checked={!!etapa.ignorar}
+                          onCheckedChange={() => handleToggleIgnorar(etapa)}
+                          disabled={updateMutation.isPending}
+                        />
+                        {etapa.ignorar ? (
+                          <Badge variant="destructive" className="text-xs">
+                            <EyeOff className="h-3 w-3 mr-1" />
+                            Ignorada
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            <Eye className="h-3 w-3 mr-1" />
+                            Ativa
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(etapa.created_at)}
                     </TableCell>
