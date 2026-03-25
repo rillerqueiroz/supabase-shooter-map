@@ -789,27 +789,6 @@ export default function UploadArquivos() {
           </Card>
         )}
 
-        {/* Alertas */}
-        {warnings.length > 0 && (
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-amber-800">
-                <AlertCircle className="h-4 w-4" />
-                Alertas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                {warnings.map((w, i) => (
-                  <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
-                    <span className="mt-0.5">⚠</span>
-                    {w}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Validação: Status Título (comparativo com banco) */}
         {analysis.statusComparison && analysis.statusComparison.totalCompared > 0 && (
@@ -1116,6 +1095,28 @@ export default function UploadArquivos() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Alertas */}
+        {warnings.length > 0 && (
+          <Card className="border-amber-200 bg-amber-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-amber-800">
+                <AlertCircle className="h-4 w-4" />
+                Alertas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1">
+                {warnings.map((w, i) => (
+                  <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
+                    <span className="mt-0.5">⚠</span>
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Ações */}
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
