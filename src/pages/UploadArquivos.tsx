@@ -913,20 +913,55 @@ export default function UploadArquivos() {
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="sm" className="text-xs gap-1">
                         <ChevronDown className="h-3.5 w-3.5" />
-                        Ver IDs
+                        Ver detalhes
                       </Button>
                     </CollapsibleTrigger>
                   </div>
                   <CollapsibleContent>
-                    <div className="border border-t-0 rounded-b-md p-3 bg-background">
-                      <div className="flex flex-wrap gap-1">
-                        {analysis.etapaBloqueadoValidation.somenteBancoIds.map((id, j) => (
-                          <Badge key={j} variant="outline" className="text-xs font-mono">{id}</Badge>
-                        ))}
-                        {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoIds.length && (
-                          <Badge variant="outline" className="text-xs text-muted-foreground">+{analysis.etapaBloqueadoValidation.somenteBancoCount - analysis.etapaBloqueadoValidation.somenteBancoIds.length} mais</Badge>
-                        )}
-                      </div>
+                    <div className="border border-t-0 rounded-b-md overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">ID</TableHead>
+                            <TableHead className="text-xs">Nome</TableHead>
+                            <TableHead className="text-xs">Forma Pagamento</TableHead>
+                            <TableHead className="text-xs">Vencimento</TableHead>
+                            <TableHead className="text-xs">Saldo</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="text-xs">Etapa</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {analysis.etapaBloqueadoValidation.somenteBancoRecords.map((rec, j) => (
+                            <TableRow key={j} className="text-xs cursor-pointer hover:bg-muted/50" onClick={async () => {
+                              const { data } = await supabase.from("base_tudobelo_para_testes").select("*").eq("id", rec.id).single();
+                              if (data) {
+                                setSelectedTitulo(data as TituloTudoBelo);
+                                setDetailsOpen(true);
+                              } else {
+                                toast.error("Título não encontrado no banco de dados");
+                              }
+                            }}>
+                              <TableCell className="font-mono text-xs">{rec.id}</TableCell>
+                              <TableCell className="text-xs">{rec.nome_parceiro || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.forma_pagamento || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{rec.etapa || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                          {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoRecords.length && (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-xs text-center text-muted-foreground">
+                                +{analysis.etapaBloqueadoValidation.somenteBancoCount - analysis.etapaBloqueadoValidation.somenteBancoRecords.length} título(s) adicionais não exibidos
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
