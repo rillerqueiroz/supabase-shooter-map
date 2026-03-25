@@ -128,6 +128,7 @@ export function GestaoEtapasTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome da Etapa</TableHead>
+                  <TableHead className="w-[140px] text-center">Ignorar no Upload</TableHead>
                   <TableHead>Criado em</TableHead>
                   <TableHead className="w-[120px] text-right">Ações</TableHead>
                 </TableRow>
