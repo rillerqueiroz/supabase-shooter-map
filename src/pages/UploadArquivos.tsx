@@ -1076,7 +1076,7 @@ export default function UploadArquivos() {
                   </div>
                 )}
                 {analysis.filteredStats.saldoZero > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <XCircle className="h-4 w-4 shrink-0" />
                     <span><strong>{analysis.filteredStats.saldoZero}</strong> com saldo ≤ 0 (removidos)</span>
                   </div>
