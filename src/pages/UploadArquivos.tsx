@@ -1189,7 +1189,7 @@ export default function UploadArquivos() {
                             {item.from}
                           </Badge>
                           <span className="text-xs text-muted-foreground">→</span>
-                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                          <Badge variant="secondary" className="text-xs">
                             {item.to}
                           </Badge>
                           <span className="text-sm font-medium ml-2">{item.count} título(s)</span>
