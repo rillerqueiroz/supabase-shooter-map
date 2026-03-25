@@ -358,8 +358,8 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
                     {paginatedData.map((titulo) => {
                       const diasAtraso = calcularDiasAtraso(titulo.data_vencimento);
                       return (
-                        <TableRow key={titulo.id}>
-                          <TableCell>
+                        <TableRow key={titulo.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedTitulo(titulo); setDetailsOpen(true); }}>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={selectedIds.includes(titulo.id)}
                               onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
