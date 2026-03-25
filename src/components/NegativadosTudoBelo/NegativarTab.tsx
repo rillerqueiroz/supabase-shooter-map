@@ -23,6 +23,7 @@ import { useTitulosEtapas } from "@/hooks/useTitulosEtapas";
 import { useNegativarTitulo } from "@/hooks/useNegativacoes";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { usePagination } from "@/hooks/usePagination";
+import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
 import { Search, ChevronUp, ChevronDown, Loader2, ShieldAlert, Filter, X, Clock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -73,6 +74,8 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
   const negativarMutation = useNegativarTitulo();
   const { data: options } = useTitulosTudoBeloOptions();
   const { data: etapasDisponiveis } = useTitulosEtapas();
+  const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let data = titulos;
