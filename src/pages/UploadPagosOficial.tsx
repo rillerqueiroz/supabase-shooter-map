@@ -329,7 +329,7 @@ export default function UploadPagosOficial() {
           alteracoes.push({ campo: "data_pagamento", antes: String(db.data_pagamento ?? "(vazio)"), depois: String(pago.data_pagamento ?? "(vazio)") });
           alteracoes.push({ campo: "status_titulo", antes: String(db.status_titulo ?? "(vazio)"), depois: novoStatus });
           if (isCedrus) {
-            alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "Inserir no Cedrus" });
+            alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "A faturar - Negociação realizada" });
           }
 
           const acaoLabel = isNegociado ? `Atualizar → Negociado${isCedrus ? " (Cedrus)" : ""}` : (isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento");
@@ -551,7 +551,7 @@ export default function UploadPagosOficial() {
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2 text-sm text-orange-800">
                       <AlertTriangle className="h-4 w-4 text-orange-600" />
-                      <strong>{cedrusCount}</strong> título(s) com <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs mx-1">inserido_cedrus = true</Badge> serão movidos para a etapa <strong>"Inserir no Cedrus"</strong> e marcados como pendentes de análise.
+                      <strong>{cedrusCount}</strong> título(s) com <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs mx-1">inserido_cedrus = true</Badge> serão movidos para a etapa <strong>"A faturar - Negociação realizada"</strong> e marcados como pendentes de análise.
                     </div>
                   </CardContent>
                 </Card>
@@ -618,7 +618,7 @@ export default function UploadPagosOficial() {
                               </Badge>
                             ) : (
                               <Badge variant="outline" className={`text-xs ${cedrusCorresponde ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}`}>
-                                {db.status_cedrus} {cedrusCorresponde ? "✓" : "≠ Pago"}
+                                {db.status_cedrus} {cedrusCorresponde ? "✓" : ""}
                               </Badge>
                             )
                           ) : <span className="text-muted-foreground">-</span>}
@@ -630,7 +630,7 @@ export default function UploadPagosOficial() {
                         <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
                         <TableCell>
                           {isNegociado ? <Badge className="text-xs bg-yellow-500 text-white">→ Negociado</Badge> :
-                           isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ Inserir no Cedrus</Badge> :
+                           isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ A faturar - Neg. realizada</Badge> :
                            <span className="text-muted-foreground">-</span>}
                         </TableCell>
                       </TableRow>
