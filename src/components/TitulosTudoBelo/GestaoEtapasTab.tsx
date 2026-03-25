@@ -27,7 +27,9 @@ import {
   useDeleteTituloEtapa,
   TituloEtapa,
 } from "@/hooks/useTitulosEtapas";
-import { Plus, Pencil, Trash2, Loader2, Save, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Save, X, EyeOff, Eye } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -58,6 +60,10 @@ export function GestaoEtapasTab() {
     await updateMutation.mutateAsync({ id: editingId, etapa: editingValue.trim() });
     setEditingId(null);
     setEditingValue("");
+  };
+
+  const handleToggleIgnorar = async (etapa: TituloEtapa) => {
+    await updateMutation.mutateAsync({ id: etapa.id, ignorar: !etapa.ignorar });
   };
 
   const handleCancelEdit = () => {
@@ -122,6 +128,7 @@ export function GestaoEtapasTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome da Etapa</TableHead>
+                  <TableHead className="w-[140px] text-center">Ignorar no Upload</TableHead>
                   <TableHead>Criado em</TableHead>
                   <TableHead className="w-[120px] text-right">Ações</TableHead>
                 </TableRow>
@@ -158,6 +165,26 @@ export function GestaoEtapasTab() {
                         <span className="font-medium">{etapa.etapa || "-"}</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Switch
+                          checked={!!etapa.ignorar}
+                          onCheckedChange={() => handleToggleIgnorar(etapa)}
+                          disabled={updateMutation.isPending}
+                        />
+                        {etapa.ignorar ? (
+                          <Badge variant="destructive" className="text-xs">
+                            <EyeOff className="h-3 w-3 mr-1" />
+                            Ignorada
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            <Eye className="h-3 w-3 mr-1" />
+                            Ativa
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(etapa.created_at)}
                     </TableCell>
@@ -186,7 +213,7 @@ export function GestaoEtapasTab() {
                 ))}
                 {(!etapas || etapas.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                       Nenhuma etapa cadastrada
                     </TableCell>
                   </TableRow>

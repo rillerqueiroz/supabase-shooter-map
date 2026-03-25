@@ -53,10 +53,13 @@ export function useUpdateTituloEtapa() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, etapa }: { id: number; etapa: string }) => {
+    mutationFn: async ({ id, etapa, ignorar }: { id: number; etapa?: string; ignorar?: boolean }) => {
+      const updateData: Record<string, unknown> = {};
+      if (etapa !== undefined) updateData.etapa = etapa;
+      if (ignorar !== undefined) updateData.ignorar = ignorar;
       const { data, error } = await supabase
         .from('base_tudobelo_etapas')
-        .update({ etapa })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
