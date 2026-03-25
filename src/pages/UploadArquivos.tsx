@@ -1335,7 +1335,7 @@ export default function UploadArquivos() {
               {/* Etapas com ignorar */}
               {analysis.etapaBloqueadoValidation.etapaIgnoradaCount > 0 && (
                 <div className="space-y-2">
-                  <div className="text-sm font-semibold text-purple-700">
+                  <div className="text-sm font-medium text-muted-foreground">
                     🚫 {analysis.etapaBloqueadoValidation.etapaIgnoradaCount} título(s) com etapa marcada como "ignorar" (não serão inseridos/atualizados)
                   </div>
                   {analysis.etapaBloqueadoValidation.etapaIgnoradaDetails.map((item, i) => (
