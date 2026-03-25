@@ -1131,110 +1131,146 @@ export default function UploadArquivos() {
           </Card>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Mapeamento de Colunas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {analysis.matchedColumns.map(col => (
-                <div key={col} className="flex items-center gap-1.5 text-sm">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                  <span className="truncate">{col}</span>
-                </div>
-              ))}
-              {analysis.unmatchedColumns.map(col => (
-                <div key={col} className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
-                  <span className="truncate line-through">{col}</span>
-                </div>
-              ))}
-            </div>
-            {analysis.missingExpected.length > 0 && (
-              <div className="mt-3 pt-3 border-t">
-                <p className="text-xs text-muted-foreground mb-1">Colunas da tabela ausentes na planilha (serão preenchidas como null):</p>
-                <p className="text-xs text-muted-foreground">{analysis.missingExpected.join(", ")}</p>
+        <Collapsible>
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Mapeamento de Colunas</CardTitle>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-xs gap-1">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                    Expandir
+                  </Button>
+                </CollapsibleTrigger>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {analysis.matchedColumns.map(col => (
+                    <div key={col} className="flex items-center gap-1.5 text-sm">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                      <span className="truncate">{col}</span>
+                    </div>
+                  ))}
+                  {analysis.unmatchedColumns.map(col => (
+                    <div key={col} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                      <span className="truncate line-through">{col}</span>
+                    </div>
+                  ))}
+                </div>
+                {analysis.missingExpected.length > 0 && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs text-muted-foreground mb-1">Colunas da tabela ausentes na planilha (serão preenchidas como null):</p>
+                    <p className="text-xs text-muted-foreground">{analysis.missingExpected.join(", ")}</p>
+                  </div>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Estatísticas por campo */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Preenchimento por Campo</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Campo</TableHead>
-                    <TableHead className="text-center">Preenchidos</TableHead>
-                    <TableHead className="text-center">Vazios</TableHead>
-                    <TableHead className="text-center">Valores Únicos</TableHead>
-                    <TableHead className="text-center">Preenchimento</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {analysis.matchedColumns.map(col => {
-                    const stats = analysis.fieldStats[col];
-                    const pct = Math.round((stats.filled / analysis.totalRows) * 100);
-                    return (
-                      <TableRow key={col}>
-                        <TableCell className="text-sm font-medium">{col}</TableCell>
-                        <TableCell className="text-center text-sm">{stats.filled}</TableCell>
-                        <TableCell className="text-center text-sm">
-                          {stats.empty > 0 ? (
-                            <span className="text-amber-600">{stats.empty}</span>
-                          ) : (
-                            <span className="text-muted-foreground">0</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center text-sm">{stats.uniqueValues}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${
-                              pct === 100
-                                ? "bg-green-50 text-green-700 border-green-200"
-                                : pct >= 50
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : "bg-red-50 text-red-700 border-red-200"
-                            }`}
-                          >
-                            {pct}%
-                          </Badge>
-                        </TableCell>
+        <Collapsible>
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Preenchimento por Campo</CardTitle>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-xs gap-1">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                    Expandir
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Campo</TableHead>
+                        <TableHead className="text-center">Preenchidos</TableHead>
+                        <TableHead className="text-center">Vazios</TableHead>
+                        <TableHead className="text-center">Valores Únicos</TableHead>
+                        <TableHead className="text-center">Preenchimento</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {analysis.matchedColumns.map(col => {
+                        const stats = analysis.fieldStats[col];
+                        const pct = Math.round((stats.filled / analysis.totalRows) * 100);
+                        return (
+                          <TableRow key={col}>
+                            <TableCell className="text-sm font-medium">{col}</TableCell>
+                            <TableCell className="text-center text-sm">{stats.filled}</TableCell>
+                            <TableCell className="text-center text-sm">
+                              {stats.empty > 0 ? (
+                                <span className="text-amber-600">{stats.empty}</span>
+                              ) : (
+                                <span className="text-muted-foreground">0</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center text-sm">{stats.uniqueValues}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  pct === 100
+                                    ? "bg-green-50 text-green-700 border-green-200"
+                                    : pct >= 50
+                                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                                    : "bg-red-50 text-red-700 border-red-200"
+                                }`}
+                              >
+                                {pct}%
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Alertas */}
         {warnings.length > 0 && (
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-amber-800">
-                <AlertCircle className="h-4 w-4" />
-                Alertas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                {warnings.map((w, i) => (
-                  <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
-                    <span className="mt-0.5">⚠</span>
-                    {w}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <Collapsible>
+            <Card className="border-amber-200 bg-amber-50/50">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-amber-800">
+                    <AlertCircle className="h-4 w-4" />
+                    Alertas ({warnings.length})
+                  </CardTitle>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-xs gap-1">
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      Expandir
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <ul className="space-y-1">
+                    {warnings.map((w, i) => (
+                      <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
+                        <span className="mt-0.5">⚠</span>
+                        {w}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         )}
 
         {/* Ações */}
