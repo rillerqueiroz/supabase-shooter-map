@@ -1005,7 +1005,7 @@ export default function UploadArquivos() {
               )}
 
               <p className="text-xs text-purple-600 mt-2">
-                Títulos com etapa "ignorar" ou marcados como bloqueados no banco não são atualizados. Títulos existentes apenas no banco (não presentes na planilha) serão marcados como "Pago" ao confirmar.
+                Títulos com etapa "ignorar" ou marcados como bloqueados no banco não são atualizados.
               </p>
             </CardContent>
           </Card>
