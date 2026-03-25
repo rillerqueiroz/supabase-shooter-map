@@ -1235,7 +1235,7 @@ export default function UploadArquivos() {
                                     <Badge variant="outline" className="text-xs">{rec.db.status_titulo || "Sem status"}</Badge>
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">{rec.calc.status_titulo || "Sem status"}</Badge>
+                                    <Badge variant="secondary" className="text-xs">{rec.calc.status_titulo || "Sem status"}</Badge>
                                   </TableCell>
                                 </TableRow>
                               ))}
