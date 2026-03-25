@@ -1315,7 +1315,7 @@ export default function UploadArquivos() {
                   </CollapsibleContent>
                 </Collapsible>
               )}
-              <p className="text-xs text-blue-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 O status é recalculado com base na data de vencimento + prazo de liquidação da forma de pagamento. Títulos vencidos em finais de semana são marcados como "Vencido em final de semana" apenas às segundas-feiras. Títulos com status "Pago" no banco são preservados.
               </p>
             </CardContent>
