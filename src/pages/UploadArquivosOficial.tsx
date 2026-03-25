@@ -1660,7 +1660,7 @@ export default function UploadArquivosOficial() {
             Enviar Arquivo para Base Oficial
             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 ml-2">
               <ShieldCheck className="h-3 w-3 mr-1" />
-              Testes
+              Oficial
             </Badge>
           </CardTitle>
         </CardHeader>
