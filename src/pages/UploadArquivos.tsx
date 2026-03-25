@@ -1125,7 +1125,7 @@ export default function UploadArquivos() {
 
         {/* Novos Títulos - presentes na planilha mas não no banco */}
         {analysis.etapaBloqueadoValidation?.novosTitulosCount > 0 && (
-          <Card>
+          <Card className="border-l-4 border-l-green-500">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Plus className="h-4 w-4" />
