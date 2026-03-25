@@ -302,6 +302,7 @@ export default function UploadPagosOficial() {
         setUploadProgress(Math.round(((i + batch.length) / toUpdate.length) * 100));
 
         for (const { pago, db } of batch) {
+          const isCedrus = db.inserido_cedrus === true;
           const updates: Record<string, any> = {
             valor_pago: pago.valor_pago,
             data_pagamento: pago.data_pagamento,
@@ -309,6 +310,10 @@ export default function UploadPagosOficial() {
             processado_internamente: false,
             ultima_atualizacao: new Date().toISOString(),
           };
+
+          if (isCedrus) {
+            updates.etapa = "Inserir no Cedrus";
+          }
 
           const { error } = await supabase
             .from("base_tudobelo_intermediaria")
@@ -319,12 +324,15 @@ export default function UploadPagosOficial() {
           alteracoes.push({ campo: "valor_pago", antes: String(db.valor_pago ?? "(vazio)"), depois: String(pago.valor_pago ?? "(vazio)") });
           alteracoes.push({ campo: "data_pagamento", antes: String(db.data_pagamento ?? "(vazio)"), depois: String(pago.data_pagamento ?? "(vazio)") });
           alteracoes.push({ campo: "status_titulo", antes: String(db.status_titulo ?? "(vazio)"), depois: "Pago" });
+          if (isCedrus) {
+            alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "Inserir no Cedrus" });
+          }
 
           if (error) {
-            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: "Atualizar Pagamento", status: "Erro", erro: error.message, alteracoes });
+            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento", status: "Erro", erro: error.message, alteracoes });
             totalErrors++;
           } else {
-            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: "Atualizar Pagamento", status: "Sucesso", alteracoes });
+            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento", status: "Sucesso", alteracoes });
             totalUpdated++;
           }
         }
