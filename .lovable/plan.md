@@ -1,51 +1,38 @@
 
 
-## Copiar integralmente a página de produção para testes
+## Why only 1000 titles load
 
-### Problema
-A página `GestaoTitulosParaTestes` tem apenas a aba "Dados". A página de produção (`GestaoTitulosTudoBelo`) tem 7 abas: Dados, Histórico de Inserções, Log de Alterações, Títulos Pendentes, Visão por Etapas, Inadimplência por Credor, Títulos Baixados.
+The Supabase JavaScript client enforces a **default limit of 1000 rows** per query. The current code does not override this.
 
-### Abordagem
-Copiar integralmente a estrutura da produção, incluindo todas as abas, ações (inserir Cedrus, remover, marcar pago, enviar emails) e modais. As abas que fazem queries internas (`TitulosPendentesTab`, `VisaoEtapasTab`, `TitulosBaixadosTab`) precisam aceitar um parâmetro de tabela para consultar `base_tudobelo_para_testes` em vez de `base_tudobelo_intermediaria`.
+## Plan
 
-### Arquivos modificados
+### 1. Add pagination at the database level
 
-**1. `src/pages/GestaoTitulosParaTestes.tsx`**
-- Copiar integralmente o conteúdo de `GestaoTitulosTudoBelo.tsx`
-- Trocar hooks de `useTitulosTudoBelo` para `useTitulosParaTestes`
-- Trocar hooks de `useTitulosTudoBeloOptions` para `useTitulosParaTestesOptions`
-- Trocar mutations de `useBulkUpdateTitulosTudoBelo` para `useBulkUpdateTitulosParaTestes`
-- Manter header com badge "AMBIENTE DE TESTES" e ícone FlaskConical
-- Adicionar todas as 7 abas (Dados, Histórico, Log, Pendentes, Visão Etapas, Inadimplência, Baixados)
-- Adicionar todos os modais (detalhes, bulk edit, inserção Cedrus, confirmação, emails)
-- Adicionar botão de enviar emails e exportações
-- Passar prop `tableName="base_tudobelo_para_testes"` para sub-tabs que fazem queries próprias
+Instead of fetching all rows at once (which would be slow for large datasets), implement **server-side pagination** using Supabase's `.range()` method.
 
-**2. `src/components/TitulosTudoBelo/TitulosPendentesTab.tsx`**
-- Adicionar prop opcional `tableName?: string` (default: `base_tudobelo_intermediaria`)
-- Passar para os hooks `useTitulosTudoBelo` / `useTitulosTudoBeloOptions` / `useBulkUpdateTitulosTudoBelo`
+**Changes to `src/hooks/useTitulosTudoBelo.ts`:**
+- Add `page` and `pageSize` parameters to the query hook
+- Use `.range(from, to)` to fetch only the current page
+- Add a separate count query using `.select('*', { count: 'exact', head: true })` to get the total number of records
+- Return both `data` and `totalCount`
 
-**3. `src/components/TitulosTudoBelo/VisaoEtapasTab.tsx`**
-- Adicionar prop opcional `tableName?: string`
-- Passar para os hooks internos
+**Changes to `src/components/TitulosTudoBelo/TitulosPendentesTab.tsx` (and similar tabs):**
+- Replace the client-side `usePagination` hook with server-side pagination state
+- Pass `page`/`pageSize` to the query hook
+- Update `DataTablePagination` to use the server-side total count
 
-**4. `src/components/TitulosTudoBelo/TitulosBaixadosTab.tsx`**
-- Adicionar prop opcional `tableName?: string`
-- Passar para `useTitulosBaixados`
+### 2. Same pattern for `useTitulosParaTestes.ts`
 
-**5. `src/hooks/useTitulosTudoBelo.ts`**
-- Adicionar parâmetro opcional `tableName` nas funções `useTitulosTudoBelo`, `useTitulosTudoBeloOptions`, `useUpdateTituloTudoBelo`, `useBulkUpdateTitulosTudoBelo`
-- Usar `tableName` no `.from()` em vez do valor hardcoded
+Apply the identical server-side pagination approach.
 
-**6. `src/hooks/useTitulosBaixados.ts`**
-- Adicionar parâmetro opcional `tableName` para que o cruzamento de dados use a tabela correta
+### 3. Update options query
 
-**7. `src/components/TitulosTudoBelo/InadimplenciaCredorTab.tsx`**
-- Já recebe `titulos` como prop, não precisa de alteração
+The options/filter-values query also hits the 1000-row limit. Change it to fetch only distinct values using raw SQL or separate distinct queries per column.
 
-**8. `src/components/TitulosTudoBelo/HistoricoAtualizacoesTab.tsx` e `LogAlteracoesTab.tsx`**
-- Usar como estão (compartilhados entre produção e testes, pois os logs são globais)
-
-### Resultado
-A página de testes será uma cópia funcional completa da produção, consultando `base_tudobelo_para_testes` em todas as queries, mantendo a identidade visual de ambiente de testes.
+### Summary of files to edit
+- `src/hooks/useTitulosTudoBelo.ts` — add `.range()` and count query
+- `src/hooks/useTitulosParaTestes.ts` — same
+- `src/components/TitulosTudoBelo/TitulosPendentesTab.tsx` — server-side pagination
+- `src/components/TitulosTudoBelo/TitulosBaixadosTab.tsx` — same
+- Any other tab components consuming these hooks
 
