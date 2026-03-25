@@ -1324,10 +1324,10 @@ export default function UploadArquivos() {
 
         {/* Validação: Etapa Ignorada e Bloqueados */}
         {analysis.etapaBloqueadoValidation && (analysis.etapaBloqueadoValidation.etapaIgnoradaCount > 0 || analysis.etapaBloqueadoValidation.bloqueadoCount > 0) && (
-          <Card className="border-purple-200 bg-purple-50/50">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2 text-purple-800">
-                <AlertCircle className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 Validação: Etapa e Bloqueio
               </CardTitle>
             </CardHeader>
