@@ -615,6 +615,7 @@ export default function UploadPagosOficial() {
                 <TableBody>
                   {items.slice(0, 100).map(({ pago, db }) => {
                     const isBoletoAcordo = String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
+                    const isCedrus = db.inserido_cedrus === true;
                     const statusCedrus = String(db.status_cedrus || "").trim().toUpperCase();
                     const statusCedrusLetra = statusCedrus.charAt(0);
                     const isNegociado = statusCedrusLetra === "N";
