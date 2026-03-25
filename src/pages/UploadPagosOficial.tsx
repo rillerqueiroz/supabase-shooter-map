@@ -614,13 +614,13 @@ export default function UploadPagosOficial() {
                 </TableHeader>
                 <TableBody>
                   {items.slice(0, 100).map(({ pago, db }) => {
-                    const isCedrus = db.inserido_cedrus === true;
+                    const isBoletoAcordo = String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
                     const statusCedrus = String(db.status_cedrus || "").trim().toUpperCase();
                     const statusCedrusLetra = statusCedrus.charAt(0);
                     const isNegociado = statusCedrusLetra === "N";
                     const cedrusCorresponde = statusCedrusLetra === "P";
                     return (
-                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isBoletoAcordo ? "bg-purple-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
                         <TableCell className="font-mono text-xs">{pago.id}</TableCell>
                         <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
@@ -644,6 +644,7 @@ export default function UploadPagosOficial() {
                         <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
                         <TableCell>
                           {isNegociado ? <Badge className="text-xs bg-yellow-500 text-white">→ Negociado</Badge> :
+                           isBoletoAcordo ? <Badge className="text-xs bg-purple-500 text-white">→ Pago (sem mudar etapa)</Badge> :
                            isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ A faturar - Neg. realizada</Badge> :
                            <span className="text-muted-foreground">-</span>}
                         </TableCell>
