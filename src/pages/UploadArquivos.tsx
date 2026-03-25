@@ -1082,7 +1082,7 @@ export default function UploadArquivos() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-blue-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Total removido: {analysis.filteredStats.totalOriginal - analysis.filteredStats.totalAposFiltro} de {analysis.filteredStats.totalOriginal} linhas
               </p>
             </CardContent>
