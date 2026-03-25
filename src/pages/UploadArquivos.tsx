@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTitulosInsercoes } from "@/hooks/useTitulosInsercoes";
-import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, FlaskConical, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, ChevronRight } from "lucide-react";
+import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, FlaskConical, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -220,6 +220,9 @@ interface EtapaBloqueadoValidation {
   bloqueadoIds: string[];
   somenteBancoCount: number;
   somenteBancoIds: string[];
+  somenteBancoRecords: Record<string, any>[];
+  novosTitulosCount: number;
+  novosTitulosRecords: Record<string, any>[];
 }
 
 interface AnalysisResult {
@@ -467,15 +470,28 @@ export default function UploadArquivos() {
       // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
       const { data: allDbIds } = await supabase
         .from("base_tudobelo_para_testes")
-        .select("id, nome_parceiro, status_titulo, etapa, bloqueado")
+        .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela")
         .not("status_titulo", "in", '("Pago","Pago em dia","Pago via renegociação","Cancelado","Suspenso","Não se aplica")');
 
       const somenteBancoIds: string[] = [];
+      const somenteBancoRecords: Record<string, any>[] = [];
       if (allDbIds) {
         for (const dbRow of allDbIds) {
           if (!allSpreadsheetIds.has(dbRow.id)) {
             somenteBancoIds.push(dbRow.id);
+            if (somenteBancoRecords.length < 100) somenteBancoRecords.push(dbRow);
           }
+        }
+      }
+
+      // Track novos títulos (in spreadsheet but not in DB)
+      const novosTitulosRecords: Record<string, any>[] = [];
+      let novosTitulosCount = 0;
+      for (const record of result.records) {
+        if (!record.id) continue;
+        if (!dbRecordsMap[record.id]) {
+          novosTitulosCount++;
+          if (novosTitulosRecords.length < 100) novosTitulosRecords.push(record);
         }
       }
 
@@ -510,6 +526,9 @@ export default function UploadArquivos() {
         bloqueadoIds,
         somenteBancoCount: somenteBancoIds.length,
         somenteBancoIds: somenteBancoIds.slice(0, 100),
+        somenteBancoRecords: somenteBancoRecords,
+        novosTitulosCount: novosTitulosCount,
+        novosTitulosRecords: novosTitulosRecords,
       };
 
       // Filter out records with etapa ignorar or bloqueado from DB
@@ -789,6 +808,72 @@ export default function UploadArquivos() {
           </Card>
         )}
 
+        {/* Novos Títulos - presentes na planilha mas não no banco */}
+        {analysis.etapaBloqueadoValidation?.novosTitulosCount > 0 && (
+          <Card className="border-emerald-200 bg-emerald-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-emerald-800">
+                <Plus className="h-4 w-4" />
+                Novos Títulos ({analysis.etapaBloqueadoValidation.novosTitulosCount})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="text-sm text-emerald-700">
+                  <strong>{analysis.etapaBloqueadoValidation.novosTitulosCount}</strong> título(s) serão inseridos como novos registros no banco
+                </div>
+              </div>
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                    Ver detalhes
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">ID</TableHead>
+                          <TableHead className="text-xs">Nome</TableHead>
+                          <TableHead className="text-xs">Forma Pagamento</TableHead>
+                          <TableHead className="text-xs">Vencimento</TableHead>
+                          <TableHead className="text-xs">Saldo</TableHead>
+                          <TableHead className="text-xs">Status Calculado</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {analysis.etapaBloqueadoValidation.novosTitulosRecords.map((rec, j) => (
+                          <TableRow key={j} className="text-xs">
+                            <TableCell className="font-mono text-xs">{rec.id}</TableCell>
+                            <TableCell className="text-xs">{rec.nome_parceiro || "-"}</TableCell>
+                            <TableCell className="text-xs">{rec.forma_pagamento || "-"}</TableCell>
+                            <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
+                            <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">{rec.status_titulo || "Sem status"}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {analysis.etapaBloqueadoValidation.novosTitulosCount > analysis.etapaBloqueadoValidation.novosTitulosRecords.length && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-xs text-center text-muted-foreground">
+                              +{analysis.etapaBloqueadoValidation.novosTitulosCount - analysis.etapaBloqueadoValidation.novosTitulosRecords.length} título(s) adicionais não exibidos
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+              <p className="text-xs text-emerald-600 mt-2">
+                Estes títulos não existem no banco de dados e serão inseridos como novos registros ao confirmar o envio.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Validação: Status Título (comparativo com banco) */}
         {analysis.statusComparison && analysis.statusComparison.totalCompared > 0 && (
@@ -896,20 +981,55 @@ export default function UploadArquivos() {
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="sm" className="text-xs gap-1">
                         <ChevronDown className="h-3.5 w-3.5" />
-                        Ver IDs
+                        Ver detalhes
                       </Button>
                     </CollapsibleTrigger>
                   </div>
                   <CollapsibleContent>
-                    <div className="border border-t-0 rounded-b-md p-3 bg-background">
-                      <div className="flex flex-wrap gap-1">
-                        {analysis.etapaBloqueadoValidation.somenteBancoIds.map((id, j) => (
-                          <Badge key={j} variant="outline" className="text-xs font-mono">{id}</Badge>
-                        ))}
-                        {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoIds.length && (
-                          <Badge variant="outline" className="text-xs text-muted-foreground">+{analysis.etapaBloqueadoValidation.somenteBancoCount - analysis.etapaBloqueadoValidation.somenteBancoIds.length} mais</Badge>
-                        )}
-                      </div>
+                    <div className="border border-t-0 rounded-b-md overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">ID</TableHead>
+                            <TableHead className="text-xs">Nome</TableHead>
+                            <TableHead className="text-xs">Forma Pagamento</TableHead>
+                            <TableHead className="text-xs">Vencimento</TableHead>
+                            <TableHead className="text-xs">Saldo</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="text-xs">Etapa</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {analysis.etapaBloqueadoValidation.somenteBancoRecords.map((rec, j) => (
+                            <TableRow key={j} className="text-xs cursor-pointer hover:bg-muted/50" onClick={async () => {
+                              const { data } = await supabase.from("base_tudobelo_para_testes").select("*").eq("id", rec.id).single();
+                              if (data) {
+                                setSelectedTitulo(data as TituloTudoBelo);
+                                setDetailsOpen(true);
+                              } else {
+                                toast.error("Título não encontrado no banco de dados");
+                              }
+                            }}>
+                              <TableCell className="font-mono text-xs">{rec.id}</TableCell>
+                              <TableCell className="text-xs">{rec.nome_parceiro || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.forma_pagamento || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
+                              <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{rec.etapa || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                          {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoRecords.length && (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-xs text-center text-muted-foreground">
+                                +{analysis.etapaBloqueadoValidation.somenteBancoCount - analysis.etapaBloqueadoValidation.somenteBancoRecords.length} título(s) adicionais não exibidos
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
