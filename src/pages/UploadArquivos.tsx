@@ -1192,7 +1192,7 @@ export default function UploadArquivos() {
 
         {/* Validação: Status Título (comparativo com banco) */}
         {analysis.statusComparison && analysis.statusComparison.totalCompared > 0 && (
-          <Card>
+          <Card className="border-l-4 border-l-amber-700">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
