@@ -527,7 +527,7 @@ export default function UploadArquivos() {
         somenteBancoCount: somenteBancoIds.length,
         somenteBancoIds: somenteBancoIds.slice(0, 100),
         somenteBancoRecords: somenteBancoRecords,
-        novosTitulosCount: novosTitulosRecords.length,
+        novosTitulosCount: novosTitulosCount,
         novosTitulosRecords: novosTitulosRecords,
       };
 
