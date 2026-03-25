@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, Download, DollarSign, AlertTriangle } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, Download, DollarSign, AlertTriangle, Pencil } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
 import { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
+import { Checkbox } from "@/components/ui/checkbox";
+import { TitulosBulkEditModal } from "@/components/TitulosTudoBelo/TitulosBulkEditModal";
 
 const PAGOS_COLUMN_MAP: Record<string, string> = {
   "Documento": "documento",
@@ -185,6 +187,8 @@ export default function UploadPagosOficial() {
   const [uploadResult, setUploadResult] = useState<UploadPagosResult | null>(null);
   const [processedIds, setProcessedIds] = useState<Set<string>>(new Set());
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -418,7 +422,28 @@ export default function UploadPagosOficial() {
     toast.success(`Relatório baixado: ${fileName}`);
   };
 
-  const handleCancel = () => { setAnalysis(null); setSelectedFile(null); setUploadResult(null); setProcessedIds(new Set()); setProcessingIds(new Set()); };
+  const handleCancel = () => { setAnalysis(null); setSelectedFile(null); setUploadResult(null); setProcessedIds(new Set()); setProcessingIds(new Set()); setCheckedIds(new Set()); };
+
+  const toggleCheck = (id: string) => {
+    setCheckedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleCheckAll = (ids: string[]) => {
+    setCheckedIds(prev => {
+      const allChecked = ids.every(id => prev.has(id));
+      const next = new Set(prev);
+      if (allChecked) {
+        ids.forEach(id => next.delete(id));
+      } else {
+        ids.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
 
   const handleProcessItems = async (items: { pago: PagoRecord; db: Record<string, any> }[]) => {
     const ids = items.map(i => i.pago.id);
