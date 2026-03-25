@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, Download, DollarSign } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, Download, DollarSign, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
@@ -302,6 +302,7 @@ export default function UploadPagosOficial() {
         setUploadProgress(Math.round(((i + batch.length) / toUpdate.length) * 100));
 
         for (const { pago, db } of batch) {
+          const isCedrus = db.inserido_cedrus === true;
           const updates: Record<string, any> = {
             valor_pago: pago.valor_pago,
             data_pagamento: pago.data_pagamento,
@@ -309,6 +310,10 @@ export default function UploadPagosOficial() {
             processado_internamente: false,
             ultima_atualizacao: new Date().toISOString(),
           };
+
+          if (isCedrus) {
+            updates.etapa = "Inserir no Cedrus";
+          }
 
           const { error } = await supabase
             .from("base_tudobelo_intermediaria")
@@ -319,12 +324,15 @@ export default function UploadPagosOficial() {
           alteracoes.push({ campo: "valor_pago", antes: String(db.valor_pago ?? "(vazio)"), depois: String(pago.valor_pago ?? "(vazio)") });
           alteracoes.push({ campo: "data_pagamento", antes: String(db.data_pagamento ?? "(vazio)"), depois: String(pago.data_pagamento ?? "(vazio)") });
           alteracoes.push({ campo: "status_titulo", antes: String(db.status_titulo ?? "(vazio)"), depois: "Pago" });
+          if (isCedrus) {
+            alteracoes.push({ campo: "etapa", antes: String(db.etapa ?? "(vazio)"), depois: "Inserir no Cedrus" });
+          }
 
           if (error) {
-            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: "Atualizar Pagamento", status: "Erro", erro: error.message, alteracoes });
+            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento", status: "Erro", erro: error.message, alteracoes });
             totalErrors++;
           } else {
-            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: "Atualizar Pagamento", status: "Sucesso", alteracoes });
+            resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: isCedrus ? "Atualizar Pagamento (Cedrus)" : "Atualizar Pagamento", status: "Sucesso", alteracoes });
             totalUpdated++;
           }
         }
@@ -502,6 +510,20 @@ export default function UploadPagosOficial() {
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Não Encontrados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{analysis.naoEncontradosNoBanco.length}</div></CardContent></Card>
         </div>
 
+        {(() => {
+          const cedrusCount = analysis.encontradosNoBanco.filter(({ db }) => db.inserido_cedrus === true).length;
+          return cedrusCount > 0 ? (
+            <Card className="border-orange-400 bg-orange-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-sm text-orange-800">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <strong>{cedrusCount}</strong> título(s) com <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs mx-1">inserido_cedrus = true</Badge> serão movidos para a etapa <strong>"Inserir no Cedrus"</strong> e marcados como pendentes de análise.
+                </div>
+              </CardContent>
+            </Card>
+          ) : null;
+        })()}
+
         {analysis.totalSemDocumento > 0 && (
           <Card>
             <CardContent className="pt-4">
@@ -537,26 +559,33 @@ export default function UploadPagosOficial() {
                           <TableHead className="text-xs">ID</TableHead>
                           <TableHead className="text-xs">Nome</TableHead>
                           <TableHead className="text-xs">Status Atual</TableHead>
+                          <TableHead className="text-xs">Cedrus</TableHead>
                           <TableHead className="text-xs">Saldo Parcela</TableHead>
                           <TableHead className="text-xs">Valor Pago</TableHead>
                           <TableHead className="text-xs">Data Pagamento</TableHead>
                           <TableHead className="text-xs">Vencimento</TableHead>
+                          <TableHead className="text-xs">Tratativa</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {analysis.encontradosNoBanco.slice(0, 100).map(({ pago, db }) => (
-                          <TableRow key={pago.id} className="text-xs cursor-pointer hover:bg-muted/50" onClick={() => openTituloDetails(pago.id)}>
-                            <TableCell className="font-mono text-xs">{pago.id}</TableCell>
-                            <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
-                            <TableCell className="text-xs">{formatCurrency(db.saldo_parcela)}</TableCell>
-                            <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
-                            <TableCell className="text-xs">{formatDate(pago.data_pagamento)}</TableCell>
-                            <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
-                          </TableRow>
-                        ))}
+                        {analysis.encontradosNoBanco.slice(0, 100).map(({ pago, db }) => {
+                          const isCedrus = db.inserido_cedrus === true;
+                          return (
+                            <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                              <TableCell className="font-mono text-xs">{pago.id}</TableCell>
+                              <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
+                              <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
+                              <TableCell>{isCedrus ? <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">Sim</Badge> : <span className="text-muted-foreground">Não</span>}</TableCell>
+                              <TableCell className="text-xs">{formatCurrency(db.saldo_parcela)}</TableCell>
+                              <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
+                              <TableCell className="text-xs">{formatDate(pago.data_pagamento)}</TableCell>
+                              <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
+                              <TableCell>{isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ Inserir no Cedrus</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
+                            </TableRow>
+                          );
+                        })}
                         {analysis.encontradosNoBanco.length > 100 && (
-                          <TableRow><TableCell colSpan={7} className="text-xs text-center text-muted-foreground">+{analysis.encontradosNoBanco.length - 100} registro(s) adicionais</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={9} className="text-xs text-center text-muted-foreground">+{analysis.encontradosNoBanco.length - 100} registro(s) adicionais</TableCell></TableRow>
                         )}
                       </TableBody>
                     </Table>
