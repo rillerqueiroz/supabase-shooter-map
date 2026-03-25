@@ -109,7 +109,7 @@ export function useTitulosParaTestes(filters?: TitulosFilters) {
         query = query.eq('bloqueado', filters.bloqueado);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.range(0, 49999);
       if (error) throw error;
       return data as TituloTudoBelo[];
     },
