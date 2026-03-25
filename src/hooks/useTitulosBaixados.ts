@@ -43,7 +43,8 @@ export function useTitulosBaixados(tableName: string = 'base_tudobelo_intermedia
       let query = supabase
         .from('base_tudobelo_titulos_baixados_automaticamente')
         .select('*')
-        .order('data_baixa', { ascending: false });
+        .order('data_baixa', { ascending: false })
+        .range(0, 49999);
 
       const { data: baixados, error } = await query;
       if (error) throw error;
