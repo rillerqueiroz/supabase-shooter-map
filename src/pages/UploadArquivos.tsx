@@ -1147,6 +1147,13 @@ export default function UploadArquivos() {
             </Button>
           </div>
         </div>
+
+        <TituloDetailsModal
+          titulo={selectedTitulo}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          onTituloUpdated={(updated) => setSelectedTitulo(updated)}
+        />
       </div>
     );
   }
