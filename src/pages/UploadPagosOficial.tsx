@@ -507,13 +507,26 @@ export default function UploadPagosOficial() {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{analysis.totalRows}</div></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Válidos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{analysis.totalValidos}</div></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">A Atualizar</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-emerald-600">{analysis.encontradosNoBanco.length}</div></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Já Pagos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{analysis.jaMaracadosPago.length}</div></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Não Encontrados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{analysis.naoEncontradosNoBanco.length}</div></CardContent></Card>
-        </div>
+        {(() => {
+          const negociados = analysis.encontradosNoBanco.filter(({ db }) => {
+            const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+            return letra === "N";
+          });
+          const pagos = analysis.encontradosNoBanco.filter(({ db }) => {
+            const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+            return letra !== "N";
+          });
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{analysis.totalRows}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Válidos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{analysis.totalValidos}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">A Atualizar (Pago)</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-emerald-600">{pagos.length}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Negociados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-600">{negociados.length}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Já Pagos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{analysis.jaMaracadosPago.length}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Não Encontrados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{analysis.naoEncontradosNoBanco.length}</div></CardContent></Card>
+            </div>
+          );
+        })()}
 
         {(() => {
           const cedrusCount = analysis.encontradosNoBanco.filter(({ db }) => db.inserido_cedrus === true).length;
@@ -558,89 +571,127 @@ export default function UploadPagosOficial() {
           </Card>
         )}
 
-        {analysis.encontradosNoBanco.length > 0 && (
-          <Card className="border-l-4 border-l-emerald-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                Títulos a Atualizar como Pago ({analysis.encontradosNoBanco.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">
-                Estes títulos serão atualizados com valor pago, data de pagamento e status "Pago".
-              </p>
-              <Collapsible defaultOpen={analysis.encontradosNoBanco.length <= 20}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="border rounded-md overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">ID</TableHead>
-                          <TableHead className="text-xs">Nome</TableHead>
-                          <TableHead className="text-xs">Status Atual</TableHead>
-                          <TableHead className="text-xs">Status Cedrus</TableHead>
-                          <TableHead className="text-xs">Cedrus</TableHead>
-                          <TableHead className="text-xs">Saldo Parcela</TableHead>
-                          <TableHead className="text-xs">Valor Pago</TableHead>
-                          <TableHead className="text-xs">Data Pagamento</TableHead>
-                          <TableHead className="text-xs">Vencimento</TableHead>
-                          <TableHead className="text-xs">Tratativa</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {analysis.encontradosNoBanco.slice(0, 100).map(({ pago, db }) => {
-                          const isCedrus = db.inserido_cedrus === true;
-                          const statusCedrus = String(db.status_cedrus || "").trim().toUpperCase();
-                          const statusCedrusLetra = statusCedrus.charAt(0);
-                          const isNegociado = statusCedrusLetra === "N";
-                          const cedrusCorresponde = statusCedrusLetra === "P";
-                          const novoStatus = isNegociado ? "Negociado" : "Pago";
-                          return (
-                            <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
-                              <TableCell className="font-mono text-xs">{pago.id}</TableCell>
-                              <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
-                              <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
-                              <TableCell>
-                                {db.status_cedrus ? (
-                                  isNegociado ? (
-                                    <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-800 border-yellow-400">
-                                      {db.status_cedrus} → Negociado
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="outline" className={`text-xs ${cedrusCorresponde ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}`}>
-                                      {db.status_cedrus} {cedrusCorresponde ? "✓" : "≠ Pago"}
-                                    </Badge>
-                                  )
-                                ) : <span className="text-muted-foreground">-</span>}
-                              </TableCell>
-                              <TableCell>{isCedrus ? <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">Sim</Badge> : <span className="text-muted-foreground">Não</span>}</TableCell>
-                              <TableCell className="text-xs">{formatCurrency(db.saldo_parcela)}</TableCell>
-                              <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
-                              <TableCell className="text-xs">{formatDate(pago.data_pagamento)}</TableCell>
-                              <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
-                              <TableCell>
-                                {isNegociado ? <Badge className="text-xs bg-yellow-500 text-white">→ Negociado</Badge> :
-                                 isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ Inserir no Cedrus</Badge> :
-                                 <span className="text-muted-foreground">-</span>}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                        {analysis.encontradosNoBanco.length > 100 && (
-                          <TableRow><TableCell colSpan={10} className="text-xs text-center text-muted-foreground">+{analysis.encontradosNoBanco.length - 100} registro(s) adicionais</TableCell></TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </CardContent>
-          </Card>
-        )}
+        {(() => {
+          const negociados = analysis.encontradosNoBanco.filter(({ db }) => {
+            const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+            return letra === "N";
+          });
+          const pagos = analysis.encontradosNoBanco.filter(({ db }) => {
+            const letra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
+            return letra !== "N";
+          });
+
+          const renderTable = (items: typeof analysis.encontradosNoBanco) => (
+            <div className="border rounded-md overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">ID</TableHead>
+                    <TableHead className="text-xs">Nome</TableHead>
+                    <TableHead className="text-xs">Status Atual</TableHead>
+                    <TableHead className="text-xs">Status Cedrus</TableHead>
+                    <TableHead className="text-xs">Cedrus</TableHead>
+                    <TableHead className="text-xs">Saldo Parcela</TableHead>
+                    <TableHead className="text-xs">Valor Pago</TableHead>
+                    <TableHead className="text-xs">Data Pagamento</TableHead>
+                    <TableHead className="text-xs">Vencimento</TableHead>
+                    <TableHead className="text-xs">Tratativa</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.slice(0, 100).map(({ pago, db }) => {
+                    const isCedrus = db.inserido_cedrus === true;
+                    const statusCedrus = String(db.status_cedrus || "").trim().toUpperCase();
+                    const statusCedrusLetra = statusCedrus.charAt(0);
+                    const isNegociado = statusCedrusLetra === "N";
+                    const cedrusCorresponde = statusCedrusLetra === "P";
+                    return (
+                      <TableRow key={pago.id} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociado ? "bg-yellow-50" : isCedrus ? "bg-orange-50" : ""}`} onClick={() => openTituloDetails(pago.id)}>
+                        <TableCell className="font-mono text-xs">{pago.id}</TableCell>
+                        <TableCell className="text-xs">{pago.nome_parceiro || "-"}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{db.status_titulo || "Sem status"}</Badge></TableCell>
+                        <TableCell>
+                          {db.status_cedrus ? (
+                            isNegociado ? (
+                              <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-800 border-yellow-400">
+                                {db.status_cedrus} → Negociado
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className={`text-xs ${cedrusCorresponde ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}`}>
+                                {db.status_cedrus} {cedrusCorresponde ? "✓" : "≠ Pago"}
+                              </Badge>
+                            )
+                          ) : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell>{isCedrus ? <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">Sim</Badge> : <span className="text-muted-foreground">Não</span>}</TableCell>
+                        <TableCell className="text-xs">{formatCurrency(db.saldo_parcela)}</TableCell>
+                        <TableCell className="text-xs font-medium text-emerald-700">{formatCurrency(pago.valor_pago)}</TableCell>
+                        <TableCell className="text-xs">{formatDate(pago.data_pagamento)}</TableCell>
+                        <TableCell className="text-xs">{formatDate(pago.data_vencimento)}</TableCell>
+                        <TableCell>
+                          {isNegociado ? <Badge className="text-xs bg-yellow-500 text-white">→ Negociado</Badge> :
+                           isCedrus ? <Badge className="text-xs bg-orange-500 text-white">→ Inserir no Cedrus</Badge> :
+                           <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {items.length > 100 && (
+                    <TableRow><TableCell colSpan={10} className="text-xs text-center text-muted-foreground">+{items.length - 100} registro(s) adicionais</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          );
+
+          return (
+            <>
+              {pagos.length > 0 && (
+                <Card className="border-l-4 border-l-emerald-500">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      Títulos a Atualizar como Pago ({pagos.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Estes títulos serão atualizados com valor pago, data de pagamento e status "Pago".
+                    </p>
+                    <Collapsible defaultOpen={pagos.length <= 20}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>{renderTable(pagos)}</CollapsibleContent>
+                    </Collapsible>
+                  </CardContent>
+                </Card>
+              )}
+
+              {negociados.length > 0 && (
+                <Card className="border-l-4 border-l-yellow-500">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                      Títulos Negociados ({negociados.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Estes títulos possuem status Cedrus "Negociado" e serão atualizados com status "Negociado".
+                    </p>
+                    <Collapsible defaultOpen={negociados.length <= 20}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>{renderTable(negociados)}</CollapsibleContent>
+                    </Collapsible>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          );
+        })()}
 
         {analysis.jaMaracadosPago.length > 0 && (
           <Card className="border-l-4 border-l-blue-500">
