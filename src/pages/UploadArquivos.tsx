@@ -817,9 +817,12 @@ export default function UploadArquivos() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4 mb-3">
+              <div className="flex items-center gap-4 mb-3 flex-wrap">
                 <div className="text-sm text-blue-700">
                   <strong>{analysis.statusComparison.totalCompared}</strong> título(s) encontrado(s) no banco
+                </div>
+                <div className="text-sm font-semibold text-green-700">
+                  ✓ {analysis.statusComparison.totalIdentical} título(s) idêntico(s)
                 </div>
                 <div className={`text-sm font-semibold ${analysis.statusComparison.totalDifferent > 0 ? "text-amber-700" : "text-green-700"}`}>
                   {analysis.statusComparison.totalDifferent > 0
