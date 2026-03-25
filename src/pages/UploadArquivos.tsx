@@ -809,8 +809,13 @@ export default function UploadArquivos() {
   const generateExcelReport = () => {
     if (!uploadResult) return;
     const wsData = [
-      ["ID", "Nome Parceiro", "Forma Pagamento", "Ação", "Status", "Erro"],
-      ...uploadResult.records.map(r => [r.id, r.nome_parceiro, r.forma_pagamento, r.acao, r.status, r.erro || ""])
+      ["ID", "Nome Parceiro", "Forma Pagamento", "Ação", "Status", "Erro", "Campos Alterados", "Valores Anteriores", "Valores Novos"],
+      ...uploadResult.records.map(r => {
+        const campos = (r.alteracoes || []).map(a => a.campo).join("; ");
+        const antes = (r.alteracoes || []).map(a => `${a.campo}: ${a.antes || "(vazio)"}`).join("; ");
+        const depois = (r.alteracoes || []).map(a => `${a.campo}: ${a.depois || "(vazio)"}`).join("; ");
+        return [r.id, r.nome_parceiro, r.forma_pagamento, r.acao, r.status, r.erro || "", campos, antes, depois];
+      })
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
