@@ -1100,7 +1100,7 @@ export default function UploadArquivos() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4 mb-3">
-                <div className="text-sm text-emerald-700">
+                <div className="text-sm text-muted-foreground">
                   <strong>{analysis.etapaBloqueadoValidation.novosTitulosCount}</strong> título(s) serão inseridos como novos registros no banco
                 </div>
               </div>
