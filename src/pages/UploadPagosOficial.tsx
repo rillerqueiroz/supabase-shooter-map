@@ -510,6 +510,20 @@ export default function UploadPagosOficial() {
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Não Encontrados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{analysis.naoEncontradosNoBanco.length}</div></CardContent></Card>
         </div>
 
+        {(() => {
+          const cedrusCount = analysis.encontradosNoBanco.filter(({ db }) => db.inserido_cedrus === true).length;
+          return cedrusCount > 0 ? (
+            <Card className="border-orange-400 bg-orange-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-sm text-orange-800">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <strong>{cedrusCount}</strong> título(s) com <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs mx-1">inserido_cedrus = true</Badge> serão movidos para a etapa <strong>"Inserir no Cedrus"</strong> e marcados como pendentes de análise.
+                </div>
+              </CardContent>
+            </Card>
+          ) : null;
+        })()}
+
         {analysis.totalSemDocumento > 0 && (
           <Card>
             <CardContent className="pt-4">
