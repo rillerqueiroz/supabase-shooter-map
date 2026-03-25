@@ -708,7 +708,17 @@ export default function UploadArquivos() {
       setUploadProgressLabel(`Inserindo novos registros (0/${newRecords.length})...`);
       for (let i = 0; i < newRecords.length; i += batchSize) {
         const batchRaw = newRecords.slice(i, i + batchSize);
-        batchRaw.forEach(r => { r.processado_internamente = false; });
+        batchRaw.forEach(r => {
+          r.processado_internamente = false;
+          // Tratativa especial: Vendedor "Superavit Cobrança"
+          if (r.vendedor && String(r.vendedor).trim().toLowerCase() === "superavit cobrança") {
+            r.etapa = "Boletos de Acordo Superavit";
+            r.inserido_cedrus = true;
+            r.tipo_titulo = "Título Negociação";
+            r.processado_internamente = true;
+            r.bloqueado = true;
+          }
+        });
         const { error } = await supabase.from("base_tudobelo_para_testes").insert(batchRaw);
         if (error) {
           batchRaw.forEach(r => {
