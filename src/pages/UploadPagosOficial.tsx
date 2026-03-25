@@ -316,7 +316,7 @@ export default function UploadPagosOficial() {
           };
 
           if (isCedrus) {
-            updates.etapa = "Inserir no Cedrus";
+            updates.etapa = "A faturar - Negociação realizada";
           }
 
           const { error } = await supabase
