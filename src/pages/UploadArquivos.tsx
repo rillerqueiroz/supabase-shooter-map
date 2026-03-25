@@ -1064,7 +1064,7 @@ export default function UploadArquivos() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {analysis.filteredStats.semDocumento > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <XCircle className="h-4 w-4 shrink-0" />
                     <span><strong>{analysis.filteredStats.semDocumento}</strong> sem documento (removidos)</span>
                   </div>
