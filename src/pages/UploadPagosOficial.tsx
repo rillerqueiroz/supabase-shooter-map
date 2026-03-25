@@ -709,6 +709,28 @@ export default function UploadPagosOficial() {
                 );
               })()}
 
+              {boletosAcordo.length > 0 && (
+                <Card className="border-l-4 border-l-purple-500">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600" />
+                      Boletos de Acordo Superavit Pagos ({boletosAcordo.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Estes títulos estão na etapa "Boletos de Acordo Superavit" e serão marcados como <strong>Pago</strong> sem alterar a etapa.
+                    </p>
+                    <Collapsible defaultOpen={boletosAcordo.length <= 20}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2"><ChevronDown className="h-3.5 w-3.5" />Ver detalhes</Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>{renderTable(boletosAcordo)}</CollapsibleContent>
+                    </Collapsible>
+                  </CardContent>
+                </Card>
+              )}
+
               {negociados.length > 0 && (
                 <Card className="border-l-4 border-l-yellow-500">
                   <CardHeader className="pb-2">
