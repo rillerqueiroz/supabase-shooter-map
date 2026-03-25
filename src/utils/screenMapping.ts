@@ -8,6 +8,7 @@ export const routeToScreenSlug: Record<string, string> = {
   '/gestao-negativados-tudobelo': 'gestao-negativados-tudobelo',
   '/upload-arquivos': 'upload-arquivos',
   '/upload-arquivos-oficial': 'upload-arquivos-oficial',
+  '/upload-pagos-oficial': 'upload-pagos-oficial',
   '/gestao-titulos-testes': 'upload-arquivos',
   '/gestao-acesso-sistemas': 'configuracoes',
 };

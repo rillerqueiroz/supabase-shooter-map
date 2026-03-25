@@ -8,6 +8,7 @@ import {
   Upload,
   FlaskConical,
   FileUp,
+  DollarSign,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
@@ -32,6 +33,7 @@ const navigationItems = [
   { title: "Analytics Títulos", url: "/analytics-titulos-tudobelo", icon: BarChart3 },
   { title: "Negativados Tudo Belo", url: "/gestao-negativados-tudobelo", icon: AlertTriangle },
   { title: "Envio Títulos - Oficial", url: "/upload-arquivos-oficial", icon: FileUp },
+  { title: "Atualização Pagos", url: "/upload-pagos-oficial", icon: DollarSign },
   { title: "Envio Títulos - Testes", url: "/upload-arquivos", icon: Upload },
   { title: "Títulos Testes", url: "/gestao-titulos-testes", icon: FlaskConical },
   { title: "Acesso Sistemas", url: "/gestao-acesso-sistemas", icon: ShieldCheck },
