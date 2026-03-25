@@ -1252,10 +1252,10 @@ export default function UploadArquivos() {
                 <Collapsible>
                   <div className="flex items-center justify-between border rounded-md p-3 bg-background mt-3">
                     <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                        💰 Somente no banco
+                      <Badge variant="outline" className="text-xs">
+                        Somente no banco
                       </Badge>
-                      <span className="text-sm font-semibold text-green-700">
+                      <span className="text-sm font-medium text-muted-foreground">
                         {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago"
                       </span>
                     </div>
