@@ -389,6 +389,7 @@ interface UploadResultRecord {
   acao: "Inserido" | "Atualizado" | "Marcado como Pago" | "Ignorado (etapa)" | "Ignorado (bloqueado)";
   status: "Sucesso" | "Erro";
   erro?: string;
+  alteracoes?: { campo: string; antes: string; depois: string }[];
 }
 
 interface UploadResult {
