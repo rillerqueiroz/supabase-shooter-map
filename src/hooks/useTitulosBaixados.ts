@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { chunkArray, fetchAllSupabaseRows } from '@/lib/supabaseBatch';
 
 export interface TituloBaixado {
   id: number;
@@ -39,38 +40,38 @@ export function useTitulosBaixados(tableName: string = 'base_tudobelo_intermedia
   return useQuery({
     queryKey: ['titulos-baixados', tableName],
     queryFn: async () => {
-      // Fetch baixados
-      let query = supabase
-        .from('base_tudobelo_titulos_baixados_automaticamente')
-        .select('*')
-        .order('data_baixa', { ascending: false })
-        .range(0, 49999);
-
-      const { data: baixados, error } = await query;
-      if (error) throw error;
+      const baixados = await fetchAllSupabaseRows<any>((from, to) =>
+        supabase
+          .from('base_tudobelo_titulos_baixados_automaticamente')
+          .select('*')
+          .order('data_baixa', { ascending: false })
+          .range(from, to)
+      );
 
       if (!baixados || baixados.length === 0) return [];
 
-      // Get unique titulo IDs for cross-reference
-      const tituloIds = baixados
+      const tituloIds = [...new Set(baixados
         .map(b => b.id_titulo)
-        .filter(Boolean) as string[];
+        .filter(Boolean) as string[])];
 
       let titulosMap = new Map<string, any>();
 
       if (tituloIds.length > 0) {
-        const { data: titulos, error: titulosError } = await supabase
-          .from(tableName)
-          .select('id, documento, tipo_documento, nome_parceiro, cnpj_cpf, valor_parcela, saldo_parcela, data_vencimento, dias_atraso, forma_pagamento, status_titulo, status_cedrus, etapa, filial, vendedor, uf_cobranca, credor_cedrus, tipo_titulo, fone1, fone2, email, negativado')
-          .in('id', tituloIds)
-          .range(0, 49999);
+        const titulosChunks = await Promise.all(
+          chunkArray(tituloIds, 500).map(async (idsChunk) => {
+            const { data, error } = await supabase
+              .from(tableName)
+              .select('id, documento, tipo_documento, nome_parceiro, cnpj_cpf, valor_parcela, saldo_parcela, data_vencimento, dias_atraso, forma_pagamento, status_titulo, status_cedrus, etapa, filial, vendedor, uf_cobranca, credor_cedrus, tipo_titulo, fone1, fone2, email, negativado')
+              .in('id', idsChunk);
 
-        if (!titulosError && titulos) {
-          titulos.forEach(t => titulosMap.set(t.id, t));
-        }
+            if (error) throw error;
+            return data ?? [];
+          })
+        );
+
+        titulosChunks.flat().forEach(t => titulosMap.set(t.id, t));
       }
 
-      // Merge data
       const result: TituloBaixado[] = baixados.map(b => ({
         ...b,
         titulo: b.id_titulo ? titulosMap.get(b.id_titulo) || null : null,
