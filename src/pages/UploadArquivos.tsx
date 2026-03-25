@@ -220,6 +220,9 @@ interface EtapaBloqueadoValidation {
   bloqueadoIds: string[];
   somenteBancoCount: number;
   somenteBancoIds: string[];
+  somenteBancoRecords: Record<string, any>[];
+  novosTitulosCount: number;
+  novosTitulosRecords: Record<string, any>[];
 }
 
 interface AnalysisResult {
