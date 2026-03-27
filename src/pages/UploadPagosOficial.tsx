@@ -315,7 +315,6 @@ export default function UploadPagosOficial() {
           const isBoletoAcordo = String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
           const novoStatus = isNegociado ? "Negociado" : "Pago";
           const updates: Record<string, any> = {
-            valor_pago: pago.valor_pago,
             data_pagamento: pago.data_pagamento,
             status_titulo: novoStatus,
             processado_internamente: false,
@@ -332,7 +331,7 @@ export default function UploadPagosOficial() {
             .eq("id", pago.id);
 
           const alteracoes: { campo: string; antes: string; depois: string }[] = [];
-          alteracoes.push({ campo: "valor_pago", antes: String(db.valor_pago ?? "(vazio)"), depois: String(pago.valor_pago ?? "(vazio)") });
+          
           alteracoes.push({ campo: "data_pagamento", antes: String(db.data_pagamento ?? "(vazio)"), depois: String(pago.data_pagamento ?? "(vazio)") });
           alteracoes.push({ campo: "status_titulo", antes: String(db.status_titulo ?? "(vazio)"), depois: novoStatus });
           if (isCedrus) {
@@ -456,7 +455,6 @@ export default function UploadPagosOficial() {
       const isBoletoAcordo = String(db.etapa || "").trim() === "Boletos de Acordo Superavit";
       const novoStatus = isNegociado ? "Negociado" : "Pago";
       const updates: Record<string, any> = {
-        valor_pago: pago.valor_pago,
         data_pagamento: pago.data_pagamento,
         status_titulo: novoStatus,
         processado_internamente: false,
