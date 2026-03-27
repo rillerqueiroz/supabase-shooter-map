@@ -18,7 +18,14 @@ import { TituloDetailsModal } from "./TituloDetailsModal";
 import { CedrusConfirmDialog } from "./CedrusConfirmDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Search, History, Upload, Check, X, Trash2, Send } from "lucide-react";
+import { Loader2, Search, History, Upload, Check, X, Trash2, Send, Filter } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 const formatDate = (dateString: string | null) => {
@@ -74,6 +81,7 @@ interface GroupedLog {
 
 export function LogAlteracoesTab() {
   const [searchLogs, setSearchLogs] = useState("");
+  const [filterCampo, setFilterCampo] = useState<string>("todos");
   const [selectedTituloId, setSelectedTituloId] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [removingCedrusId, setRemovingCedrusId] = useState<string | null>(null);
@@ -135,22 +143,42 @@ export function LogAlteracoesTab() {
     return Array.from(groups.values());
   }, [logs]);
 
-  const filteredGroups = useMemo(() => {
-    if (!searchLogs) return groupedLogs;
+  // Lista única de campos alterados para o filtro
+  const camposDisponiveis = useMemo(() => {
+    if (!logs) return [];
+    const campos = new Set<string>();
+    logs.forEach(log => campos.add(log.campo_alterado));
+    return Array.from(campos).sort();
+  }, [logs]);
 
-    const searchLower = searchLogs.toLowerCase();
-    return groupedLogs.filter((group) => {
-      const titulo = titulos?.find(t => t.id === group.tituloId);
-      const nomeParceiro = titulo?.nome_parceiro?.toLowerCase() || "";
-      
-      return (
-        nomeParceiro.includes(searchLower) ||
-        group.tituloId.toLowerCase().includes(searchLower) ||
-        group.usuarioEmail?.toLowerCase().includes(searchLower) ||
-        group.changes.some(c => c.campo.toLowerCase().includes(searchLower))
+  const filteredGroups = useMemo(() => {
+    let filtered = groupedLogs;
+
+    // Filtro por campo alterado
+    if (filterCampo !== "todos") {
+      filtered = filtered.filter(group =>
+        group.changes.some(c => c.campo === filterCampo)
       );
-    });
-  }, [groupedLogs, searchLogs, titulos]);
+    }
+
+    // Filtro por busca textual
+    if (searchLogs) {
+      const searchLower = searchLogs.toLowerCase();
+      filtered = filtered.filter((group) => {
+        const titulo = titulos?.find(t => t.id === group.tituloId);
+        const nomeParceiro = titulo?.nome_parceiro?.toLowerCase() || "";
+        
+        return (
+          nomeParceiro.includes(searchLower) ||
+          group.tituloId.toLowerCase().includes(searchLower) ||
+          group.usuarioEmail?.toLowerCase().includes(searchLower) ||
+          group.changes.some(c => c.campo.toLowerCase().includes(searchLower))
+        );
+      });
+    }
+
+    return filtered;
+  }, [groupedLogs, searchLogs, filterCampo, titulos]);
 
   const handleRowClick = (tituloId: string) => {
     setSelectedTituloId(tituloId);
@@ -259,14 +287,28 @@ export function LogAlteracoesTab() {
                 </Badge>
               )}
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por parceiro, campo ou usuário..."
-                value={searchLogs}
-                onChange={(e) => setSearchLogs(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex items-center gap-2">
+              <Select value={filterCampo} onValueChange={setFilterCampo}>
+                <SelectTrigger className="w-[200px]">
+                  <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Campo alterado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os campos</SelectItem>
+                  {camposDisponiveis.map(campo => (
+                    <SelectItem key={campo} value={campo}>{campo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por parceiro, ID ou usuário..."
+                  value={searchLogs}
+                  onChange={(e) => setSearchLogs(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
