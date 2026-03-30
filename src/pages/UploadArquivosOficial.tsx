@@ -397,7 +397,7 @@ interface UploadResultRecord {
   id: string;
   nome_parceiro: string;
   forma_pagamento: string;
-  acao: "Inserido" | "Atualizado" | "Marcado como Pago" | "Ignorado (etapa)" | "Ignorado (bloqueado)";
+  acao: "Inserido" | "Atualizado" | "Sem alteração" | "Marcado como Pago" | "Ignorado (etapa)" | "Ignorado (bloqueado)";
   status: "Sucesso" | "Erro";
   erro?: string;
   alteracoes?: { campo: string; antes: string; depois: string }[];
