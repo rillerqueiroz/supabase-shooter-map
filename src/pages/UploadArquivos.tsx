@@ -169,11 +169,22 @@ function mapExcelRow(row: Record<string, any>, formasLiquidacao?: Map<string, nu
     if (vencEfetivo >= today) {
       mapped.status_titulo = "A vencer";
     } else {
-      const dayOfWeek = venc.getDay();
       const todayDayOfWeek = today.getDay();
-      // "Vencido em final de semana" só aparece às segundas-feiras
-      if ((dayOfWeek === 0 || dayOfWeek === 6) && todayDayOfWeek === 1) {
-        mapped.status_titulo = "Vencido em final de semana";
+      // "Vencido em final de semana" só às segundas, apenas para o sábado e domingo imediatamente anteriores
+      if (todayDayOfWeek === 1) {
+        const lastSaturday = new Date(today);
+        lastSaturday.setDate(today.getDate() - 2);
+        lastSaturday.setHours(0, 0, 0, 0);
+        const lastSunday = new Date(today);
+        lastSunday.setDate(today.getDate() - 1);
+        lastSunday.setHours(0, 0, 0, 0);
+        const vencDate = new Date(vencEfetivo);
+        vencDate.setHours(0, 0, 0, 0);
+        if (vencDate.getTime() === lastSaturday.getTime() || vencDate.getTime() === lastSunday.getTime()) {
+          mapped.status_titulo = "Vencido em final de semana";
+        } else {
+          mapped.status_titulo = "Vencido";
+        }
       } else {
         mapped.status_titulo = "Vencido";
       }
