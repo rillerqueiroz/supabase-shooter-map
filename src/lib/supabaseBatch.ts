@@ -1,4 +1,4 @@
-const DEFAULT_BATCH_SIZE = 1000;
+const DEFAULT_BATCH_SIZE = 500;
 
 type SupabaseBatchResult<T> = {
   data: T[] | null;
