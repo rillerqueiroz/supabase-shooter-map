@@ -720,6 +720,7 @@ export default function UploadArquivos() {
       for (let i = 0; i < newRecords.length; i += batchSize) {
         const batchRaw = newRecords.slice(i, i + batchSize);
         batchRaw.forEach(r => {
+          r.inserido_cedrus = false;
           r.processado_internamente = false;
           // Tratativa especial: Vendedor "Superavit Cobrança"
           if (r.vendedor && String(r.vendedor).trim().toLowerCase() === "superavit cobrança") {
