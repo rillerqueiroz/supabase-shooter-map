@@ -759,42 +759,53 @@ export default function UploadArquivos() {
         if (dbRows) dbRows.forEach(r => dbCurrentMap.set(r.id, r));
       }
 
-      const COMPARE_FIELDS = ["nome_parceiro","cnpj_cpf","valor_parcela","saldo_parcela","data_vencimento","status_boleto","forma_pagamento","vendedor","uf_cobranca","municipio_cobranca","filial","status_titulo","etapa","observacoes","tipo_negocio","email","fone1","fone2","endereco","numero_endereco","complemento","bairro","cidade","uf","linha_digitavel","nome_fantasia","serie_documento","tipo_documento","codigo_parceiro","numero_parcela","data_documento"];
+      // Campos que vêm da planilha e podem ser atualizados
+      const SPREADSHEET_FIELDS = ["nome_parceiro","cnpj_cpf","valor_parcela","saldo_parcela","data_vencimento","status_boleto","forma_pagamento","vendedor","uf_cobranca","municipio_cobranca","filial","status_titulo","observacoes","tipo_negocio","email","fone1","fone2","endereco","numero_endereco","complemento","bairro","cidade","uf","linha_digitavel","nome_fantasia","serie_documento","tipo_documento","codigo_parceiro","numero_parcela","data_documento"];
 
       setUploadProgressLabel(`Atualizando registros existentes (0/${updateRecords.length})...`);
       for (let i = 0; i < updateRecords.length; i += batchSize) {
-        const batch = updateRecords.slice(i, i + batchSize).map(r => {
+        const batchSlice = updateRecords.slice(i, i + batchSize);
+        
+        for (const r of batchSlice) {
           const dbRow = dbCurrentMap.get(r.id);
-          const dbStatus = dbRow?.status_titulo || "";
-          const newStatus = (r as any).status_titulo || "";
-          // Marcar processado_internamente=false se status mudou para Vencido ou Pago
-          const statusMudou = dbStatus !== newStatus && (newStatus.startsWith("Vencido") || newStatus.startsWith("Pago"));
-          return statusMudou ? { ...r, processado_internamente: false } : r;
-        });
-        const { error } = await supabase.from("base_tudobelo_para_testes").upsert(batch, { onConflict: "id" });
-        if (error) {
-          batch.forEach(r => {
-            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Erro", erro: error.message });
-            totalErrors++;
-          });
-        } else {
-          batch.forEach(r => {
-            const dbRow = dbCurrentMap.get(r.id);
-            const alteracoes: { campo: string; antes: string; depois: string }[] = [];
-            if (dbRow) {
-              for (const campo of COMPARE_FIELDS) {
-                const antes = String(dbRow[campo] ?? "");
-                const depois = String((r as any)[campo] ?? "");
-                if (antes !== depois) {
-                  alteracoes.push({ campo, antes, depois });
-                }
-              }
+          if (!dbRow) continue;
+
+          // Comparar apenas campos da planilha e montar objeto só com divergências
+          const updates: Record<string, any> = {};
+          const alteracoes: { campo: string; antes: string; depois: string }[] = [];
+
+          for (const campo of SPREADSHEET_FIELDS) {
+            const antes = String(dbRow[campo] ?? "");
+            const depois = String((r as any)[campo] ?? "");
+            if (antes !== depois && (r as any)[campo] !== undefined) {
+              updates[campo] = (r as any)[campo];
+              alteracoes.push({ campo, antes, depois });
             }
-            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Sucesso", alteracoes });
-            totalUpdated++;
-          });
+          }
+
+          // Se status mudou para Vencido ou Pago, marcar processado_internamente=false
+          if (updates.status_titulo) {
+            const newStatus = String(updates.status_titulo);
+            if (newStatus.startsWith("Vencido") || newStatus.startsWith("Pago")) {
+              updates.processado_internamente = false;
+            }
+          }
+
+          if (Object.keys(updates).length > 0) {
+            const { error } = await supabase.from("base_tudobelo_para_testes").update(updates).eq("id", r.id);
+            if (error) {
+              resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Erro", erro: error.message });
+              totalErrors++;
+            } else {
+              resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Atualizado", status: "Sucesso", alteracoes });
+              totalUpdated++;
+            }
+          } else {
+            resultRecords.push({ id: r.id, nome_parceiro: r.nome_parceiro || "-", forma_pagamento: r.forma_pagamento || "-", acao: "Sem alteração", status: "Sucesso" });
+          }
         }
-        completedOperations += batch.length;
+        
+        completedOperations += batchSlice.length;
         const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
         setUploadProgress(pct);
         setUploadProgressLabel(`Atualizando registros existentes (${Math.min(i + batchSize, updateRecords.length)}/${updateRecords.length})...`);
