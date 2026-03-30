@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { fetchAllSupabaseRows } from '@/lib/supabaseBatch';
+import { fetchAllSupabaseRows, BatchProgressCallback } from '@/lib/supabaseBatch';
 import { toast } from 'sonner';
 
 // Status do título disponíveis
@@ -94,7 +94,7 @@ export interface TitulosFilters {
   bloqueado?: boolean | null;
 }
 
-export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string = 'base_tudobelo_intermediaria') {
+export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string = 'base_tudobelo_intermediaria', onProgress?: BatchProgressCallback) {
   return useQuery({
     queryKey: ['titulos-tudobelo', tableName, filters],
     queryFn: async () => {
@@ -199,7 +199,7 @@ export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string =
         }
 
         return query.range(from, to);
-      });
+      }, 500, onProgress);
 
       return data;
     },
