@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTitulosTudoBelo } from "@/hooks/useTitulosTudoBelo";
+import { useLoadingProgress } from "@/hooks/useLoadingProgress";
+import { LoadingProgress } from "@/components/ui/loading-progress";
 import { NegativarTab } from "@/components/NegativadosTudoBelo/NegativarTab";
 import { RemoverNegativacaoTab } from "@/components/NegativadosTudoBelo/RemoverNegativacaoTab";
 import { HistoricoNegativacoesTab } from "@/components/NegativadosTudoBelo/HistoricoNegativacoesTab";
@@ -18,7 +20,8 @@ const formatCurrency = (value: number | null) => {
 
 export default function GestaoNegativadosTudoBelo() {
   const [activeTab, setActiveTab] = useState("negativar");
-  const { data: titulos, isLoading } = useTitulosTudoBelo();
+  const { progress, onProgress } = useLoadingProgress();
+  const { data: titulos, isLoading } = useTitulosTudoBelo(undefined, 'base_tudobelo_intermediaria', onProgress);
 
   const negativarData = useMemo(() =>
     (titulos || []).filter(t => t.status_titulo === 'Vencido' && !t.negativado),
@@ -75,6 +78,11 @@ export default function GestaoNegativadosTudoBelo() {
           </Button>
         </div>
       </div>
+
+      {/* Loading Progress */}
+      {isLoading && (
+        <LoadingProgress loaded={progress.loaded} label="Carregando títulos" />
+      )}
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
