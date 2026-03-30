@@ -191,7 +191,7 @@ function mapExcelRow(row: Record<string, any>, formasLiquidacao?: Map<string, nu
     }
   }
 
-  mapped.inserido_cedrus = false;
+  // inserido_cedrus será definido apenas para novos registros no Step 2
 
   return mapped;
 }
