@@ -5,11 +5,15 @@ type SupabaseBatchResult<T> = {
   error: unknown;
 };
 
+export type BatchProgressCallback = (loaded: number, batchNumber: number) => void;
+
 export async function fetchAllSupabaseRows<T>(
   fetchPage: (from: number, to: number) => Promise<SupabaseBatchResult<T>>,
   batchSize: number = DEFAULT_BATCH_SIZE,
+  onProgress?: BatchProgressCallback,
 ): Promise<T[]> {
   const rows: T[] = [];
+  let batchNumber = 0;
 
   for (let from = 0; ; from += batchSize) {
     const to = from + batchSize - 1;
@@ -21,6 +25,8 @@ export async function fetchAllSupabaseRows<T>(
 
     const batch = data ?? [];
     rows.push(...batch);
+    batchNumber++;
+    onProgress?.(rows.length, batchNumber);
 
     if (batch.length < batchSize) {
       break;
