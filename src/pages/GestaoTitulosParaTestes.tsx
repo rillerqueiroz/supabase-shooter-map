@@ -181,11 +181,17 @@ export default function GestaoTitulosParaTestes() {
     titulo: TituloTudoBelo | null;
   }>({ open: false, actionType: "inserir", titulo: null });
 
+  const [bloqueadoDialog, setBloqueadoDialog] = useState<{
+    open: boolean;
+    titulo: TituloTudoBelo | null;
+  }>({ open: false, titulo: null });
+
   const { data: titulos, isLoading, error } = useTitulosTudoBelo(filters, TEST_TABLE);
   const { data: options } = useTitulosTudoBeloOptions(TEST_TABLE);
   const { data: etapasDisponiveis } = useTitulosEtapas();
   const { data: formasPagamento } = useTitulosFormasPagamento();
   const inserirCedrusMutation = useInserirCedrusWebhook();
+  const updateTituloMutation = useUpdateTituloTudoBelo(TEST_TABLE);
 
   const prazoRecompraMap = useMemo(() => {
     if (!formasPagamento) return new Map<string, number>();
