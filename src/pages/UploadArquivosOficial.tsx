@@ -503,7 +503,7 @@ export default function UploadArquivosOficial() {
       // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
       const { data: allDbIds } = await supabase
         .from("base_tudobelo_intermediaria")
-        .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela")
+        .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
         .not("status_titulo", "in", '("Pago","Pago em dia","Pago via renegociação","Cancelado","Suspenso","Não se aplica")');
 
       const somenteBancoIds: string[] = [];
