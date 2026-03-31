@@ -503,7 +503,7 @@ export default function UploadArquivosOficial() {
       // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
       const { data: allDbIds } = await supabase
         .from("base_tudobelo_intermediaria")
-        .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela")
+        .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
         .not("status_titulo", "in", '("Pago","Pago em dia","Pago via renegociação","Cancelado","Suspenso","Não se aplica")');
 
       const somenteBancoIds: string[] = [];
@@ -821,10 +821,60 @@ export default function UploadArquivosOficial() {
         setUploadProgressLabel(`Atualizando registros existentes (${Math.min(i + batchSize, updateRecords.length)}/${updateRecords.length})...`);
       }
 
-      // Step 4: Mark somente-banco titles as "Pago"
-      setUploadProgressLabel(`Marcando títulos como Pago (0/${somenteBancoIds.length})...`);
-      for (let i = 0; i < somenteBancoIds.length; i += batchSize) {
-        const batch = somenteBancoIds.slice(i, i + batchSize);
+      // Step 4: Mark somente-banco titles as "Pago" (or apply negotiation rule)
+      // Separar IDs que devem ir para "A faturar - Negociação realizada"
+      const somenteBancoRecordsAll = analysis.etapaBloqueadoValidation?.somenteBancoRecords || [];
+      const somenteBancoRecordsMap = new Map<string, Record<string, any>>();
+      for (const rec of somenteBancoRecordsAll) somenteBancoRecordsMap.set(rec.id, rec);
+
+      // Para IDs que não temos nos records (além dos 100 exibidos), precisamos buscar do DB
+      const missingIds = somenteBancoIds.filter(id => !somenteBancoRecordsMap.has(id));
+      if (missingIds.length > 0) {
+        for (let i = 0; i < missingIds.length; i += 500) {
+          const batch = missingIds.slice(i, i + 500);
+          const { data: extraData } = await supabase.from("base_tudobelo_intermediaria").select("id, etapa, inserido_cedrus").in("id", batch);
+          if (extraData) extraData.forEach(r => somenteBancoRecordsMap.set(r.id, { ...somenteBancoRecordsMap.get(r.id), ...r }));
+        }
+      }
+
+      const negociacaoIds = somenteBancoIds.filter(id => {
+        const rec = somenteBancoRecordsMap.get(id);
+        return rec && (
+          (rec.etapa && String(rec.etapa).trim() === "Cobrança Superavit") ||
+          rec.inserido_cedrus === true
+        );
+      });
+      const pagoIds = somenteBancoIds.filter(id => !negociacaoIds.includes(id));
+
+      // 4a: Marcar títulos da regra como "A faturar - Negociação realizada"
+      setUploadProgressLabel(`Migrando títulos para negociação (0/${negociacaoIds.length})...`);
+      for (let i = 0; i < negociacaoIds.length; i += batchSize) {
+        const batch = negociacaoIds.slice(i, i + batchSize);
+        const { error } = await supabase
+          .from("base_tudobelo_intermediaria")
+          .update({ status_titulo: "Pendente", etapa: "A faturar - Negociação realizada", processado_internamente: false })
+          .in("id", batch);
+        if (error) {
+          batch.forEach(id => {
+            resultRecords.push({ id, nome_parceiro: "-", forma_pagamento: "-", acao: "Marcado como Pago", status: "Erro", erro: error.message });
+            totalErrors++;
+          });
+        } else {
+          batch.forEach(id => {
+            resultRecords.push({ id, nome_parceiro: "-", forma_pagamento: "-", acao: "Atualizado", status: "Sucesso", alteracoes: [{ campo: "etapa", antes: "", depois: "A faturar - Negociação realizada" }, { campo: "status_titulo", antes: "", depois: "Pendente" }] });
+            totalUpdated++;
+          });
+        }
+        completedOperations += batch.length;
+        const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
+        setUploadProgress(pct);
+        setUploadProgressLabel(`Migrando títulos para negociação (${Math.min(i + batchSize, negociacaoIds.length)}/${negociacaoIds.length})...`);
+      }
+
+      // 4b: Marcar demais como "Pago"
+      setUploadProgressLabel(`Marcando títulos como Pago (0/${pagoIds.length})...`);
+      for (let i = 0; i < pagoIds.length; i += batchSize) {
+        const batch = pagoIds.slice(i, i + batchSize);
         const { error } = await supabase
           .from("base_tudobelo_intermediaria")
           .update({ status_titulo: "Pago", processado_internamente: false })
@@ -843,7 +893,7 @@ export default function UploadArquivosOficial() {
         completedOperations += batch.length;
         const pct = Math.round((completedOperations / Math.max(totalOperations, 1)) * 100);
         setUploadProgress(pct);
-        setUploadProgressLabel(`Marcando títulos como Pago (${Math.min(i + batchSize, somenteBancoIds.length)}/${somenteBancoIds.length})...`);
+        setUploadProgressLabel(`Marcando títulos como Pago (${Math.min(i + batchSize, pagoIds.length)}/${pagoIds.length})...`);
       }
 
       setUploadProgress(100);
@@ -1388,8 +1438,10 @@ export default function UploadArquivosOficial() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {analysis.etapaBloqueadoValidation.somenteBancoRecords.map((rec, j) => (
-                            <TableRow key={j} className="text-xs cursor-pointer hover:bg-muted/50" onClick={async () => {
+                          {analysis.etapaBloqueadoValidation.somenteBancoRecords.map((rec, j) => {
+                            const isNegociacao = (rec.etapa && String(rec.etapa).trim() === "Cobrança Superavit") || rec.inserido_cedrus === true;
+                            return (
+                            <TableRow key={j} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociacao ? "bg-green-50" : ""}`} onClick={async () => {
                               const { data } = await supabase.from("base_tudobelo_intermediaria").select("*").eq("id", rec.id).single();
                               if (data) {
                                 setSelectedTitulo(data as TituloTudoBelo);
@@ -1404,11 +1456,16 @@ export default function UploadArquivosOficial() {
                               <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
                               <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
                               <TableCell>
-                                <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
+                                {isNegociacao ? (
+                                  <Badge className="text-xs bg-green-100 text-green-800 border-green-300">A faturar - Negociação</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
+                                )}
                               </TableCell>
-                              <TableCell className="text-xs">{rec.etapa || "-"}</TableCell>
+                              <TableCell className="text-xs">{isNegociacao ? "→ A faturar - Negociação realizada" : (rec.etapa || "-")}</TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                           {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoRecords.length && (
                             <TableRow>
                               <TableCell colSpan={7} className="text-xs text-center text-muted-foreground">
