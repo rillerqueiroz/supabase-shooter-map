@@ -73,6 +73,7 @@ export interface TituloTudoBelo {
   cod_devedor_cedrus: string | null;
   negativado: boolean | null;
   bloqueado: boolean | null;
+  auditado: boolean | null;
 }
 
 export interface TitulosFilters {
