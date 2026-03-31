@@ -1438,8 +1438,10 @@ export default function UploadArquivosOficial() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {analysis.etapaBloqueadoValidation.somenteBancoRecords.map((rec, j) => (
-                            <TableRow key={j} className="text-xs cursor-pointer hover:bg-muted/50" onClick={async () => {
+                          {analysis.etapaBloqueadoValidation.somenteBancoRecords.map((rec, j) => {
+                            const isNegociacao = (rec.etapa && String(rec.etapa).trim() === "Cobrança Superavit") || rec.inserido_cedrus === true;
+                            return (
+                            <TableRow key={j} className={`text-xs cursor-pointer hover:bg-muted/50 ${isNegociacao ? "bg-green-50" : ""}`} onClick={async () => {
                               const { data } = await supabase.from("base_tudobelo_intermediaria").select("*").eq("id", rec.id).single();
                               if (data) {
                                 setSelectedTitulo(data as TituloTudoBelo);
@@ -1454,11 +1456,16 @@ export default function UploadArquivosOficial() {
                               <TableCell className="text-xs">{rec.data_vencimento || "-"}</TableCell>
                               <TableCell className="text-xs">{rec.saldo_parcela != null ? Number(rec.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
                               <TableCell>
-                                <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
+                                {isNegociacao ? (
+                                  <Badge className="text-xs bg-green-100 text-green-800 border-green-300">A faturar - Negociação</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">{rec.status_titulo || "Sem status"}</Badge>
+                                )}
                               </TableCell>
-                              <TableCell className="text-xs">{rec.etapa || "-"}</TableCell>
+                              <TableCell className="text-xs">{isNegociacao ? "→ A faturar - Negociação realizada" : (rec.etapa || "-")}</TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                           {analysis.etapaBloqueadoValidation.somenteBancoCount > analysis.etapaBloqueadoValidation.somenteBancoRecords.length && (
                             <TableRow>
                               <TableCell colSpan={7} className="text-xs text-center text-muted-foreground">
