@@ -730,6 +730,16 @@ export default function UploadArquivosOficial() {
             r.processado_internamente = true;
             r.bloqueado = true;
           }
+          // Regra: títulos novos com etapa "Cobrança Superavit" ou inserido_cedrus=true
+          // devem ser marcados como Pendente, migrar etapa e processado_internamente=false
+          if (
+            (r.etapa && String(r.etapa).trim() === "Cobrança Superavit") ||
+            r.inserido_cedrus === true
+          ) {
+            r.status_titulo = "Pendente";
+            r.etapa = "A faturar - Negociação realizada";
+            r.processado_internamente = false;
+          }
         });
         const { error } = await supabase.from("base_tudobelo_intermediaria").insert(batchRaw);
         if (error) {
