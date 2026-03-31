@@ -200,6 +200,10 @@ export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string =
           query = query.eq('bloqueado', filters.bloqueado);
         }
 
+        if (filters?.auditado !== undefined && filters?.auditado !== null) {
+          query = query.eq('auditado', filters.auditado);
+        }
+
         return query.range(from, to);
       }, 500, onProgress);
 

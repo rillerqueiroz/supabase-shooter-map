@@ -476,6 +476,25 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Auditado</label>
+                <Select
+                  value={filters.auditado === null || filters.auditado === undefined ? "todos" : filters.auditado ? "sim" : "nao"}
+                  onValueChange={(v) => setFilters({ 
+                    ...filters, 
+                    auditado: v === "todos" ? null : v === "sim" 
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="sim">Auditados</SelectItem>
+                    <SelectItem value="nao">Não auditados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </CardContent>
