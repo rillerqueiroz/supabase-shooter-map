@@ -1028,6 +1028,38 @@ export default function GestaoTitulosTudoBelo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Confirmação de bloqueio/desbloqueio */}
+      <AlertDialog open={bloqueadoDialog.open} onOpenChange={(open) => setBloqueadoDialog({ ...bloqueadoDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bloqueadoDialog.titulo?.bloqueado ? "Desbloquear título" : "Bloquear título"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bloqueadoDialog.titulo?.bloqueado
+                ? `Deseja realmente desbloquear o título ${bloqueadoDialog.titulo?.id}? Ele voltará a ser editável e processável.`
+                : `Deseja realmente bloquear o título ${bloqueadoDialog.titulo?.id}? Ele ficará protegido contra edições e processamentos.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (bloqueadoDialog.titulo) {
+                  updateTituloMutation.mutate({
+                    id: bloqueadoDialog.titulo.id,
+                    updates: { bloqueado: !bloqueadoDialog.titulo.bloqueado },
+                  });
+                }
+                setBloqueadoDialog({ open: false, titulo: null });
+              }}
+            >
+              {bloqueadoDialog.titulo?.bloqueado ? "Desbloquear" : "Bloquear"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
