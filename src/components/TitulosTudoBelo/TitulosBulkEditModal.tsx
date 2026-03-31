@@ -244,6 +244,21 @@ export function TitulosBulkEditModal({ selectedIds, blockedIds = [], open, onOpe
             </Select>
           </FieldRow>
 
+          <FieldRow field="auditado" label="Auditado">
+            <Select
+              value={updates.auditado === true ? "true" : updates.auditado === false ? "false" : ""}
+              onValueChange={(value) => setUpdates({ ...updates, auditado: value === "true" })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Sim</SelectItem>
+                <SelectItem value="false">Não</SelectItem>
+              </SelectContent>
+            </Select>
+          </FieldRow>
+
           {/* Campo obrigatório quando status é "Pago" */}
           {isStatusPago && !allBlocked && (
             <div className="flex items-center gap-4 py-2 border-b border-border/50 bg-green-50/50 px-2 rounded">
