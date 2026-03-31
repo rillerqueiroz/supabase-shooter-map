@@ -197,6 +197,7 @@ export default function GestaoTitulosTudoBelo() {
   const { data: etapasDisponiveis } = useTitulosEtapas();
   const { data: formasPagamento } = useTitulosFormasPagamento();
   const inserirCedrusMutation = useInserirCedrusWebhook();
+  const updateTituloMutation = useUpdateTituloTudoBelo();
 
   // Mapeamento de forma_pagamento para prazo_recompra
   const prazoRecompraMap = useMemo(() => {
