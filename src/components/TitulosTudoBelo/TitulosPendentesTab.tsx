@@ -497,6 +497,43 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
               </div>
             </div>
           )}
+
+          {/* Resumo dos filtros aplicados */}
+          {(() => {
+            const activeFilters: { label: string; value: string }[] = [];
+            if (filters.search) activeFilters.push({ label: "Busca", value: filters.search });
+            if (filters.nomesParceiros?.length) activeFilters.push({ label: "Parceiro", value: `${filters.nomesParceiros.length} selecionado(s)` });
+            if (filters.statusTitulo?.length) activeFilters.push({ label: "Status", value: filters.statusTitulo.join(", ") });
+            if (filters.filiais?.length) activeFilters.push({ label: "Filial", value: filters.filiais.join(", ") });
+            if (filters.vendedores?.length) activeFilters.push({ label: "Vendedor", value: `${filters.vendedores.length} selecionado(s)` });
+            if (filters.tiposTitulo?.length) activeFilters.push({ label: "Tipo Título", value: filters.tiposTitulo.join(", ") });
+            if (filters.ufs?.length) activeFilters.push({ label: "UF", value: filters.ufs.join(", ") });
+            if (filters.formasPagamento?.length) activeFilters.push({ label: "Forma Pgto", value: filters.formasPagamento.join(", ") });
+            if (filters.etapas?.length) activeFilters.push({ label: "Etapa", value: filters.etapas.join(", ") });
+            if (filters.tipoTitulo?.length) activeFilters.push({ label: "Tipo", value: filters.tipoTitulo.join(", ") });
+            if (filters.dataVencimentoRange?.from || filters.dataVencimentoRange?.to) {
+              const from = filters.dataVencimentoRange?.from ? format(filters.dataVencimentoRange.from, "dd/MM/yy") : "...";
+              const to = filters.dataVencimentoRange?.to ? format(filters.dataVencimentoRange.to, "dd/MM/yy") : "...";
+              activeFilters.push({ label: "Vencimento", value: `${from} → ${to}` });
+            }
+            if (filters.inseridoCedrus !== null && filters.inseridoCedrus !== undefined) activeFilters.push({ label: "Cedrus", value: filters.inseridoCedrus ? "Sim" : "Não" });
+            if (filters.processadoInternamente !== null && filters.processadoInternamente !== undefined) activeFilters.push({ label: "Processado", value: filters.processadoInternamente ? "Sim" : "Não" });
+            if (filters.bloqueado !== null && filters.bloqueado !== undefined) activeFilters.push({ label: "Bloqueado", value: filters.bloqueado ? "Sim" : "Não" });
+            if (filters.auditado !== null && filters.auditado !== undefined) activeFilters.push({ label: "Auditado", value: filters.auditado ? "Sim" : "Não" });
+
+            if (activeFilters.length === 0) return null;
+
+            return (
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
+                <span className="text-xs text-muted-foreground self-center mr-1">Filtros ativos:</span>
+                {activeFilters.map((f) => (
+                  <Badge key={f.label} variant="secondary" className="text-xs">
+                    {f.label}: {f.value}
+                  </Badge>
+                ))}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
