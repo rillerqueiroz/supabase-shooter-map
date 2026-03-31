@@ -687,13 +687,12 @@ export default function GestaoTitulosTudoBelo() {
                               onCheckedChange={handleSelectAll}
                             />
                           </TableHead>
-                          <SortableHeader column="documento" label="Documento" />
+                          <SortableHeader column="id" label="ID" />
                           <SortableHeader column="nome_parceiro" label="Parceiro" />
                           <SortableHeader column="cnpj_cpf" label="CNPJ/CPF" />
                           <SortableHeader column="saldo_parcela" label="Saldo" />
                           <SortableHeader column="forma_pagamento" label="Forma Pagamento" />
                           <SortableHeader column="data_vencimento" label="Vencimento" />
-                          <SortableHeader column="prazo_recompra" label="Dias Recompra" />
                           <SortableHeader column="status_titulo" label="Status / Etapa" />
                           <SortableHeader column="status_cedrus" label="Status Cedrus" />
                           <TableHead>Cedrus</TableHead>
