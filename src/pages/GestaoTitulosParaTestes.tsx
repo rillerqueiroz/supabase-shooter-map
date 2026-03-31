@@ -26,6 +26,7 @@ import { DateFilterSelect } from "@/components/Filters/DateFilterSelect";
 import {
   useTitulosTudoBelo,
   useTitulosTudoBeloOptions,
+  useUpdateTituloTudoBelo,
   TitulosFilters,
   TituloTudoBelo,
 } from "@/hooks/useTitulosTudoBelo";
@@ -180,11 +181,17 @@ export default function GestaoTitulosParaTestes() {
     titulo: TituloTudoBelo | null;
   }>({ open: false, actionType: "inserir", titulo: null });
 
+  const [bloqueadoDialog, setBloqueadoDialog] = useState<{
+    open: boolean;
+    titulo: TituloTudoBelo | null;
+  }>({ open: false, titulo: null });
+
   const { data: titulos, isLoading, error } = useTitulosTudoBelo(filters, TEST_TABLE);
   const { data: options } = useTitulosTudoBeloOptions(TEST_TABLE);
   const { data: etapasDisponiveis } = useTitulosEtapas();
   const { data: formasPagamento } = useTitulosFormasPagamento();
   const inserirCedrusMutation = useInserirCedrusWebhook();
+  const updateTituloMutation = useUpdateTituloTudoBelo(TEST_TABLE);
 
   const prazoRecompraMap = useMemo(() => {
     if (!formasPagamento) return new Map<string, number>();
@@ -676,13 +683,12 @@ export default function GestaoTitulosParaTestes() {
                               onCheckedChange={handleSelectAll}
                             />
                           </TableHead>
-                          <SortableHeader column="documento" label="Documento" />
+                          <SortableHeader column="id" label="ID" />
                           <SortableHeader column="nome_parceiro" label="Parceiro" />
                           <SortableHeader column="cnpj_cpf" label="CNPJ/CPF" />
                           <SortableHeader column="saldo_parcela" label="Saldo" />
                           <SortableHeader column="forma_pagamento" label="Forma Pagamento" />
                           <SortableHeader column="data_vencimento" label="Vencimento" />
-                          <SortableHeader column="prazo_recompra" label="Dias Recompra" />
                           <SortableHeader column="status_titulo" label="Status / Etapa" />
                           <SortableHeader column="status_cedrus" label="Status Cedrus" />
                           <TableHead>Cedrus</TableHead>
@@ -701,14 +707,20 @@ export default function GestaoTitulosParaTestes() {
                                   checked={selectedIds.includes(titulo.id)}
                                   onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
                                 />
-                                {titulo.bloqueado ? (
-                                  <Lock className="h-4 w-4 text-amber-600" />
-                                ) : (
-                                  <LockOpen className="h-4 w-4 text-muted-foreground/40" />
-                                )}
+                                <button
+                                  onClick={() => setBloqueadoDialog({ open: true, titulo })}
+                                  className="hover:scale-110 transition-transform"
+                                  title={titulo.bloqueado ? "Desbloquear título" : "Bloquear título"}
+                                >
+                                  {titulo.bloqueado ? (
+                                    <Lock className="h-4 w-4 text-amber-600" />
+                                  ) : (
+                                    <LockOpen className="h-4 w-4 text-muted-foreground/40" />
+                                  )}
+                                </button>
                               </div>
                             </TableCell>
-                            <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
+                            <TableCell className="font-medium text-xs max-w-[120px] truncate" title={titulo.id}>{titulo.id}</TableCell>
                             <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
                             <TableCell>{titulo.cnpj_cpf || "-"}</TableCell>
                             <TableCell>{formatCurrency(titulo.saldo_parcela)}</TableCell>
@@ -721,26 +733,6 @@ export default function GestaoTitulosParaTestes() {
                               </div>
                             </TableCell>
                             <TableCell>{formatDate(titulo.data_vencimento)}</TableCell>
-                            <TableCell className="text-center">
-                              {(() => {
-                                const prazoRecompra = titulo.forma_pagamento 
-                                  ? prazoRecompraMap.get(titulo.forma_pagamento) ?? null 
-                                  : null;
-                                const recompraInfo = calcularDiasRecompra(titulo.data_vencimento, prazoRecompra);
-                                if (!recompraInfo) return "-";
-                                
-                                const colorClasses = getRecompraColorClasses(recompraInfo.diasRestantes, recompraInfo.prazoTotal);
-                                
-                                return (
-                                  <Badge variant="outline" className={`${colorClasses} font-semibold`}>
-                                    {recompraInfo.diasRestantes <= 0 
-                                      ? `Vencido há ${Math.abs(recompraInfo.diasRestantes)} dias`
-                                      : `${recompraInfo.diasRestantes} dias`
-                                    }
-                                  </Badge>
-                                );
-                              })()}
-                            </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <div className="flex flex-col gap-1">
                                 <Badge variant={titulo.status_titulo === "Pago em dia" || titulo.status_titulo === "Pago via renegociação" ? "default" : "secondary"}>
@@ -1026,6 +1018,38 @@ export default function GestaoTitulosParaTestes() {
             >
               <FileText className="h-4 w-4 mr-1" />
               Baixar PDF
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação de bloqueio/desbloqueio */}
+      <AlertDialog open={bloqueadoDialog.open} onOpenChange={(open) => setBloqueadoDialog({ ...bloqueadoDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bloqueadoDialog.titulo?.bloqueado ? "Desbloquear título" : "Bloquear título"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bloqueadoDialog.titulo?.bloqueado
+                ? `Deseja realmente desbloquear o título ${bloqueadoDialog.titulo?.id}? Ele voltará a ser editável e processável.`
+                : `Deseja realmente bloquear o título ${bloqueadoDialog.titulo?.id}? Ele ficará protegido contra edições e processamentos.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (bloqueadoDialog.titulo) {
+                  updateTituloMutation.mutate({
+                    id: bloqueadoDialog.titulo.id,
+                    updates: { bloqueado: !bloqueadoDialog.titulo.bloqueado },
+                  });
+                }
+                setBloqueadoDialog({ open: false, titulo: null });
+              }}
+            >
+              {bloqueadoDialog.titulo?.bloqueado ? "Desbloquear" : "Bloquear"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
