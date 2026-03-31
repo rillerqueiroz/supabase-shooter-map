@@ -188,6 +188,9 @@ export function TitulosBulkEditModal({ selectedIds, blockedIds = [], open, onOpe
           <DialogTitle>
             Editar {selectedIds.length} títulos em massa
           </DialogTitle>
+          <p className="text-xs text-muted-foreground break-all">
+            IDs: {selectedIds.join(', ')}
+          </p>
         </DialogHeader>
 
         <div className="space-y-2 py-4">
