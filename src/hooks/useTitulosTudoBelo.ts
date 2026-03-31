@@ -93,6 +93,7 @@ export interface TitulosFilters {
   inseridoCedrus?: boolean | null;
   processadoInternamente?: boolean | null;
   bloqueado?: boolean | null;
+  auditado?: boolean | null;
 }
 
 export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string = 'base_tudobelo_intermediaria', onProgress?: BatchProgressCallback) {
