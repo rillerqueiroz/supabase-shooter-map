@@ -73,6 +73,7 @@ export interface TituloTudoBelo {
   cod_devedor_cedrus: string | null;
   negativado: boolean | null;
   bloqueado: boolean | null;
+  auditado: boolean | null;
 }
 
 export interface TitulosFilters {
@@ -92,6 +93,7 @@ export interface TitulosFilters {
   inseridoCedrus?: boolean | null;
   processadoInternamente?: boolean | null;
   bloqueado?: boolean | null;
+  auditado?: boolean | null;
 }
 
 export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string = 'base_tudobelo_intermediaria', onProgress?: BatchProgressCallback) {
@@ -196,6 +198,10 @@ export function useTitulosTudoBelo(filters?: TitulosFilters, tableName: string =
 
         if (filters?.bloqueado !== undefined && filters?.bloqueado !== null) {
           query = query.eq('bloqueado', filters.bloqueado);
+        }
+
+        if (filters?.auditado !== undefined && filters?.auditado !== null) {
+          query = query.eq('auditado', filters.auditado);
         }
 
         return query.range(from, to);
