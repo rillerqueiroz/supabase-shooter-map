@@ -711,14 +711,20 @@ export default function GestaoTitulosTudoBelo() {
                                   checked={selectedIds.includes(titulo.id)}
                                   onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
                                 />
-                                {titulo.bloqueado ? (
-                                  <Lock className="h-4 w-4 text-amber-600" />
-                                ) : (
-                                  <LockOpen className="h-4 w-4 text-muted-foreground/40" />
-                                )}
+                                <button
+                                  onClick={() => setBloqueadoDialog({ open: true, titulo })}
+                                  className="hover:scale-110 transition-transform"
+                                  title={titulo.bloqueado ? "Desbloquear título" : "Bloquear título"}
+                                >
+                                  {titulo.bloqueado ? (
+                                    <Lock className="h-4 w-4 text-amber-600" />
+                                  ) : (
+                                    <LockOpen className="h-4 w-4 text-muted-foreground/40" />
+                                  )}
+                                </button>
                               </div>
                             </TableCell>
-                            <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
+                            <TableCell className="font-medium text-xs max-w-[120px] truncate" title={titulo.id}>{titulo.id}</TableCell>
                             <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
                             <TableCell>{titulo.cnpj_cpf || "-"}</TableCell>
                             <TableCell>{formatCurrency(titulo.saldo_parcela)}</TableCell>
@@ -731,27 +737,6 @@ export default function GestaoTitulosTudoBelo() {
                               </div>
                             </TableCell>
                             <TableCell>{formatDate(titulo.data_vencimento)}</TableCell>
-                            <TableCell className="text-center">
-                              {(() => {
-                                // Busca prazo_recompra da tabela formas_pagamento pelo forma_pagamento do título
-                                const prazoRecompra = titulo.forma_pagamento 
-                                  ? prazoRecompraMap.get(titulo.forma_pagamento) ?? null 
-                                  : null;
-                                const recompraInfo = calcularDiasRecompra(titulo.data_vencimento, prazoRecompra);
-                                if (!recompraInfo) return "-";
-                                
-                                const colorClasses = getRecompraColorClasses(recompraInfo.diasRestantes, recompraInfo.prazoTotal);
-                                
-                                return (
-                                  <Badge variant="outline" className={`${colorClasses} font-semibold`}>
-                                    {recompraInfo.diasRestantes <= 0 
-                                      ? `Vencido há ${Math.abs(recompraInfo.diasRestantes)} dias`
-                                      : `${recompraInfo.diasRestantes} dias`
-                                    }
-                                  </Badge>
-                                );
-                              })()}
-                            </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <div className="flex flex-col gap-1">
                                 <Badge variant={titulo.status_titulo === "Pago em dia" || titulo.status_titulo === "Pago via renegociação" ? "default" : "secondary"}>
