@@ -1039,7 +1039,8 @@ export default function GestaoTitulosParaTestes() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 if (bloqueadoDialog.titulo) {
                   updateTituloMutation.mutate({
                     id: bloqueadoDialog.titulo.id,
