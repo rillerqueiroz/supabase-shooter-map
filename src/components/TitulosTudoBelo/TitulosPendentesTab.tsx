@@ -500,7 +500,7 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
-                      <SortableHeader column="documento" label="Documento" />
+                      <SortableHeader column="id" label="ID" />
                       <SortableHeader column="nome_parceiro" label="Parceiro" />
                       <SortableHeader column="cnpj_cpf" label="CNPJ/CPF" />
                       <SortableHeader column="saldo_parcela" label="Saldo" />
