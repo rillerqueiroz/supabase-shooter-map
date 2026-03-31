@@ -26,6 +26,7 @@ import { DateFilterSelect } from "@/components/Filters/DateFilterSelect";
 import {
   useTitulosTudoBelo,
   useTitulosTudoBeloOptions,
+  useUpdateTituloTudoBelo,
   TitulosFilters,
   TituloTudoBelo,
 } from "@/hooks/useTitulosTudoBelo";
