@@ -306,13 +306,32 @@ export function useBulkUpdateTitulosTudoBelo(tableName: string = 'base_tudobelo_
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['titulos-tudobelo', tableName] });
-      toast.success(`${variables.ids.length} títulos atualizados com sucesso!`);
+    onMutate: async ({ ids, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['titulos-tudobelo', tableName] });
+      const previousData = queryClient.getQueryData<TituloTudoBelo[]>(['titulos-tudobelo', tableName]);
+
+      queryClient.setQueriesData<TituloTudoBelo[]>(
+        { queryKey: ['titulos-tudobelo', tableName] },
+        (old) => old?.map((t) => ids.includes(t.id) ? { ...t, ...updates, ultima_atualizacao: new Date().toISOString() } : t)
+      );
+
+      return { previousData };
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueriesData(
+          { queryKey: ['titulos-tudobelo', tableName] },
+          context.previousData
+        );
+      }
       console.error('Erro ao atualizar títulos:', error);
       toast.error('Erro ao atualizar títulos em massa');
+    },
+    onSuccess: (_, variables) => {
+      toast.success(`${variables.ids.length} títulos atualizados com sucesso!`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['titulos-tudobelo', tableName] });
     },
   });
 }
