@@ -229,21 +229,20 @@ export function TitulosBulkEditModal({ selectedIds, blockedIds = [], open, onOpe
             </Select>
           </FieldRow>
 
-          <div className="flex items-center gap-4 py-2 border-b border-border/50">
-            <Switch
-              checked={updates.bloqueado || false}
-              onCheckedChange={(checked) => {
-                setUpdates({ ...updates, bloqueado: checked });
-                setEnabledFields(prev => ({ ...prev, bloqueado: true }));
-              }}
-            />
-            <Label className="w-40 text-sm font-semibold text-amber-700">Bloqueado</Label>
-            <div className="flex-1">
-              <span className={`text-sm ${updates.bloqueado ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                {updates.bloqueado ? 'Será bloqueado' : 'Não bloqueado'}
-              </span>
-            </div>
-          </div>
+          <FieldRow field="bloqueado" label="Bloqueado">
+            <Select
+              value={updates.bloqueado === true ? "true" : updates.bloqueado === false ? "false" : ""}
+              onValueChange={(value) => setUpdates({ ...updates, bloqueado: value === "true" })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Bloquear</SelectItem>
+                <SelectItem value="false">Desbloquear</SelectItem>
+              </SelectContent>
+            </Select>
+          </FieldRow>
 
           {/* Campo obrigatório quando status é "Pago" */}
           {isStatusPago && !allBlocked && (
