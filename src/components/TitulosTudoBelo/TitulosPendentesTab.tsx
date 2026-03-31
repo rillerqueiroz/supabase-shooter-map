@@ -532,7 +532,7 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{titulo.documento || "-"}</TableCell>
+                        <TableCell className="font-medium text-xs max-w-[120px] truncate" title={titulo.id}>{titulo.id}</TableCell>
                         <TableCell className="max-w-[200px] truncate">{titulo.nome_parceiro || "-"}</TableCell>
                         <TableCell>{titulo.cnpj_cpf || "-"}</TableCell>
                         <TableCell>{formatCurrency(titulo.saldo_parcela)}</TableCell>
