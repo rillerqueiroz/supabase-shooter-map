@@ -186,6 +186,12 @@ export default function GestaoTitulosTudoBelo() {
     titulo: TituloTudoBelo | null;
   }>({ open: false, actionType: "inserir", titulo: null });
 
+  // Bloqueado toggle confirmation
+  const [bloqueadoDialog, setBloqueadoDialog] = useState<{
+    open: boolean;
+    titulo: TituloTudoBelo | null;
+  }>({ open: false, titulo: null });
+
   const { data: titulos, isLoading, error } = useTitulosTudoBelo(filters);
   const { data: options } = useTitulosTudoBeloOptions();
   const { data: etapasDisponiveis } = useTitulosEtapas();
