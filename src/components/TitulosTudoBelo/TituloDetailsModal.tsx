@@ -522,7 +522,7 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
         <DialogHeader className="pr-10">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle>
-              Título: {titulo.documento || titulo.id}
+              Título: {titulo.id}
             </DialogTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleEnviarEmail} disabled={isEnviandoEmail}>
