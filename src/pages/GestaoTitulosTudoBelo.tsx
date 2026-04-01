@@ -56,6 +56,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TitulosBaixadosTab } from "@/components/TitulosTudoBelo/TitulosBaixadosTab";
+import { ChecagemInconsistenciasTab } from "@/components/TitulosTudoBelo/ChecagemInconsistenciasTab";
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
 import {
   Search,
@@ -516,6 +517,10 @@ export default function GestaoTitulosTudoBelo() {
             <Download className="h-4 w-4" />
             Títulos Baixados
           </TabsTrigger>
+          <TabsTrigger value="inconsistencias" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Checagem de Inconsistências
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="space-y-4">
@@ -917,6 +922,10 @@ export default function GestaoTitulosTudoBelo() {
 
         <TabsContent value="baixados">
           <TitulosBaixadosTab />
+        </TabsContent>
+
+        <TabsContent value="inconsistencias">
+          <ChecagemInconsistenciasTab titulos={titulos || []} />
         </TabsContent>
       </Tabs>
 
