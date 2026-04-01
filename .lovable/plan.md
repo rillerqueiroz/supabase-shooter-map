@@ -1,60 +1,34 @@
 
 
-## Plano: Trigger genérico para logar TODAS as alterações
+## Plano: Aba "Checagem de Inconsistências"
 
-### Problema atual
-O trigger `log_titulo_alteracao()` monitora apenas 11 campos manualmente listados. Campos como `negativado`, `inserido_cedrus`, `etapa`, `valor_pago`, `data_pagamento`, `saldo_parcela`, `processado_internamente`, `status_boleto`, `data_baixa`, entre outros, não são rastreados.
+### O que será feito
+Criar uma nova aba na página de Gestão de Títulos que lista títulos com dados inconsistentes, agrupados por tipo de inconsistência.
 
-### Solução
-Substituir o trigger manual por um trigger **dinâmico** que usa a extensão `hstore` do PostgreSQL para comparar automaticamente TODOS os campos da linha antiga vs nova, sem precisar listar cada campo individualmente. Qualquer campo adicionado à tabela no futuro também será automaticamente monitorado.
+### Regras de inconsistência
 
-### Migration SQL
+1. **Etapa "Títulos a vencer" + Status "Pago"** — título marcado como pago mas na etapa de a vencer
+2. **Status "Pago" sem data de pagamento** — título pago mas sem `data_pagamento` preenchida
+3. **Status "Pago" sem valor pago** — título pago mas sem `valor_pago`
+4. **Inserido no Cedrus = true sem ID Cedrus** — marcado como inserido mas sem `id_titulo_cedrus`
+5. **Negativado = true + Status "Pago"** — título pago que continua negativado
+6. **Etapa "Cobrança Superavit" + processado_internamente = false** — deveria ter sido processado
+7. **Data de vencimento futura + Status "Vencido"** — status vencido mas data ainda não passou
 
-1. **Habilitar extensão `hstore`** (se não existir)
-2. **Recriar a função `log_titulo_alteracao()`** com lógica genérica:
-   - Converte `OLD` e `NEW` para `hstore`
-   - Calcula o diff (`NEW - OLD`)
-   - Para cada campo alterado, insere um registro no log
-   - Ignora campos irrelevantes como `selection` e `updated_at` para evitar ruído
-3. **Recriar o trigger** na tabela `base_tudobelo_intermediaria`
+### Arquivos
 
-```sql
-CREATE EXTENSION IF NOT EXISTS hstore;
+1. **Novo componente** `src/components/TitulosTudoBelo/ChecagemInconsistenciasTab.tsx`
+   - Recebe `titulos: TituloTudoBelo[]` como prop (reutiliza dados já carregados)
+   - Filtra os títulos por cada regra via `useMemo`
+   - Exibe seções colapsáveis (Accordion) com badge de contagem
+   - Cada seção mostra tabela compacta com ID, parceiro, status, etapa e campos relevantes
 
-CREATE OR REPLACE FUNCTION log_titulo_alteracao()
-RETURNS TRIGGER AS $$
-DECLARE
-  old_row hstore;
-  new_row hstore;
-  diff hstore;
-  key text;
-  ignored_cols text[] := ARRAY['selection', 'updated_at'];
-BEGIN
-  old_row := hstore(OLD);
-  new_row := hstore(NEW);
-  diff := new_row - old_row;
+2. **Editar** `src/pages/GestaoTitulosTudoBelo.tsx`
+   - Adicionar nova `TabsTrigger` "Checagem de Inconsistências" com ícone `AlertTriangle`
+   - Adicionar `TabsContent` renderizando o novo componente
 
-  FOREACH key IN ARRAY akeys(diff) LOOP
-    IF NOT (key = ANY(ignored_cols)) THEN
-      INSERT INTO base_tudobelo_log_alteracoes
-        (titulo_id, campo_alterado, valor_anterior, valor_novo, origem, descricao)
-      VALUES
-        (NEW.id::text, key, old_row -> key, new_row -> key,
-         'api', 'Alteração detectada automaticamente');
-    END IF;
-  END LOOP;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-### Campos que passam a ser monitorados (além dos 11 atuais)
-`negativado`, `inserido_cedrus`, `etapa`, `valor_pago`, `data_pagamento`, `saldo_parcela`, `data_documento`, `forma_pagamento`, `processado_internamente`, `status_boleto`, `data_baixa`, `credor_cedrus`, `id_titulo_cedrus`, `documento`, `tipo_documento`, `serie_documento`, `codigo_parceiro`, `nome_parceiro`, `numero_parcela`, `dias_atraso`, e qualquer campo adicionado no futuro.
-
-### Arquivo
-- Criar `migration-trigger-log-alteracoes-v2.sql` com a migration completa
-
-### Filtro na interface
-- Adicionar filtro por `campo_alterado` no `LogAlteracoesTab.tsx` para facilitar busca por tipo de alteração (ex: filtrar por "negativado", "etapa", etc.)
+### Detalhes técnicos
+- Sem queries adicionais ao banco — usa os dados já carregados em memória
+- Componente Accordion do shadcn para colapsar/expandir cada regra
+- Badge na aba com contagem total de inconsistências encontradas
 
