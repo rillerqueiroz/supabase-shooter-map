@@ -56,6 +56,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TitulosBaixadosTab } from "@/components/TitulosTudoBelo/TitulosBaixadosTab";
+import { ChecagemInconsistenciasTab } from "@/components/TitulosTudoBelo/ChecagemInconsistenciasTab";
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
 import {
   Search,
