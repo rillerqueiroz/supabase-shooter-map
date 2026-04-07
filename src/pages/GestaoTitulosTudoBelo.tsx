@@ -920,9 +920,6 @@ export default function GestaoTitulosTudoBelo() {
           <TitulosBaixadosTab />
         </TabsContent>
 
-        <TabsContent value="inconsistencias">
-          <ChecagemInconsistenciasTab titulos={titulos || []} />
-        </TabsContent>
       </Tabs>
 
       {/* Modals */}
