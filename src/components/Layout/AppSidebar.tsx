@@ -36,6 +36,7 @@ const navigationItems = [
   { title: "Atualização Pagos", url: "/upload-pagos-oficial", icon: DollarSign },
   { title: "Envio Títulos - Testes", url: "/upload-arquivos", icon: Upload },
   { title: "Títulos Testes", url: "/gestao-titulos-testes", icon: FlaskConical },
+  { title: "Checagem Inconsistências", url: "/checagem-inconsistencias", icon: AlertTriangle },
   { title: "Acesso Sistemas", url: "/gestao-acesso-sistemas", icon: ShieldCheck },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ]
