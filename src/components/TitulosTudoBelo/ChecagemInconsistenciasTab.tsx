@@ -288,6 +288,7 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
                               <TableHead>Parceiro</TableHead>
                               <TableHead>CNPJ/CPF</TableHead>
                               <TableHead>Status</TableHead>
+                              <TableHead>Status Cedrus</TableHead>
                               <TableHead>Etapa</TableHead>
                               <TableHead>Vencimento</TableHead>
                               <TableHead>Saldo</TableHead>
