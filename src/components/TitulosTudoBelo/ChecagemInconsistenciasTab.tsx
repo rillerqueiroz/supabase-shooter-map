@@ -143,6 +143,16 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
             t.status_cedrus?.trim().toUpperCase().startsWith("A")
         ),
       },
+      {
+        id: "cedrus-pago-status-diferente",
+        label: 'Status Cedrus iniciando com "P" + Status título diferente de "Pago"',
+        description: "Título pago no Cedrus mas com status diferente de pago no sistema",
+        items: titulos.filter(
+          (t) =>
+            t.status_cedrus?.trim().toUpperCase().startsWith("P") &&
+            t.status_titulo?.trim().toLowerCase() !== "pago"
+        ),
+      },
     ];
   }, [titulos]);
 
