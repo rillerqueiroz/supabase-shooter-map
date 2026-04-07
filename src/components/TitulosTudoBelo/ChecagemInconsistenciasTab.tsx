@@ -193,6 +193,16 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
         ),
       },
       {
+        id: "vencido-etapa-a-vencer",
+        label: 'Status "Vencido" + Etapa "Títulos a vencer"',
+        description: "Título com status vencido mas na etapa de títulos a vencer",
+        items: titulos.filter(
+          (t) =>
+            t.status_titulo?.trim().toLowerCase() === "vencido" &&
+            t.etapa?.trim() === "Títulos a vencer"
+        ),
+      },
+      {
         id: "cedrus-negociado-status-diferente",
         label: 'Status Cedrus iniciando com "N" + Status título não começando com "N"',
         description: "Título negociado no Cedrus mas com status diferente de negociado no sistema",
@@ -278,6 +288,7 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
                               <TableHead>Parceiro</TableHead>
                               <TableHead>CNPJ/CPF</TableHead>
                               <TableHead>Status</TableHead>
+                              <TableHead>Status Cedrus</TableHead>
                               <TableHead>Etapa</TableHead>
                               <TableHead>Vencimento</TableHead>
                               <TableHead>Saldo</TableHead>
@@ -300,6 +311,7 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
                                     {t.status_titulo || "-"}
                                   </Badge>
                                 </TableCell>
+                                <TableCell className="text-xs">{t.status_cedrus || "-"}</TableCell>
                                 <TableCell className="text-xs">{t.etapa || "-"}</TableCell>
                                 <TableCell className="text-xs">
                                   {formatDate(t.data_vencimento)}
