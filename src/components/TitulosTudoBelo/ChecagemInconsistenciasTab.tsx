@@ -193,6 +193,16 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
         ),
       },
       {
+        id: "vencido-etapa-a-vencer",
+        label: 'Status "Vencido" + Etapa "Títulos a vencer"',
+        description: "Título com status vencido mas na etapa de títulos a vencer",
+        items: titulos.filter(
+          (t) =>
+            t.status_titulo?.trim().toLowerCase() === "vencido" &&
+            t.etapa?.trim() === "Títulos a vencer"
+        ),
+      },
+      {
         id: "cedrus-negociado-status-diferente",
         label: 'Status Cedrus iniciando com "N" + Status título não começando com "N"',
         description: "Título negociado no Cedrus mas com status diferente de negociado no sistema",
