@@ -21,6 +21,7 @@ import UploadArquivos from "./pages/UploadArquivos";
 import GestaoTitulosParaTestes from "./pages/GestaoTitulosParaTestes";
 import UploadArquivosOficial from "./pages/UploadArquivosOficial";
 import UploadPagosOficial from "./pages/UploadPagosOficial";
+import ChecagemInconsistencias from "./pages/ChecagemInconsistencias";
 
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
