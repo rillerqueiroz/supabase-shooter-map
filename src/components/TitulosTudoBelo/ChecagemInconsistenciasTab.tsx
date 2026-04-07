@@ -17,9 +17,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, CheckCircle, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { exportToExcel } from "@/utils/exportToExcel";
+import { toast } from "sonner";
 
 const formatDate = (dateString: string | null) => {
   if (!dateString) return "-";
@@ -50,6 +53,42 @@ interface InconsistenciaRule {
 interface ChecagemInconsistenciasTabProps {
   titulos: TituloTudoBelo[];
 }
+
+const handleExportExcel = (rule: InconsistenciaRule) => {
+  if (rule.items.length === 0) {
+    toast.warning("Nenhum título para exportar nessa inconsistência.");
+    return;
+  }
+
+  const data = rule.items.map((t) => ({
+    ID: t.id,
+    Parceiro: t.nome_parceiro || "",
+    "CNPJ/CPF": t.cnpj_cpf || "",
+    "Status Título": t.status_titulo || "",
+    "Status Cedrus": t.status_cedrus || "",
+    Etapa: t.etapa || "",
+    Vencimento: formatDate(t.data_vencimento),
+    "Saldo Parcela": t.saldo_parcela ?? 0,
+    "Valor Pago": t.valor_pago ?? 0,
+    "Data Pagamento": formatDate(t.data_pagamento),
+    Negativado: t.negativado ? "Sim" : "Não",
+    "Inserido Cedrus": t.inserido_cedrus ? "Sim" : "Não",
+    "ID Cedrus": t.id_titulo_cedrus || "",
+    "Processado Internamente": t.processado_internamente ? "Sim" : "Não",
+  }));
+
+  const result = exportToExcel({
+    filename: `inconsistencia_${rule.id}_${new Date().toISOString().split("T")[0]}`,
+    sheetName: rule.label.substring(0, 31),
+    data,
+  });
+
+  if (result.success) {
+    toast.success("Excel exportado com sucesso!");
+  } else {
+    toast.error("Erro ao exportar Excel.");
+  }
+};
 
 export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasTabProps) {
   const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
@@ -153,6 +192,16 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
             t.status_titulo?.trim().toLowerCase() !== "pago"
         ),
       },
+      {
+        id: "cedrus-negociado-status-diferente",
+        label: 'Status Cedrus iniciando com "N" + Status título não começando com "N"',
+        description: "Título negociado no Cedrus mas com status diferente de negociado no sistema",
+        items: titulos.filter(
+          (t) =>
+            t.status_cedrus?.trim().toUpperCase().startsWith("N") &&
+            !t.status_titulo?.trim().toUpperCase().startsWith("N")
+        ),
+      },
     ];
   }, [titulos]);
 
@@ -210,47 +259,59 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
                       Nenhum título com essa inconsistência.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>ID</TableHead>
-                            <TableHead>Parceiro</TableHead>
-                            <TableHead>CNPJ/CPF</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Etapa</TableHead>
-                            <TableHead>Vencimento</TableHead>
-                            <TableHead>Saldo</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {rule.items.map((t) => (
-                            <TableRow
-                              key={t.id}
-                              className="cursor-pointer hover:bg-muted/50"
-                              onClick={() => handleTituloClick(t)}
-                            >
-                              <TableCell className="font-mono text-xs">
-                                {t.id.substring(0, 8)}
-                              </TableCell>
-                              <TableCell>{t.nome_parceiro || "-"}</TableCell>
-                              <TableCell className="text-xs">{t.cnpj_cpf || "-"}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs">
-                                  {t.status_titulo || "-"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-xs">{t.etapa || "-"}</TableCell>
-                              <TableCell className="text-xs">
-                                {formatDate(t.data_vencimento)}
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {formatCurrency(t.saldo_parcela)}
-                              </TableCell>
+                    <div className="space-y-2">
+                      <div className="flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleExportExcel(rule)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Exportar Excel ({rule.items.length})
+                        </Button>
+                      </div>
+                      <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ID</TableHead>
+                              <TableHead>Parceiro</TableHead>
+                              <TableHead>CNPJ/CPF</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Etapa</TableHead>
+                              <TableHead>Vencimento</TableHead>
+                              <TableHead>Saldo</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {rule.items.map((t) => (
+                              <TableRow
+                                key={t.id}
+                                className="cursor-pointer hover:bg-muted/50"
+                                onClick={() => handleTituloClick(t)}
+                              >
+                                <TableCell className="font-mono text-xs">
+                                  {t.id.substring(0, 8)}
+                                </TableCell>
+                                <TableCell>{t.nome_parceiro || "-"}</TableCell>
+                                <TableCell className="text-xs">{t.cnpj_cpf || "-"}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-xs">
+                                    {t.status_titulo || "-"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs">{t.etapa || "-"}</TableCell>
+                                <TableCell className="text-xs">
+                                  {formatDate(t.data_vencimento)}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {formatCurrency(t.saldo_parcela)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   )}
                 </AccordionContent>
