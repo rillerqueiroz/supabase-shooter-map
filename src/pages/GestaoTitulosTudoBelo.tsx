@@ -517,10 +517,6 @@ export default function GestaoTitulosTudoBelo() {
             <Download className="h-4 w-4" />
             Títulos Baixados
           </TabsTrigger>
-          <TabsTrigger value="inconsistencias" className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Checagem de Inconsistências
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="space-y-4">
