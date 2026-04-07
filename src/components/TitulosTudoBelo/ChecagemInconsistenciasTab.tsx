@@ -311,6 +311,7 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
                                     {t.status_titulo || "-"}
                                   </Badge>
                                 </TableCell>
+                                <TableCell className="text-xs">{t.status_cedrus || "-"}</TableCell>
                                 <TableCell className="text-xs">{t.etapa || "-"}</TableCell>
                                 <TableCell className="text-xs">
                                   {formatDate(t.data_vencimento)}
