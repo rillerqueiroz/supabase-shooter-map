@@ -10,6 +10,7 @@ export const routeToScreenSlug: Record<string, string> = {
   '/upload-arquivos-oficial': 'upload-arquivos-oficial',
   '/upload-pagos-oficial': 'upload-pagos-oficial',
   '/gestao-titulos-testes': 'upload-arquivos',
+  '/checagem-inconsistencias': 'gestao-titulos-tudobelo',
   '/gestao-acesso-sistemas': 'configuracoes',
 };
 

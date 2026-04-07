@@ -21,6 +21,7 @@ import UploadArquivos from "./pages/UploadArquivos";
 import GestaoTitulosParaTestes from "./pages/GestaoTitulosParaTestes";
 import UploadArquivosOficial from "./pages/UploadArquivosOficial";
 import UploadPagosOficial from "./pages/UploadPagosOficial";
+import ChecagemInconsistencias from "./pages/ChecagemInconsistencias";
 
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -74,6 +75,7 @@ const App = () => {
               <Route path="/upload-pagos-oficial" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/upload-pagos-oficial')!}><UploadPagosOficial /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/gestao-titulos-testes" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-titulos-testes')!}><GestaoTitulosParaTestes /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/gestao-acesso-sistemas" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/gestao-acesso-sistemas')!}><GestaoAcessoSistemas /></ProtectedScreen></ProtectedRoute>} />
+              <Route path="/checagem-inconsistencias" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/checagem-inconsistencias')!}><ChecagemInconsistencias /></ProtectedScreen></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

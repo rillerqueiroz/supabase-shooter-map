@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
+import { TituloDetailsModal } from "./TituloDetailsModal";
 import {
   Accordion,
   AccordionContent,
@@ -51,6 +52,9 @@ interface ChecagemInconsistenciasTabProps {
 }
 
 export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasTabProps) {
+  const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   const rules = useMemo<InconsistenciaRule[]>(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -129,6 +133,16 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
           }
         }),
       },
+      {
+        id: "pago-cedrus-aberto",
+        label: 'Status "Pago" + Status Cedrus iniciando com "A"',
+        description: "Título com status pago mas ainda aberto no Cedrus",
+        items: titulos.filter(
+          (t) =>
+            t.status_titulo?.trim().toLowerCase() === "pago" &&
+            t.status_cedrus?.trim().toUpperCase().startsWith("A")
+        ),
+      },
     ];
   }, [titulos]);
 
@@ -136,6 +150,11 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
     () => rules.reduce((sum, r) => sum + r.items.length, 0),
     [rules]
   );
+
+  const handleTituloClick = (titulo: TituloTudoBelo) => {
+    setSelectedTitulo(titulo);
+    setDetailsOpen(true);
+  };
 
   return (
     <div className="space-y-4">
@@ -196,7 +215,11 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
                         </TableHeader>
                         <TableBody>
                           {rule.items.map((t) => (
-                            <TableRow key={t.id}>
+                            <TableRow
+                              key={t.id}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleTituloClick(t)}
+                            >
                               <TableCell className="font-mono text-xs">
                                 {t.id.substring(0, 8)}
                               </TableCell>
@@ -226,6 +249,12 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
           </Accordion>
         </CardContent>
       </Card>
+
+      <TituloDetailsModal
+        titulo={selectedTitulo}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
     </div>
   );
 }
