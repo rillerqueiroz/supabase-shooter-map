@@ -218,6 +218,36 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
   const removerNegativacaoMutation = useRemoverNegativacao();
   const inserirCedrusMutation = useInserirCedrusWebhook();
   const [isEnviandoEmail, setIsEnviandoEmail] = useState(false);
+  const [marcarPagoOpen, setMarcarPagoOpen] = useState(false);
+  const [isMarcandoPago, setIsMarcandoPago] = useState(false);
+
+  const handleMarcarPagoCedrus = async (valorPagoApurado?: number, dataPagamento?: string) => {
+    if (!titulo) return;
+    setIsMarcandoPago(true);
+    try {
+      const payload = {
+        ...titulo,
+        valor_pago_apurado: valorPagoApurado,
+        data_pagamento_manual: dataPagamento,
+      };
+      const response = await fetch(
+        'https://projeton8n-n8n.pjq1cs.easypanel.host/webhook/marcar-titulo-como-pago-tudobelo',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!response.ok) throw new Error('Falha ao marcar como pago');
+      toast.success(`Título ${titulo.documento ?? ''} marcado como pago no Cedrus.`);
+      setMarcarPagoOpen(false);
+    } catch (error) {
+      console.error('Erro ao marcar como pago:', error);
+      toast.error('Erro ao marcar título como pago no Cedrus.');
+    } finally {
+      setIsMarcandoPago(false);
+    }
+  };
 
   const handleEnviarEmail = async () => {
     if (!titulo) return;
