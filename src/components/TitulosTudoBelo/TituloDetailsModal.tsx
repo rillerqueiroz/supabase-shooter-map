@@ -219,7 +219,9 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
   const inserirCedrusMutation = useInserirCedrusWebhook();
   const [isEnviandoEmail, setIsEnviandoEmail] = useState(false);
   const [marcarPagoOpen, setMarcarPagoOpen] = useState(false);
+  const [cancelarCedrusOpen, setCancelarCedrusOpen] = useState(false);
   const [isMarcandoPago, setIsMarcandoPago] = useState(false);
+  const [isCancelandoCedrus, setIsCancelandoCedrus] = useState(false);
 
   const handleMarcarPagoCedrus = async (valorPagoApurado?: number, dataPagamento?: string) => {
     if (!titulo) return;
@@ -246,6 +248,29 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
       toast.error('Erro ao marcar título como pago no Cedrus.');
     } finally {
       setIsMarcandoPago(false);
+    }
+  };
+
+  const handleCancelarCedrus = async () => {
+    if (!titulo) return;
+    setIsCancelandoCedrus(true);
+    try {
+      const response = await fetch(
+        'https://projeton8n-n8n.pjq1cs.easypanel.host/webhook/cancelar-titulo-cedrus-tudobelo',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(titulo),
+        }
+      );
+      if (!response.ok) throw new Error('Falha ao cancelar no Cedrus');
+      toast.success(`Título ${titulo.documento ?? ''} cancelado no Cedrus.`);
+      setCancelarCedrusOpen(false);
+    } catch (error) {
+      console.error('Erro ao cancelar no Cedrus:', error);
+      toast.error('Erro ao cancelar título no Cedrus.');
+    } finally {
+      setIsCancelandoCedrus(false);
     }
   };
 
@@ -759,20 +784,36 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                           <span className="text-muted-foreground">-</span>
                         )}
                         {titulo.inserido_cedrus && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-2 h-8"
-                            disabled={isMarcandoPago}
-                            onClick={() => setMarcarPagoOpen(true)}
-                          >
-                            {isMarcandoPago ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            )}
-                            Marcar como Pago no Cedrus
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-2 h-8"
+                              disabled={isMarcandoPago}
+                              onClick={() => setMarcarPagoOpen(true)}
+                            >
+                              {isMarcandoPago ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              )}
+                              Marcar como Pago no Cedrus
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-2 h-8 border-destructive text-destructive hover:bg-destructive/10"
+                              disabled={isCancelandoCedrus}
+                              onClick={() => setCancelarCedrusOpen(true)}
+                            >
+                              {isCancelandoCedrus ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <X className="h-3.5 w-3.5" />
+                              )}
+                              Cancelar no Cedrus
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -1280,6 +1321,21 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
         }}
         onConfirm={handleMarcarPagoCedrus}
         isLoading={isMarcandoPago}
+      />
+      <CedrusConfirmDialog
+        open={cancelarCedrusOpen}
+        onOpenChange={setCancelarCedrusOpen}
+        actionType="cancelar"
+        documentoTitulo={titulo.documento ?? null}
+        tituloInfo={{
+          documento: titulo.documento,
+          nome_parceiro: titulo.nome_parceiro,
+          valor_parcela: titulo.valor_parcela,
+          saldo_parcela: titulo.saldo_parcela,
+          data_vencimento: titulo.data_vencimento,
+        }}
+        onConfirm={handleCancelarCedrus}
+        isLoading={isCancelandoCedrus}
       />
     </Dialog>
   );
