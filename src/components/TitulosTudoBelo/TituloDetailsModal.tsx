@@ -229,7 +229,7 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
     try {
       const payload = {
         ...titulo,
-        valor_pago_apurado: valorPagoApurado,
+        valor_pago_apurado_manualmente: valorPagoApurado,
         data_pagamento_manual: dataPagamento,
       };
       const response = await fetch(
