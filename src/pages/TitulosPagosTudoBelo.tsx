@@ -291,9 +291,9 @@ export default function TitulosPagosTudoBelo() {
           </div>
           {(uploading || loading) && (
             <LoadingProgress
-              current={progress.current}
-              total={progress.total || progress.current}
-              message={progress.message}
+              loaded={progress.current}
+              estimatedTotal={progress.total || undefined}
+              label={progress.message || "Processando"}
             />
           )}
         </CardContent>
