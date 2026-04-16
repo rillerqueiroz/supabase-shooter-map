@@ -1062,8 +1062,8 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                         value={titulo.processado_internamente ? "✓ Sim" : "✗ Não"} 
                       />
                     </div>
-                    {!titulo.inserido_cedrus && (
-                      <div className="mt-4 pt-4 border-t">
+                    <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
+                      {!titulo.inserido_cedrus && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -1078,8 +1078,24 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                           )}
                           Inserir no Cedrus
                         </Button>
-                      </div>
-                    )}
+                      )}
+                      {titulo.inserido_cedrus && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          disabled={isMarcandoPago}
+                          onClick={() => setMarcarPagoOpen(true)}
+                        >
+                          {isMarcandoPago ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                          Marcar como Pago no Cedrus
+                        </Button>
+                      )}
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
