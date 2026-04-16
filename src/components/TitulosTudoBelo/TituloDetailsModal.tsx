@@ -784,20 +784,36 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                           <span className="text-muted-foreground">-</span>
                         )}
                         {titulo.inserido_cedrus && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-2 h-8"
-                            disabled={isMarcandoPago}
-                            onClick={() => setMarcarPagoOpen(true)}
-                          >
-                            {isMarcandoPago ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            )}
-                            Marcar como Pago no Cedrus
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-2 h-8"
+                              disabled={isMarcandoPago}
+                              onClick={() => setMarcarPagoOpen(true)}
+                            >
+                              {isMarcandoPago ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              )}
+                              Marcar como Pago no Cedrus
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-2 h-8 border-destructive text-destructive hover:bg-destructive/10"
+                              disabled={isCancelandoCedrus}
+                              onClick={() => setCancelarCedrusOpen(true)}
+                            >
+                              {isCancelandoCedrus ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <X className="h-3.5 w-3.5" />
+                              )}
+                              Cancelar no Cedrus
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
