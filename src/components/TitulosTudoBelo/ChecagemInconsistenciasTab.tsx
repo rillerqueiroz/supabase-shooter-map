@@ -203,6 +203,26 @@ export function ChecagemInconsistenciasTab({ titulos }: ChecagemInconsistenciasT
         ),
       },
       {
+        id: "a-vencer-etapa-pago",
+        label: 'Status "A vencer" + Etapa "Pago em dia" ou "Pago em atraso"',
+        description: "Título com status a vencer mas na etapa de pago",
+        items: titulos.filter(
+          (t) =>
+            t.status_titulo?.trim().toLowerCase() === "a vencer" &&
+            (t.etapa?.trim() === "Pago em dia" || t.etapa?.trim() === "Pago em atraso")
+        ),
+      },
+      {
+        id: "a-vencer-etapa-pago",
+        label: 'Status "A vencer" + Etapa "Pago em dia" ou "Pago em atraso"',
+        description: "Título com status a vencer mas na etapa de pago",
+        items: titulos.filter(
+          (t) =>
+            t.status_titulo?.trim().toLowerCase() === "a vencer" &&
+            (t.etapa?.trim() === "Pago em dia" || t.etapa?.trim() === "Pago em atraso")
+        ),
+      },
+      {
         id: "cedrus-negociado-status-diferente",
         label: 'Status Cedrus iniciando com "N" + Status título não começando com "N"',
         description: "Título negociado no Cedrus mas com status diferente de negociado no sistema",
