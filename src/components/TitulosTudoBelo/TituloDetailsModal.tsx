@@ -219,7 +219,9 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
   const inserirCedrusMutation = useInserirCedrusWebhook();
   const [isEnviandoEmail, setIsEnviandoEmail] = useState(false);
   const [marcarPagoOpen, setMarcarPagoOpen] = useState(false);
+  const [cancelarCedrusOpen, setCancelarCedrusOpen] = useState(false);
   const [isMarcandoPago, setIsMarcandoPago] = useState(false);
+  const [isCancelandoCedrus, setIsCancelandoCedrus] = useState(false);
 
   const handleMarcarPagoCedrus = async (valorPagoApurado?: number, dataPagamento?: string) => {
     if (!titulo) return;
