@@ -750,13 +750,31 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                     </div>
                     <div className="space-y-2">
                       <span className="text-xs text-muted-foreground font-medium">Status Cedrus</span>
-                      {titulo.status_cedrus ? (
-                        <div className={`inline-flex items-center px-3 py-1.5 rounded-md border text-sm font-medium ${getStatusCedrusStyle(titulo.status_cedrus).bg} ${getStatusCedrusStyle(titulo.status_cedrus).text} ${getStatusCedrusStyle(titulo.status_cedrus).border}`}>
-                          {STATUS_CEDRUS_OPTIONS.find(o => o.value === titulo.status_cedrus)?.label || titulo.status_cedrus}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {titulo.status_cedrus ? (
+                          <div className={`inline-flex items-center px-3 py-1.5 rounded-md border text-sm font-medium ${getStatusCedrusStyle(titulo.status_cedrus).bg} ${getStatusCedrusStyle(titulo.status_cedrus).text} ${getStatusCedrusStyle(titulo.status_cedrus).border}`}>
+                            {STATUS_CEDRUS_OPTIONS.find(o => o.value === titulo.status_cedrus)?.label || titulo.status_cedrus}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                        {titulo.inserido_cedrus && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 h-8"
+                            disabled={isMarcandoPago}
+                            onClick={() => setMarcarPagoOpen(true)}
+                          >
+                            {isMarcandoPago ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            )}
+                            Marcar como Pago no Cedrus
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <span className="text-xs text-muted-foreground font-medium">Etapa</span>
