@@ -9,6 +9,7 @@ import {
   FlaskConical,
   FileUp,
   DollarSign,
+  CheckCircle2,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
@@ -34,6 +35,7 @@ const navigationItems = [
   { title: "Negativados Tudo Belo", url: "/gestao-negativados-tudobelo", icon: AlertTriangle },
   { title: "Envio Títulos - Oficial", url: "/upload-arquivos-oficial", icon: FileUp },
   { title: "Atualização Pagos", url: "/upload-pagos-oficial", icon: DollarSign },
+  { title: "Títulos Pagos Tudo Belo", url: "/titulos-pagos-tudobelo", icon: CheckCircle2 },
   { title: "Envio Títulos - Testes", url: "/upload-arquivos", icon: Upload },
   { title: "Títulos Testes", url: "/gestao-titulos-testes", icon: FlaskConical },
   { title: "Checagem Inconsistências", url: "/checagem-inconsistencias", icon: AlertTriangle },
