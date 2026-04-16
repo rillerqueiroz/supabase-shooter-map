@@ -1322,6 +1322,21 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
         onConfirm={handleMarcarPagoCedrus}
         isLoading={isMarcandoPago}
       />
+      <CedrusConfirmDialog
+        open={cancelarCedrusOpen}
+        onOpenChange={setCancelarCedrusOpen}
+        actionType="cancelar"
+        documentoTitulo={titulo.documento ?? null}
+        tituloInfo={{
+          documento: titulo.documento,
+          nome_parceiro: titulo.nome_parceiro,
+          valor_parcela: titulo.valor_parcela,
+          saldo_parcela: titulo.saldo_parcela,
+          data_vencimento: titulo.data_vencimento,
+        }}
+        onConfirm={handleCancelarCedrus}
+        isLoading={isCancelandoCedrus}
+      />
     </Dialog>
   );
 }
