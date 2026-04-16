@@ -38,10 +38,11 @@ import { useTitulosVinculados } from "@/hooks/useTitulosVinculados";
 import { useCreateLogAlteracao } from "@/hooks/useTitulosLogAlteracoes";
 import { useNegativarTitulo, useRemoverNegativacao } from "@/hooks/useNegativacoes";
 import { TituloHistoricoSection } from "./TituloHistoricoSection";
+import { CedrusConfirmDialog } from "./CedrusConfirmDialog";
 import { useState, useEffect, useRef } from "react";
 import { format, differenceInDays, addDays, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock } from "lucide-react";
+import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -217,6 +218,36 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
   const removerNegativacaoMutation = useRemoverNegativacao();
   const inserirCedrusMutation = useInserirCedrusWebhook();
   const [isEnviandoEmail, setIsEnviandoEmail] = useState(false);
+  const [marcarPagoOpen, setMarcarPagoOpen] = useState(false);
+  const [isMarcandoPago, setIsMarcandoPago] = useState(false);
+
+  const handleMarcarPagoCedrus = async (valorPagoApurado?: number, dataPagamento?: string) => {
+    if (!titulo) return;
+    setIsMarcandoPago(true);
+    try {
+      const payload = {
+        ...titulo,
+        valor_pago_apurado: valorPagoApurado,
+        data_pagamento_manual: dataPagamento,
+      };
+      const response = await fetch(
+        'https://projeton8n-n8n.pjq1cs.easypanel.host/webhook/marcar-titulo-como-pago-tudobelo',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!response.ok) throw new Error('Falha ao marcar como pago');
+      toast.success(`Título ${titulo.documento ?? ''} marcado como pago no Cedrus.`);
+      setMarcarPagoOpen(false);
+    } catch (error) {
+      console.error('Erro ao marcar como pago:', error);
+      toast.error('Erro ao marcar título como pago no Cedrus.');
+    } finally {
+      setIsMarcandoPago(false);
+    }
+  };
 
   const handleEnviarEmail = async () => {
     if (!titulo) return;
@@ -1031,8 +1062,8 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                         value={titulo.processado_internamente ? "✓ Sim" : "✗ Não"} 
                       />
                     </div>
-                    {!titulo.inserido_cedrus && (
-                      <div className="mt-4 pt-4 border-t">
+                    <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
+                      {!titulo.inserido_cedrus && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -1047,8 +1078,24 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                           )}
                           Inserir no Cedrus
                         </Button>
-                      </div>
-                    )}
+                      )}
+                      {titulo.inserido_cedrus && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          disabled={isMarcandoPago}
+                          onClick={() => setMarcarPagoOpen(true)}
+                        >
+                          {isMarcandoPago ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                          Marcar como Pago no Cedrus
+                        </Button>
+                      )}
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -1217,6 +1264,21 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
           </TabsContent>
         </Tabs>
       </DialogContent>
+      <CedrusConfirmDialog
+        open={marcarPagoOpen}
+        onOpenChange={setMarcarPagoOpen}
+        actionType="marcar_pago"
+        documentoTitulo={titulo.documento ?? null}
+        tituloInfo={{
+          documento: titulo.documento,
+          nome_parceiro: titulo.nome_parceiro,
+          valor_parcela: titulo.valor_parcela,
+          saldo_parcela: titulo.saldo_parcela,
+          data_vencimento: titulo.data_vencimento,
+        }}
+        onConfirm={handleMarcarPagoCedrus}
+        isLoading={isMarcandoPago}
+      />
     </Dialog>
   );
 }
