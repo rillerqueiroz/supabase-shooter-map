@@ -251,6 +251,29 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
     }
   };
 
+  const handleCancelarCedrus = async () => {
+    if (!titulo) return;
+    setIsCancelandoCedrus(true);
+    try {
+      const response = await fetch(
+        'https://projeton8n-n8n.pjq1cs.easypanel.host/webhook/cancelar-titulo-cedrus-tudobelo',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(titulo),
+        }
+      );
+      if (!response.ok) throw new Error('Falha ao cancelar no Cedrus');
+      toast.success(`Título ${titulo.documento ?? ''} cancelado no Cedrus.`);
+      setCancelarCedrusOpen(false);
+    } catch (error) {
+      console.error('Erro ao cancelar no Cedrus:', error);
+      toast.error('Erro ao cancelar título no Cedrus.');
+    } finally {
+      setIsCancelandoCedrus(false);
+    }
+  };
+
   const handleEnviarEmail = async () => {
     if (!titulo) return;
     setIsEnviandoEmail(true);
