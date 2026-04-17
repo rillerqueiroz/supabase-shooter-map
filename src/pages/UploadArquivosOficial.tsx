@@ -514,18 +514,34 @@ export default function UploadArquivosOficial() {
       }
 
       // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
+      // Filtro: usa .or() com vários neq para lidar corretamente com valores que contêm espaços
+      const statusExcluidos = ["Pago", "Pago em dia", "Pago via renegociação", "Cancelado", "Suspenso", "Não se aplica"];
       const { data: allDbIds } = await supabase
         .from("base_tudobelo_intermediaria")
-        .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
-        .not("status_titulo", "in", '("Pago","Pago em dia","Pago via renegociação","Cancelado","Suspenso","Não se aplica")');
+        .select("id, documento, numero_parcela, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
+        .or(`status_titulo.is.null,${statusExcluidos.map(s => `status_titulo.not.eq."${s}"`).join(",")}`);
 
       const somenteBancoIds: string[] = [];
       const somenteBancoRecords: Record<string, any>[] = [];
+      const somenteBancoEtapaIgnorar: SomenteBancoEtapaIgnorarItem[] = [];
       if (allDbIds) {
         for (const dbRow of allDbIds) {
           if (!allSpreadsheetIds.has(dbRow.id)) {
-            // Ignorar títulos cuja etapa está marcada como ignorar
-            if (dbRow.etapa && etapasIgnorar.has(dbRow.etapa)) continue;
+            // Coletar separadamente títulos cuja etapa está marcada como ignorar — exigem decisão manual
+            if (dbRow.etapa && etapasIgnorar.has(dbRow.etapa)) {
+              somenteBancoEtapaIgnorar.push({
+                id: dbRow.id,
+                documento: dbRow.documento ?? null,
+                parcela: dbRow.numero_parcela ?? null,
+                etapa: dbRow.etapa,
+                nome_parceiro: dbRow.nome_parceiro ?? null,
+                saldo_parcela: dbRow.saldo_parcela ?? null,
+                data_vencimento: dbRow.data_vencimento ?? null,
+                forma_pagamento: dbRow.forma_pagamento ?? null,
+                status_titulo: dbRow.status_titulo ?? null,
+              });
+              continue;
+            }
             somenteBancoIds.push(dbRow.id);
             if (somenteBancoRecords.length < 100) somenteBancoRecords.push(dbRow);
           }
@@ -573,8 +589,9 @@ export default function UploadArquivosOficial() {
         bloqueadoCount,
         bloqueadoIds,
         somenteBancoCount: somenteBancoIds.length,
-        somenteBancoIds: somenteBancoIds.slice(0, 100),
+        somenteBancoIds: somenteBancoIds,
         somenteBancoRecords: somenteBancoRecords,
+        somenteBancoEtapaIgnorar,
         novosTitulosCount: novosTitulosCount,
         novosTitulosRecords: novosTitulosRecords,
       };
