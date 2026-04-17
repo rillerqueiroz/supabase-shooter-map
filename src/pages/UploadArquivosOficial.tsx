@@ -984,7 +984,7 @@ export default function UploadArquivosOficial() {
 
       setUploadProgress(100);
       setUploadProgressLabel("Concluído!");
-      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors });
+      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors, totalEtapaIgnorarMarcadosPago, totalEtapaIgnorarIgnorados });
 
       // Enviar planilhas (original + processada) para o webhook
       try {
