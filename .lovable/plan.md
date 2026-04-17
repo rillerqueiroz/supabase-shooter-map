@@ -1,54 +1,42 @@
 
-## Plano — Confirmação individual para títulos com etapa "ignorar"
+## Problema identificado
 
-### Objetivo
-Quando o upload identifica que um título "somente no banco" (candidato a Pago) está em uma etapa marcada como `ignorar=true`, o sistema deve **perguntar individualmente** ao usuário, durante a etapa de confirmação, o que fazer com cada um.
+Na tela `/upload-arquivos-oficial`, a query que busca títulos do banco para comparar com a planilha (linhas 528–531 de `src/pages/UploadArquivosOficial.tsx`) **não usa paginação/batching**. O Supabase aplica um limite padrão (1000 linhas), então qualquer título além desse limite é silenciosamente descartado e nunca aparece na seção "Somente banco". É por isso que 201810-5 e 202183-5 não estão sendo identificados, mesmo tendo etapa "Títulos a vencer" e status "A vencer".
 
-### Mudanças em `src/pages/UploadArquivosOficial.tsx`
+Além disso, o filtro `.or()` com vários `status_titulo.not.eq.` é logicamente inerte (qualquer valor satisfaz pelo menos um `not.eq`), ou seja, não filtra nada hoje. Trocaremos por algo que realmente exclua os finalizados, conforme você pediu.
 
-**1. Coletar (não pular) títulos em etapa-ignorar na análise**
-- Hoje (linha ~515): `if (etapasIgnorar.has(dbRow.etapa)) continue;` — descarta silenciosamente.
-- Novo: separar em duas listas dentro de `etapaBloqueadoValidation`:
-  - `somenteBancoIds` — títulos limpos, vão direto para Pago.
-  - `somenteBancoEtapaIgnorar` — array de `{ id, documento, parcela, etapa, valor, vencimento }` que precisam de decisão manual.
-- Remover também o `.slice(0, 100)` em `somenteBancoIds` (bug já identificado).
+## O que vou alterar
 
-**2. Novo modal de decisão individual (antes do upload final)**
-- Componente inline ou novo arquivo `EtapaIgnorarDecisionModal.tsx`.
-- Abre automaticamente quando `somenteBancoEtapaIgnorar.length > 0` ao clicar em "Processar".
-- Para cada título, exibe um card com:
-  - Texto: *"Esse título será marcado como pago, mas está na etapa **{etapa}**. O que você deseja fazer?"*
-  - Dados de contexto: `Documento-Parcela`, valor, vencimento.
-  - Dois botões/radio: **Ignorar** (mantém como está) | **Marcar como Pago**.
-- Botões globais no rodapé: "Ignorar todos", "Marcar todos como pago" (atalho), "Confirmar e processar".
-- O botão "Confirmar e processar" só habilita quando todas as decisões foram tomadas.
+Arquivo único: `src/pages/UploadArquivosOficial.tsx` (função `handleAnalyze`, em torno das linhas 525–567).
 
-**3. Ajuste no `handleUpload`**
-- Receber as decisões do modal e mesclar os IDs marcados como "Pago" em `somenteBancoIds` antes de executar o UPDATE em massa.
-- Os "Ignorar" não entram no UPDATE.
-- Adicionar contadores no `uploadResult`:
-  - `totalEtapaIgnorarMarcadosPago`
-  - `totalEtapaIgnorarIgnorados`
+1. **Substituir a query única por busca paginada** usando o helper já existente `fetchAllSupabaseRows` (de `src/lib/supabaseBatch.ts`, lotes de 500), garantindo que todos os títulos sejam carregados, sem teto de 1000.
 
-**4. Card de pré-análise**
-- No card "Somente no Banco" mostrar dois números:
-  - *X títulos serão marcados como Pago automaticamente*
-  - *Y títulos requerem sua decisão (etapa ignorada)*
+2. **Corrigir o filtro de status finalizados** trocando o `.or()` quebrado por:
+   - `.not('status_titulo', 'in', '("Pago","Pago em dia","Pago via renegociação","Negociado","Cancelado","Suspenso","Não se aplica")')`
+   - Inclui "Negociado" para alinhar com `statusFinalizado` já usado na lógica.
+   - Títulos com `status_titulo = null` continuam sendo retornados (NOT IN ignora nulls — mantemos esse comportamento, que é o desejado).
 
-### Bugs adjacentes corrigidos junto
-- Remover `.slice(0, 100)` de `somenteBancoIds` (linha 563).
-- Corrigir sintaxe `.not("status_titulo", "in", ...)` para formato PostgREST válido.
+3. **Manter a lógica subsequente intacta**: split entre `somenteBancoIds`, `somenteBancoEtapaIgnorar` e títulos silenciosamente pulados continua funcionando como hoje, só que agora sobre o conjunto completo.
 
-### Fluxo final
-````text
-Análise → [card mostra X auto + Y manual]
-   ↓ clica Processar
-[se Y > 0] Modal individual → decisões
-   ↓ Confirmar
-UPDATE em massa (X + escolhidos) → Webhook → Resultado
-````
+## Resultado esperado
 
-### Arquivos
-- `src/pages/UploadArquivosOficial.tsx` (modificado — análise, modal embutido, upload)
+Após a mudança, ao rodar a análise da planilha, títulos como 201810-5 e 202183-5 (etapa normal, status "A vencer") aparecerão corretamente na seção "Somente banco" para serem marcados como Pago automaticamente.
 
-Sem novas migrations, sem novas dependências.
+## Detalhes técnicos
+
+```ts
+import { fetchAllSupabaseRows } from "@/lib/supabaseBatch";
+
+const statusFinalizadosFiltro = ["Pago","Pago em dia","Pago via renegociação","Negociado","Cancelado","Suspenso","Não se aplica"];
+const inList = `(${statusFinalizadosFiltro.map(s => `"${s}"`).join(",")})`;
+
+const allDbIds = await fetchAllSupabaseRows<any>(async (from, to) => {
+  return await supabase
+    .from("base_tudobelo_intermediaria")
+    .select("id, documento, numero_parcela, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
+    .not("status_titulo", "in", inList)
+    .range(from, to);
+}, 500);
+```
+
+O loop existente `for (const dbRow of allDbIds)` continua sem mudanças.
