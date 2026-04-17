@@ -225,6 +225,18 @@ interface StatusTituloComparison {
   details: { from: string; to: string; count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }[];
 }
 
+interface SomenteBancoEtapaIgnorarItem {
+  id: string;
+  documento: string | null;
+  parcela: string | null;
+  etapa: string;
+  nome_parceiro: string | null;
+  saldo_parcela: number | null;
+  data_vencimento: string | null;
+  forma_pagamento: string | null;
+  status_titulo: string | null;
+}
+
 interface EtapaBloqueadoValidation {
   etapaIgnoradaCount: number;
   etapaIgnoradaDetails: { etapa: string; count: number; ids: string[] }[];
@@ -233,6 +245,7 @@ interface EtapaBloqueadoValidation {
   somenteBancoCount: number;
   somenteBancoIds: string[];
   somenteBancoRecords: Record<string, any>[];
+  somenteBancoEtapaIgnorar: SomenteBancoEtapaIgnorarItem[];
   novosTitulosCount: number;
   novosTitulosRecords: Record<string, any>[];
 }
