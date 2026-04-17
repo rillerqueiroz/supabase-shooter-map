@@ -531,6 +531,12 @@ export default function UploadPagosOficial() {
     if (totalSuccess > 0) {
       toast.success(`${totalSuccess} título(s) processado(s) com sucesso!`);
     }
+    if (skippedDesconsiderar > 0) {
+      toast.warning(`${skippedDesconsiderar} título(s) ignorado(s) (etapa "Desconsiderar").`);
+    }
+    if (skippedBloqueado > 0) {
+      toast.warning(`${skippedBloqueado} título(s) ignorado(s) (bloqueado).`);
+    }
   };
 
   const formatCurrency = (v: number | null) => v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-";
