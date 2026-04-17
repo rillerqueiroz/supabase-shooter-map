@@ -5,6 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useTitulosInsercoes } from "@/hooks/useTitulosInsercoes";
 import { Upload, FileSpreadsheet, ExternalLink, Clock, FileText, ShieldCheck, CheckCircle2, AlertCircle, XCircle, ArrowLeft, Send, ChevronDown, ChevronRight, Plus, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -225,6 +228,18 @@ interface StatusTituloComparison {
   details: { from: string; to: string; count: number; records: { id: string; db: Record<string, any>; calc: Record<string, any> }[] }[];
 }
 
+interface SomenteBancoEtapaIgnorarItem {
+  id: string;
+  documento: string | null;
+  parcela: string | null;
+  etapa: string;
+  nome_parceiro: string | null;
+  saldo_parcela: number | null;
+  data_vencimento: string | null;
+  forma_pagamento: string | null;
+  status_titulo: string | null;
+}
+
 interface EtapaBloqueadoValidation {
   etapaIgnoradaCount: number;
   etapaIgnoradaDetails: { etapa: string; count: number; ids: string[] }[];
@@ -233,6 +248,7 @@ interface EtapaBloqueadoValidation {
   somenteBancoCount: number;
   somenteBancoIds: string[];
   somenteBancoRecords: Record<string, any>[];
+  somenteBancoEtapaIgnorar: SomenteBancoEtapaIgnorarItem[];
   novosTitulosCount: number;
   novosTitulosRecords: Record<string, any>[];
 }
@@ -409,7 +425,11 @@ interface UploadResult {
   totalUpdated: number;
   totalMarkedPago: number;
   totalErrors: number;
+  totalEtapaIgnorarMarcadosPago?: number;
+  totalEtapaIgnorarIgnorados?: number;
 }
+
+type EtapaIgnorarDecision = "pago" | "ignorar";
 
 export default function UploadArquivosOficial() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -422,6 +442,8 @@ export default function UploadArquivosOficial() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadProgressLabel, setUploadProgressLabel] = useState("");
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false);
+  const [etapaIgnorarDecisions, setEtapaIgnorarDecisions] = useState<Record<string, EtapaIgnorarDecision>>({});
   const { data: insercoes, isLoading } = useTitulosInsercoes();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -501,18 +523,34 @@ export default function UploadArquivosOficial() {
       }
 
       // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
+      // Filtro: usa .or() com vários neq para lidar corretamente com valores que contêm espaços
+      const statusExcluidos = ["Pago", "Pago em dia", "Pago via renegociação", "Cancelado", "Suspenso", "Não se aplica"];
       const { data: allDbIds } = await supabase
         .from("base_tudobelo_intermediaria")
-        .select("id, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
-        .not("status_titulo", "in", '("Pago","Pago em dia","Pago via renegociação","Cancelado","Suspenso","Não se aplica")');
+        .select("id, documento, numero_parcela, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
+        .or(`status_titulo.is.null,${statusExcluidos.map(s => `status_titulo.not.eq."${s}"`).join(",")}`);
 
       const somenteBancoIds: string[] = [];
       const somenteBancoRecords: Record<string, any>[] = [];
+      const somenteBancoEtapaIgnorar: SomenteBancoEtapaIgnorarItem[] = [];
       if (allDbIds) {
         for (const dbRow of allDbIds) {
           if (!allSpreadsheetIds.has(dbRow.id)) {
-            // Ignorar títulos cuja etapa está marcada como ignorar
-            if (dbRow.etapa && etapasIgnorar.has(dbRow.etapa)) continue;
+            // Coletar separadamente títulos cuja etapa está marcada como ignorar — exigem decisão manual
+            if (dbRow.etapa && etapasIgnorar.has(dbRow.etapa)) {
+              somenteBancoEtapaIgnorar.push({
+                id: dbRow.id,
+                documento: dbRow.documento ?? null,
+                parcela: dbRow.numero_parcela ?? null,
+                etapa: dbRow.etapa,
+                nome_parceiro: dbRow.nome_parceiro ?? null,
+                saldo_parcela: dbRow.saldo_parcela ?? null,
+                data_vencimento: dbRow.data_vencimento ?? null,
+                forma_pagamento: dbRow.forma_pagamento ?? null,
+                status_titulo: dbRow.status_titulo ?? null,
+              });
+              continue;
+            }
             somenteBancoIds.push(dbRow.id);
             if (somenteBancoRecords.length < 100) somenteBancoRecords.push(dbRow);
           }
@@ -560,8 +598,9 @@ export default function UploadArquivosOficial() {
         bloqueadoCount,
         bloqueadoIds,
         somenteBancoCount: somenteBancoIds.length,
-        somenteBancoIds: somenteBancoIds.slice(0, 100),
+        somenteBancoIds: somenteBancoIds,
         somenteBancoRecords: somenteBancoRecords,
+        somenteBancoEtapaIgnorar,
         novosTitulosCount: novosTitulosCount,
         novosTitulosRecords: novosTitulosRecords,
       };
@@ -632,7 +671,31 @@ export default function UploadArquivosOficial() {
     }
   };
 
-  const handleUpload = async () => {
+  // Disparado pelo botão "Processar". Se houver títulos com etapa ignorar
+  // entre os "somente no banco", abre primeiro o modal de decisão individual.
+  const handleProcessClick = () => {
+    if (!analysis) return;
+    const pendentes = analysis.etapaBloqueadoValidation?.somenteBancoEtapaIgnorar || [];
+    if (pendentes.length > 0) {
+      // Inicializa decisões em branco
+      const init: Record<string, EtapaIgnorarDecision> = {};
+      // Mantém decisões já tomadas se o usuário reabrir
+      for (const item of pendentes) {
+        if (etapaIgnorarDecisions[item.id]) init[item.id] = etapaIgnorarDecisions[item.id];
+      }
+      setEtapaIgnorarDecisions(init);
+      setDecisionModalOpen(true);
+      return;
+    }
+    handleUpload({});
+  };
+
+  const handleConfirmDecisions = () => {
+    setDecisionModalOpen(false);
+    handleUpload(etapaIgnorarDecisions);
+  };
+
+  const handleUpload = async (decisions: Record<string, EtapaIgnorarDecision> = {}) => {
     if (!analysis) return;
     setUploading(true);
     setUploadProgress(0);
@@ -643,6 +706,8 @@ export default function UploadArquivosOficial() {
     let totalUpdated = 0;
     let totalMarkedPago = 0;
     let totalErrors = 0;
+    let totalEtapaIgnorarMarcadosPago = 0;
+    let totalEtapaIgnorarIgnorados = 0;
 
     try {
       const batchSize = 500;
@@ -677,7 +742,28 @@ export default function UploadArquivosOficial() {
       };
       const newRecords = dedup(analysis.records.filter(r => !existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id)));
       const updateRecords = dedup(analysis.records.filter(r => existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id)));
-      const somenteBancoIds = analysis.etapaBloqueadoValidation?.somenteBancoIds || [];
+
+      // Mesclar IDs aprovados via decisão manual no array de somenteBancoIds
+      const baseSomenteBancoIds = analysis.etapaBloqueadoValidation?.somenteBancoIds || [];
+      const etapaIgnorarItems = analysis.etapaBloqueadoValidation?.somenteBancoEtapaIgnorar || [];
+      const aprovadosManualmente: string[] = [];
+      for (const item of etapaIgnorarItems) {
+        if (decisions[item.id] === "pago") {
+          aprovadosManualmente.push(item.id);
+          totalEtapaIgnorarMarcadosPago++;
+        } else {
+          totalEtapaIgnorarIgnorados++;
+          resultRecords.push({
+            id: item.id,
+            nome_parceiro: item.nome_parceiro || "-",
+            forma_pagamento: item.forma_pagamento || "-",
+            acao: "Ignorado (etapa)",
+            status: "Sucesso",
+          });
+        }
+      }
+      const somenteBancoIds = Array.from(new Set([...baseSomenteBancoIds, ...aprovadosManualmente]));
+
 
       const totalOperations = newRecords.length + updateRecords.length + somenteBancoIds.length;
       let completedOperations = 0;
@@ -898,7 +984,7 @@ export default function UploadArquivosOficial() {
 
       setUploadProgress(100);
       setUploadProgressLabel("Concluído!");
-      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors });
+      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors, totalEtapaIgnorarMarcadosPago, totalEtapaIgnorarIgnorados });
 
       // Enviar planilhas (original + processada) para o webhook
       try {
@@ -938,7 +1024,7 @@ export default function UploadArquivosOficial() {
     } catch (err: any) {
       console.error("Erro no upload:", err);
       toast.error(`Erro ao enviar dados: ${err.message}`);
-      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors: totalErrors + 1 });
+      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors: totalErrors + 1, totalEtapaIgnorarMarcadosPago, totalEtapaIgnorarIgnorados });
     } finally {
       setUploading(false);
     }
@@ -1440,7 +1526,7 @@ export default function UploadArquivosOficial() {
                 </div>
               )}
               {/* Somente banco - títulos ausentes na planilha */}
-              {analysis.etapaBloqueadoValidation?.somenteBancoCount > 0 && (
+              {(analysis.etapaBloqueadoValidation && (analysis.etapaBloqueadoValidation.somenteBancoCount > 0 || (analysis.etapaBloqueadoValidation.somenteBancoEtapaIgnorar?.length ?? 0) > 0)) && (
                 <Collapsible>
                   <div className="flex items-center justify-between border rounded-md p-3 bg-amber-50/50 mt-3">
                     <div className="flex items-center gap-3">
@@ -1448,7 +1534,12 @@ export default function UploadArquivosOficial() {
                         Somente no banco
                       </Badge>
                       <span className="text-sm font-medium text-muted-foreground">
-                        {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago"
+                        {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago" automaticamente
+                        {(analysis.etapaBloqueadoValidation.somenteBancoEtapaIgnorar?.length ?? 0) > 0 && (
+                          <span className="ml-1 text-amber-700">
+                            {" "}+ {analysis.etapaBloqueadoValidation.somenteBancoEtapaIgnorar.length} requer(em) sua decisão (etapa ignorada)
+                          </span>
+                        )}
                       </span>
                     </div>
                     <CollapsibleTrigger asChild>
@@ -1668,7 +1759,7 @@ export default function UploadArquivosOficial() {
             </Button>
             <Button
               size="sm"
-              onClick={handleUpload}
+              onClick={handleProcessClick}
               disabled={uploading || hasBlockingIssues}
             >
               <Send className="h-4 w-4 mr-1" />
@@ -1683,6 +1774,107 @@ export default function UploadArquivosOficial() {
           onOpenChange={setDetailsOpen}
           onTituloUpdated={(updated) => setSelectedTitulo(updated)}
         />
+
+        {/* Modal de decisão individual para títulos com etapa ignorar */}
+        <Dialog open={decisionModalOpen} onOpenChange={setDecisionModalOpen}>
+          <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Decisão necessária — títulos em etapa ignorada</DialogTitle>
+              <DialogDescription>
+                Os títulos abaixo seriam marcados como Pago, mas estão em etapas configuradas para serem ignoradas. Decida individualmente o que fazer com cada um.
+              </DialogDescription>
+            </DialogHeader>
+
+            {(() => {
+              const items = analysis?.etapaBloqueadoValidation?.somenteBancoEtapaIgnorar || [];
+              const allDecided = items.length > 0 && items.every(i => !!etapaIgnorarDecisions[i.id]);
+              const decidedCount = items.filter(i => !!etapaIgnorarDecisions[i.id]).length;
+              return (
+                <>
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b">
+                    <span className="text-xs text-muted-foreground">
+                      {decidedCount}/{items.length} decididos
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const next: Record<string, EtapaIgnorarDecision> = {};
+                          items.forEach(i => { next[i.id] = "ignorar"; });
+                          setEtapaIgnorarDecisions(next);
+                        }}
+                      >
+                        Ignorar todos
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const next: Record<string, EtapaIgnorarDecision> = {};
+                          items.forEach(i => { next[i.id] = "pago"; });
+                          setEtapaIgnorarDecisions(next);
+                        }}
+                      >
+                        Marcar todos como Pago
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1 py-2">
+                    {items.map((item) => {
+                      const decision = etapaIgnorarDecisions[item.id];
+                      return (
+                        <div
+                          key={item.id}
+                          className={`border rounded-md p-3 ${decision ? "bg-muted/30" : "bg-amber-50/50 border-amber-200"}`}
+                        >
+                          <p className="text-sm mb-2">
+                            Esse título será marcado como pago, mas está na etapa{" "}
+                            <span className="font-semibold">"{item.etapa}"</span>. O que você deseja fazer?
+                          </p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
+                            <span><b>ID:</b> {item.id}</span>
+                            {item.nome_parceiro && <span><b>Parceiro:</b> {item.nome_parceiro}</span>}
+                            {item.saldo_parcela != null && (
+                              <span><b>Valor:</b> {Number(item.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                            )}
+                            {item.data_vencimento && <span><b>Vencimento:</b> {item.data_vencimento}</span>}
+                          </div>
+                          <RadioGroup
+                            value={decision || ""}
+                            onValueChange={(v) =>
+                              setEtapaIgnorarDecisions((prev) => ({ ...prev, [item.id]: v as EtapaIgnorarDecision }))
+                            }
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="ignorar" id={`ignorar-${item.id}`} />
+                              <Label htmlFor={`ignorar-${item.id}`} className="text-sm cursor-pointer">Ignorar</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="pago" id={`pago-${item.id}`} />
+                              <Label htmlFor={`pago-${item.id}`} className="text-sm cursor-pointer">Marcar como Pago</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <DialogFooter className="border-t pt-3">
+                    <Button variant="outline" onClick={() => setDecisionModalOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleConfirmDecisions} disabled={!allDecided}>
+                      Confirmar e processar
+                    </Button>
+                  </DialogFooter>
+                </>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
