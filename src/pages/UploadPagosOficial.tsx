@@ -463,6 +463,23 @@ export default function UploadPagosOficial() {
       if (isCedrus && !isBoletoAcordo) {
         updates.etapa = "A faturar - Negociação realizada";
       }
+
+      // 1) Dispara webhook PRIMEIRO (marcar título como pago no Cedrus/Tudo Belo)
+      try {
+        const webhookPayload = {
+          ...db,
+          ...updates,
+          valor_pago_apurado_manualmente: pago.valor_pago,
+          data_pagamento_manual: pago.data_pagamento,
+        };
+        await supabase.functions.invoke('webhook-marcar-pago-cedrus', {
+          body: webhookPayload,
+        });
+      } catch (whErr) {
+        console.error('[webhook-marcar-pago-cedrus] Falha ao disparar:', whErr);
+      }
+
+      // 2) Em seguida, atualiza o banco
       const { error } = await supabase
         .from("base_tudobelo_intermediaria")
         .update(updates)
@@ -471,21 +488,6 @@ export default function UploadPagosOficial() {
       if (error) {
         toast.error(`Erro ao processar ${pago.id}: ${error.message}`);
       } else {
-        // Dispara webhook "marcar como pago no Cedrus" enviando o título completo
-        // + valor pago apurado manualmente vindo da planilha.
-        try {
-          const webhookPayload = {
-            ...db,
-            ...updates,
-            valor_pago_apurado_manualmente: pago.valor_pago,
-            data_pagamento_manual: pago.data_pagamento,
-          };
-          await supabase.functions.invoke('webhook-marcar-pago-cedrus', {
-            body: webhookPayload,
-          });
-        } catch (whErr) {
-          console.error('[webhook-marcar-pago-cedrus] Falha ao disparar:', whErr);
-        }
         setProcessedIds(prev => new Set([...prev, pago.id]));
       }
     }
