@@ -446,6 +446,7 @@ export default function UploadPagosOficial() {
 
   const handleProcessItems = async (items: { pago: PagoRecord; db: Record<string, any> }[]) => {
     const ids = items.map(i => i.pago.id);
+    let totalSuccess = 0;
     setProcessingIds(prev => new Set([...prev, ...ids]));
 
     for (const { pago, db } of items) {
@@ -460,26 +461,41 @@ export default function UploadPagosOficial() {
         processado_internamente: false,
         ultima_atualizacao: new Date().toISOString(),
       };
+
       if (isCedrus && !isBoletoAcordo) {
         updates.etapa = "A faturar - Negociação realizada";
       }
 
-      // 1) Dispara webhook PRIMEIRO (marcar título como pago no Cedrus/Tudo Belo)
+      const webhookPayload = {
+        ...db,
+        ...updates,
+        valor_pago_apurado_manualmente: pago.valor_pago,
+        data_pagamento_manual: pago.data_pagamento,
+      };
+
       try {
-        const webhookPayload = {
-          ...db,
-          ...updates,
-          valor_pago_apurado_manualmente: pago.valor_pago,
-          data_pagamento_manual: pago.data_pagamento,
-        };
-        await supabase.functions.invoke('webhook-marcar-pago-cedrus', {
-          body: webhookPayload,
+        const webhookResponse = await fetch("https://n8n.superavit.app.br/webhook/marcar-titulo-como-pago-tudobelo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(webhookPayload),
         });
+
+        if (webhookResponse.status !== 200) {
+          const errorText = await webhookResponse.text();
+          toast.error(`Webhook do título ${pago.id} retornou ${webhookResponse.status}. Banco não atualizado.`);
+          console.error("[marcar-titulo-como-pago-tudobelo] Resposta inválida:", {
+            id: pago.id,
+            status: webhookResponse.status,
+            body: errorText,
+          });
+          continue;
+        }
       } catch (whErr) {
-        console.error('[webhook-marcar-pago-cedrus] Falha ao disparar:', whErr);
+        console.error('[marcar-titulo-como-pago-tudobelo] Falha ao disparar:', whErr);
+        toast.error(`Erro ao enviar webhook do título ${pago.id}. Banco não atualizado.`);
+        continue;
       }
 
-      // 2) Em seguida, atualiza o banco
       const { error } = await supabase
         .from("base_tudobelo_intermediaria")
         .update(updates)
@@ -488,6 +504,7 @@ export default function UploadPagosOficial() {
       if (error) {
         toast.error(`Erro ao processar ${pago.id}: ${error.message}`);
       } else {
+        totalSuccess += 1;
         setProcessedIds(prev => new Set([...prev, pago.id]));
       }
     }
@@ -498,7 +515,9 @@ export default function UploadPagosOficial() {
       return next;
     });
 
-    toast.success(`${items.length} título(s) processado(s) com sucesso!`);
+    if (totalSuccess > 0) {
+      toast.success(`${totalSuccess} título(s) processado(s) com sucesso!`);
+    }
   };
 
   const formatCurrency = (v: number | null) => v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-";
