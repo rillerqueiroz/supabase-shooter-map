@@ -900,6 +900,41 @@ export default function UploadArquivosOficial() {
       setUploadProgressLabel("Concluído!");
       setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors });
 
+      // Enviar planilhas (original + processada) para o webhook
+      try {
+        setUploadProgressLabel("Enviando planilhas para o webhook...");
+        const processedWb = XLSX.utils.book_new();
+        const processedWs = XLSX.utils.json_to_sheet(analysis.records);
+        XLSX.utils.book_append_sheet(processedWb, processedWs, "Processada");
+        const processedBuffer = XLSX.write(processedWb, { type: "array", bookType: "xlsx" });
+        const processedBlob = new Blob([processedBuffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        const formData = new FormData();
+        if (selectedFile) formData.append("planilha_original", selectedFile, selectedFile.name);
+        const baseName = selectedFile?.name.replace(/\.[^.]+$/, "") || "planilha";
+        formData.append("planilha_processada", processedBlob, `${baseName}_processada.xlsx`);
+        formData.append("metadata", JSON.stringify({
+          totalInserted,
+          totalUpdated,
+          totalMarkedPago,
+          totalErrors,
+          totalRecords: analysis.records.length,
+          timestamp: new Date().toISOString(),
+        }));
+
+        const webhookRes = await fetch(
+          "https://n8n.superavit.app.br/webhook-test/salva-planilhas-pos-processamento",
+          { method: "POST", body: formData }
+        );
+        if (!webhookRes.ok) throw new Error(`Webhook retornou ${webhookRes.status}`);
+        toast.success("Planilhas enviadas para o webhook.");
+      } catch (whErr: any) {
+        console.error("Erro ao enviar webhook:", whErr);
+        toast.error(`Falha ao enviar planilhas para o webhook: ${whErr.message}`);
+      }
+
     } catch (err: any) {
       console.error("Erro no upload:", err);
       toast.error(`Erro ao enviar dados: ${err.message}`);
