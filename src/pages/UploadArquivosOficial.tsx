@@ -1534,7 +1534,12 @@ export default function UploadArquivosOficial() {
                         Somente no banco
                       </Badge>
                       <span className="text-sm font-medium text-muted-foreground">
-                        {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago"
+                        {analysis.etapaBloqueadoValidation.somenteBancoCount} título(s) ausentes na planilha → serão marcados como "Pago" automaticamente
+                        {(analysis.etapaBloqueadoValidation.somenteBancoEtapaIgnorar?.length ?? 0) > 0 && (
+                          <span className="ml-1 text-amber-700">
+                            {" "}+ {analysis.etapaBloqueadoValidation.somenteBancoEtapaIgnorar.length} requer(em) sua decisão (etapa ignorada)
+                          </span>
+                        )}
                       </span>
                     </div>
                     <CollapsibleTrigger asChild>
