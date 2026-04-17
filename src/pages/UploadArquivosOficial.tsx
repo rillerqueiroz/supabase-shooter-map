@@ -442,6 +442,8 @@ export default function UploadArquivosOficial() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadProgressLabel, setUploadProgressLabel] = useState("");
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false);
+  const [etapaIgnorarDecisions, setEtapaIgnorarDecisions] = useState<Record<string, EtapaIgnorarDecision>>({});
   const { data: insercoes, isLoading } = useTitulosInsercoes();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
