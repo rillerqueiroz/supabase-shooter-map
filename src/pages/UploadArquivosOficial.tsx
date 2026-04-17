@@ -15,6 +15,7 @@ import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/lib/supabase";
+import { fetchAllSupabaseRows } from "@/lib/supabaseBatch";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
@@ -523,12 +524,17 @@ export default function UploadArquivosOficial() {
       }
 
       // Fetch all DB records to find somente-banco (titles only in DB, not in spreadsheet)
-      // Filtro: usa .or() com vários neq para lidar corretamente com valores que contêm espaços
-      const statusExcluidos = ["Pago", "Pago em dia", "Pago via renegociação", "Cancelado", "Suspenso", "Não se aplica"];
-      const { data: allDbIds } = await supabase
-        .from("base_tudobelo_intermediaria")
-        .select("id, documento, numero_parcela, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
-        .or(`status_titulo.is.null,${statusExcluidos.map(s => `status_titulo.not.eq."${s}"`).join(",")}`);
+      // Usa paginação (fetchAllSupabaseRows) para superar o limite default de 1000 do Supabase
+      // e .not('status_titulo','in',...) para excluir corretamente os finalizados.
+      const statusExcluidos = ["Pago", "Pago em dia", "Pago via renegociação", "Negociado", "Cancelado", "Suspenso", "Não se aplica"];
+      const inListStatus = `(${statusExcluidos.map(s => `"${s}"`).join(",")})`;
+      const allDbIds = await fetchAllSupabaseRows<any>(async (from, to) => {
+        return await supabase
+          .from("base_tudobelo_intermediaria")
+          .select("id, documento, numero_parcela, nome_parceiro, status_titulo, etapa, bloqueado, forma_pagamento, data_vencimento, saldo_parcela, inserido_cedrus")
+          .not("status_titulo", "in", inListStatus)
+          .range(from, to);
+      }, 500);
 
       const somenteBancoIds: string[] = [];
       const somenteBancoRecords: Record<string, any>[] = [];
