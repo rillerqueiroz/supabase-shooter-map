@@ -449,7 +449,20 @@ export default function UploadPagosOficial() {
     let totalSuccess = 0;
     setProcessingIds(prev => new Set([...prev, ...ids]));
 
+    let skippedDesconsiderar = 0;
+    let skippedBloqueado = 0;
     for (const { pago, db } of items) {
+      const etapaAtual = String(db.etapa || "").trim();
+      if (etapaAtual === "Desconsiderar") {
+        skippedDesconsiderar += 1;
+        console.warn(`[processar] Título ${pago.id} ignorado: etapa "Desconsiderar"`);
+        continue;
+      }
+      if (db.bloqueado === true) {
+        skippedBloqueado += 1;
+        console.warn(`[processar] Título ${pago.id} ignorado: bloqueado`);
+        continue;
+      }
       const isCedrus = db.inserido_cedrus === true;
       const statusCedrusLetra = String(db.status_cedrus || "").trim().toUpperCase().charAt(0);
       const isNegociado = statusCedrusLetra === "N";
