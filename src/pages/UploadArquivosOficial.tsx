@@ -425,7 +425,11 @@ interface UploadResult {
   totalUpdated: number;
   totalMarkedPago: number;
   totalErrors: number;
+  totalEtapaIgnorarMarcadosPago?: number;
+  totalEtapaIgnorarIgnorados?: number;
 }
+
+type EtapaIgnorarDecision = "pago" | "ignorar";
 
 export default function UploadArquivosOficial() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
