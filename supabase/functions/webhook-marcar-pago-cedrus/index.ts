@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const WEBHOOK_URL = 'https://n8n.superavit.app.br/webhook/marcar-como-pago-cedrus';
+const WEBHOOK_URL = 'https://n8n.superavit.app.br/webhook/marcar-titulo-como-pago-tudobelo';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
