@@ -1754,7 +1754,7 @@ export default function UploadArquivosOficial() {
             </Button>
             <Button
               size="sm"
-              onClick={handleUpload}
+              onClick={handleProcessClick}
               disabled={uploading || hasBlockingIssues}
             >
               <Send className="h-4 w-4 mr-1" />
