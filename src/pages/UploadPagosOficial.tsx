@@ -112,6 +112,7 @@ interface PagosAnalysis {
   encontradosNoBanco: { pago: PagoRecord; db: Record<string, any> }[];
   naoEncontradosNoBanco: PagoRecord[];
   jaMaracadosPago: { pago: PagoRecord; db: Record<string, any> }[];
+  ignorados: { pago: PagoRecord; db: Record<string, any>; motivo: string }[];
   columns: string[];
   matchedColumns: string[];
   unmatchedColumns: string[];
@@ -253,12 +254,25 @@ export default function UploadPagosOficial() {
       const encontradosNoBanco: PagosAnalysis["encontradosNoBanco"] = [];
       const naoEncontradosNoBanco: PagoRecord[] = [];
       const jaMaracadosPago: PagosAnalysis["jaMaracadosPago"] = [];
+      const ignorados: PagosAnalysis["ignorados"] = [];
 
       for (const pago of uniqueRecords) {
         const db = dbRecordsMap.get(pago.id);
         if (!db) {
           naoEncontradosNoBanco.push(pago);
         } else {
+          const etapaAtual = String(db.etapa || "").trim();
+          const isDesconsiderar = etapaAtual === "Desconsiderar";
+          const isBloqueado = db.bloqueado === true;
+          if (isDesconsiderar || isBloqueado) {
+            const motivo = isDesconsiderar && isBloqueado
+              ? "Desconsiderar + Bloqueado"
+              : isDesconsiderar
+              ? "Etapa Desconsiderar"
+              : "Bloqueado";
+            ignorados.push({ pago, db, motivo });
+            continue;
+          }
           const statusPagos = ["Pago", "Pago em dia", "Pago via renegociação"];
           if (statusPagos.includes(db.status_titulo)) {
             jaMaracadosPago.push({ pago, db });
@@ -276,6 +290,7 @@ export default function UploadPagosOficial() {
         encontradosNoBanco,
         naoEncontradosNoBanco,
         jaMaracadosPago,
+        ignorados,
         columns: excelColumns,
         matchedColumns,
         unmatchedColumns,
@@ -353,8 +368,12 @@ export default function UploadPagosOficial() {
         }
       }
 
-      for (const { pago } of analysis.jaMaracadosPago) {
+      for (const { pago, db } of analysis.jaMaracadosPago) {
         resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: "Já marcado como Pago", status: "Sucesso" });
+      }
+
+      for (const { pago, motivo } of analysis.ignorados) {
+        resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: `Ignorado (${motivo})`, status: "Ignorado" });
       }
 
       for (const pago of analysis.naoEncontradosNoBanco) {
@@ -647,13 +666,14 @@ export default function UploadPagosOficial() {
             return letra !== "N" && String(db.etapa || "").trim() !== "Boletos de Acordo Superavit";
           });
           return (
-            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-8 gap-4">
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Linhas na Planilha</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{analysis.totalRows}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Válidos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{analysis.totalValidos}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">A Atualizar (Pago)</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-emerald-600">{pagos.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Boletos Acordo</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-purple-600">{boletosAcordo.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Negociados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-600">{negociados.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Já Pagos</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{analysis.jaMaracadosPago.length}</div></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Ignorados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-slate-600">{analysis.ignorados.length}</div></CardContent></Card>
               <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Não Encontrados</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{analysis.naoEncontradosNoBanco.length}</div></CardContent></Card>
             </div>
           );
