@@ -254,12 +254,25 @@ export default function UploadPagosOficial() {
       const encontradosNoBanco: PagosAnalysis["encontradosNoBanco"] = [];
       const naoEncontradosNoBanco: PagoRecord[] = [];
       const jaMaracadosPago: PagosAnalysis["jaMaracadosPago"] = [];
+      const ignorados: PagosAnalysis["ignorados"] = [];
 
       for (const pago of uniqueRecords) {
         const db = dbRecordsMap.get(pago.id);
         if (!db) {
           naoEncontradosNoBanco.push(pago);
         } else {
+          const etapaAtual = String(db.etapa || "").trim();
+          const isDesconsiderar = etapaAtual === "Desconsiderar";
+          const isBloqueado = db.bloqueado === true;
+          if (isDesconsiderar || isBloqueado) {
+            const motivo = isDesconsiderar && isBloqueado
+              ? "Desconsiderar + Bloqueado"
+              : isDesconsiderar
+              ? "Etapa Desconsiderar"
+              : "Bloqueado";
+            ignorados.push({ pago, db, motivo });
+            continue;
+          }
           const statusPagos = ["Pago", "Pago em dia", "Pago via renegociação"];
           if (statusPagos.includes(db.status_titulo)) {
             jaMaracadosPago.push({ pago, db });
@@ -277,6 +290,7 @@ export default function UploadPagosOficial() {
         encontradosNoBanco,
         naoEncontradosNoBanco,
         jaMaracadosPago,
+        ignorados,
         columns: excelColumns,
         matchedColumns,
         unmatchedColumns,
