@@ -1526,7 +1526,7 @@ export default function UploadArquivosOficial() {
                 </div>
               )}
               {/* Somente banco - títulos ausentes na planilha */}
-              {analysis.etapaBloqueadoValidation?.somenteBancoCount > 0 && (
+              {(analysis.etapaBloqueadoValidation && (analysis.etapaBloqueadoValidation.somenteBancoCount > 0 || (analysis.etapaBloqueadoValidation.somenteBancoEtapaIgnorar?.length ?? 0) > 0)) && (
                 <Collapsible>
                   <div className="flex items-center justify-between border rounded-md p-3 bg-amber-50/50 mt-3">
                     <div className="flex items-center gap-3">
