@@ -15,6 +15,7 @@ import logoSuperavit from "@/assets/logo-superavit.png";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/lib/supabase";
+import { fetchAllSupabaseRows } from "@/lib/supabaseBatch";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
