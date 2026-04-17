@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.webhook-cria-cobranca]
 verify_jwt = false
+
+[functions.webhook-marcar-pago-cedrus]
+verify_jwt = false
