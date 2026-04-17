@@ -349,6 +349,22 @@ export default function UploadPagosOficial() {
           } else {
             resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: acaoLabel, status: "Sucesso", alteracoes });
             totalUpdated++;
+
+            // Dispara webhook "marcar como pago no Cedrus" com o título completo
+            // + valor pago apurado manualmente vindo da planilha.
+            try {
+              const webhookPayload = {
+                ...db,
+                ...updates,
+                valor_pago_apurado_manualmente: pago.valor_pago,
+                data_pagamento_manual: pago.data_pagamento,
+              };
+              await supabase.functions.invoke('webhook-marcar-pago-cedrus', {
+                body: webhookPayload,
+              });
+            } catch (whErr) {
+              console.error('[webhook-marcar-pago-cedrus] Falha ao disparar:', whErr);
+            }
           }
         }
       }
