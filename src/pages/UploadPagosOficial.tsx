@@ -112,6 +112,7 @@ interface PagosAnalysis {
   encontradosNoBanco: { pago: PagoRecord; db: Record<string, any> }[];
   naoEncontradosNoBanco: PagoRecord[];
   jaMaracadosPago: { pago: PagoRecord; db: Record<string, any> }[];
+  ignorados: { pago: PagoRecord; db: Record<string, any>; motivo: string }[];
   columns: string[];
   matchedColumns: string[];
   unmatchedColumns: string[];
