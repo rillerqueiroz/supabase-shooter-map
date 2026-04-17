@@ -1774,6 +1774,107 @@ export default function UploadArquivosOficial() {
           onOpenChange={setDetailsOpen}
           onTituloUpdated={(updated) => setSelectedTitulo(updated)}
         />
+
+        {/* Modal de decisão individual para títulos com etapa ignorar */}
+        <Dialog open={decisionModalOpen} onOpenChange={setDecisionModalOpen}>
+          <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Decisão necessária — títulos em etapa ignorada</DialogTitle>
+              <DialogDescription>
+                Os títulos abaixo seriam marcados como Pago, mas estão em etapas configuradas para serem ignoradas. Decida individualmente o que fazer com cada um.
+              </DialogDescription>
+            </DialogHeader>
+
+            {(() => {
+              const items = analysis?.etapaBloqueadoValidation?.somenteBancoEtapaIgnorar || [];
+              const allDecided = items.length > 0 && items.every(i => !!etapaIgnorarDecisions[i.id]);
+              const decidedCount = items.filter(i => !!etapaIgnorarDecisions[i.id]).length;
+              return (
+                <>
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b">
+                    <span className="text-xs text-muted-foreground">
+                      {decidedCount}/{items.length} decididos
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const next: Record<string, EtapaIgnorarDecision> = {};
+                          items.forEach(i => { next[i.id] = "ignorar"; });
+                          setEtapaIgnorarDecisions(next);
+                        }}
+                      >
+                        Ignorar todos
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const next: Record<string, EtapaIgnorarDecision> = {};
+                          items.forEach(i => { next[i.id] = "pago"; });
+                          setEtapaIgnorarDecisions(next);
+                        }}
+                      >
+                        Marcar todos como Pago
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1 py-2">
+                    {items.map((item) => {
+                      const decision = etapaIgnorarDecisions[item.id];
+                      return (
+                        <div
+                          key={item.id}
+                          className={`border rounded-md p-3 ${decision ? "bg-muted/30" : "bg-amber-50/50 border-amber-200"}`}
+                        >
+                          <p className="text-sm mb-2">
+                            Esse título será marcado como pago, mas está na etapa{" "}
+                            <span className="font-semibold">"{item.etapa}"</span>. O que você deseja fazer?
+                          </p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
+                            <span><b>ID:</b> {item.id}</span>
+                            {item.nome_parceiro && <span><b>Parceiro:</b> {item.nome_parceiro}</span>}
+                            {item.saldo_parcela != null && (
+                              <span><b>Valor:</b> {Number(item.saldo_parcela).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                            )}
+                            {item.data_vencimento && <span><b>Vencimento:</b> {item.data_vencimento}</span>}
+                          </div>
+                          <RadioGroup
+                            value={decision || ""}
+                            onValueChange={(v) =>
+                              setEtapaIgnorarDecisions((prev) => ({ ...prev, [item.id]: v as EtapaIgnorarDecision }))
+                            }
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="ignorar" id={`ignorar-${item.id}`} />
+                              <Label htmlFor={`ignorar-${item.id}`} className="text-sm cursor-pointer">Ignorar</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="pago" id={`pago-${item.id}`} />
+                              <Label htmlFor={`pago-${item.id}`} className="text-sm cursor-pointer">Marcar como Pago</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <DialogFooter className="border-t pt-3">
+                    <Button variant="outline" onClick={() => setDecisionModalOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleConfirmDecisions} disabled={!allDecided}>
+                      Confirmar e processar
+                    </Button>
+                  </DialogFooter>
+                </>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
