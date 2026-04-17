@@ -536,8 +536,17 @@ export default function UploadArquivosOficial() {
       if (allDbIds) {
         for (const dbRow of allDbIds) {
           if (!allSpreadsheetIds.has(dbRow.id)) {
-            // Coletar separadamente títulos cuja etapa está marcada como ignorar — exigem decisão manual
+            // Coletar separadamente títulos cuja etapa está marcada como ignorar — exigem decisão manual.
+            // Exceção: se o status já é Pago / negociado / cancelado / suspenso, a regra não se aplica
+            // (não pergunta nem marca como pago — apenas ignora silenciosamente).
+            const statusFinalizado = new Set([
+              "Pago", "Pago em dia", "Pago em atraso", "Pago via renegociação",
+              "Negociado", "Cancelado", "Suspenso", "Não se aplica",
+            ]);
             if (dbRow.etapa && etapasIgnorar.has(dbRow.etapa)) {
+              if (dbRow.status_titulo && statusFinalizado.has(dbRow.status_titulo)) {
+                continue;
+              }
               somenteBancoEtapaIgnorar.push({
                 id: dbRow.id,
                 documento: dbRow.documento ?? null,
