@@ -368,8 +368,12 @@ export default function UploadPagosOficial() {
         }
       }
 
-      for (const { pago } of analysis.jaMaracadosPago) {
+      for (const { pago, db } of analysis.jaMaracadosPago) {
         resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: "Já marcado como Pago", status: "Sucesso" });
+      }
+
+      for (const { pago, motivo } of analysis.ignorados) {
+        resultRecords.push({ id: pago.id, nome: pago.nome_parceiro || "-", acao: `Ignorado (${motivo})`, status: "Ignorado" });
       }
 
       for (const pago of analysis.naoEncontradosNoBanco) {
