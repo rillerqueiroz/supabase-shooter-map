@@ -1024,7 +1024,7 @@ export default function UploadArquivosOficial() {
     } catch (err: any) {
       console.error("Erro no upload:", err);
       toast.error(`Erro ao enviar dados: ${err.message}`);
-      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors: totalErrors + 1 });
+      setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors: totalErrors + 1, totalEtapaIgnorarMarcadosPago, totalEtapaIgnorarIgnorados });
     } finally {
       setUploading(false);
     }
