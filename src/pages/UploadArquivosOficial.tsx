@@ -900,6 +900,41 @@ export default function UploadArquivosOficial() {
       setUploadProgressLabel("Concluído!");
       setUploadResult({ records: resultRecords, totalInserted, totalUpdated, totalMarkedPago, totalErrors });
 
+      // Enviar planilhas (original + processada) para o webhook
+      try {
+        setUploadProgressLabel("Enviando planilhas para o webhook...");
+        const processedWb = XLSX.utils.book_new();
+        const processedWs = XLSX.utils.json_to_sheet(analysis.records);
+        XLSX.utils.book_append_sheet(processedWb, processedWs, "Processada");
+        const processedBuffer = XLSX.write(processedWb, { type: "array", bookType: "xlsx" });
+        const processedBlob = new Blob([processedBuffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        const formData = new FormData();
+        if (selectedFile) formData.append("planilha_original", selectedFile, selectedFile.name);
+        const baseName = selectedFile?.name.replace(/\.[^.]+$/, "") || "planilha";
+        formData.append("planilha_processada", processedBlob, `${baseName}_processada.xlsx`);
+        formData.append("metadata", JSON.stringify({
+          totalInserted,
+          totalUpdated,
+          totalMarkedPago,
+          totalErrors,
+          totalRecords: analysis.records.length,
+          timestamp: new Date().toISOString(),
+        }));
+
+        const webhookRes = await fetch(
+          "https://n8n.superavit.app.br/webhook-test/salva-planilhas-pos-processamento",
+          { method: "POST", body: formData }
+        );
+        if (!webhookRes.ok) throw new Error(`Webhook retornou ${webhookRes.status}`);
+        toast.success("Planilhas enviadas para o webhook.");
+      } catch (whErr: any) {
+        console.error("Erro ao enviar webhook:", whErr);
+        toast.error(`Falha ao enviar planilhas para o webhook: ${whErr.message}`);
+      }
+
     } catch (err: any) {
       console.error("Erro no upload:", err);
       toast.error(`Erro ao enviar dados: ${err.message}`);
@@ -1576,113 +1611,6 @@ export default function UploadArquivosOficial() {
           </Card>
         )}
 
-        <Collapsible>
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">Mapeamento de Colunas</CardTitle>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-xs gap-1">
-                    <ChevronDown className="h-3.5 w-3.5" />
-                    Expandir
-                  </Button>
-                </CollapsibleTrigger>
-              </div>
-            </CardHeader>
-            <CollapsibleContent>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {analysis.matchedColumns.map(col => (
-                    <div key={col} className="flex items-center gap-1.5 text-sm">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                      <span className="truncate">{col}</span>
-                    </div>
-                  ))}
-                  {analysis.unmatchedColumns.map(col => (
-                    <div key={col} className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
-                      <span className="truncate line-through">{col}</span>
-                    </div>
-                  ))}
-                </div>
-                {analysis.missingExpected.length > 0 && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-muted-foreground mb-1">Colunas da tabela ausentes na planilha (serão preenchidas como null):</p>
-                    <p className="text-xs text-muted-foreground">{analysis.missingExpected.join(", ")}</p>
-                  </div>
-                )}
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-
-        {/* Estatísticas por campo */}
-        <Collapsible>
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">Preenchimento por Campo</CardTitle>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-xs gap-1">
-                    <ChevronDown className="h-3.5 w-3.5" />
-                    Expandir
-                  </Button>
-                </CollapsibleTrigger>
-              </div>
-            </CardHeader>
-            <CollapsibleContent>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Campo</TableHead>
-                        <TableHead className="text-center">Preenchidos</TableHead>
-                        <TableHead className="text-center">Vazios</TableHead>
-                        <TableHead className="text-center">Valores Únicos</TableHead>
-                        <TableHead className="text-center">Preenchimento</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {analysis.matchedColumns.map(col => {
-                        const stats = analysis.fieldStats[col];
-                        const pct = Math.round((stats.filled / analysis.totalRows) * 100);
-                        return (
-                          <TableRow key={col}>
-                            <TableCell className="text-sm font-medium">{col}</TableCell>
-                            <TableCell className="text-center text-sm">{stats.filled}</TableCell>
-                            <TableCell className="text-center text-sm">
-                              {stats.empty > 0 ? (
-                                <span className="text-amber-600">{stats.empty}</span>
-                              ) : (
-                                <span className="text-muted-foreground">0</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center text-sm">{stats.uniqueValues}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge
-                                variant="outline"
-                                className={`text-xs ${
-                                  pct === 100
-                                    ? "bg-green-50 text-green-700 border-green-200"
-                                    : pct >= 50
-                                    ? "bg-amber-50 text-amber-700 border-amber-200"
-                                    : "bg-red-50 text-red-700 border-red-200"
-                                }`}
-                              >
-                                {pct}%
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
 
         {/* Alertas */}
         {warnings.length > 0 && (
