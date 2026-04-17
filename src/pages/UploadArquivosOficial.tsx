@@ -671,7 +671,31 @@ export default function UploadArquivosOficial() {
     }
   };
 
-  const handleUpload = async () => {
+  // Disparado pelo botão "Processar". Se houver títulos com etapa ignorar
+  // entre os "somente no banco", abre primeiro o modal de decisão individual.
+  const handleProcessClick = () => {
+    if (!analysis) return;
+    const pendentes = analysis.etapaBloqueadoValidation?.somenteBancoEtapaIgnorar || [];
+    if (pendentes.length > 0) {
+      // Inicializa decisões em branco
+      const init: Record<string, EtapaIgnorarDecision> = {};
+      // Mantém decisões já tomadas se o usuário reabrir
+      for (const item of pendentes) {
+        if (etapaIgnorarDecisions[item.id]) init[item.id] = etapaIgnorarDecisions[item.id];
+      }
+      setEtapaIgnorarDecisions(init);
+      setDecisionModalOpen(true);
+      return;
+    }
+    handleUpload({});
+  };
+
+  const handleConfirmDecisions = () => {
+    setDecisionModalOpen(false);
+    handleUpload(etapaIgnorarDecisions);
+  };
+
+  const handleUpload = async (decisions: Record<string, EtapaIgnorarDecision> = {}) => {
     if (!analysis) return;
     setUploading(true);
     setUploadProgress(0);
@@ -682,6 +706,8 @@ export default function UploadArquivosOficial() {
     let totalUpdated = 0;
     let totalMarkedPago = 0;
     let totalErrors = 0;
+    let totalEtapaIgnorarMarcadosPago = 0;
+    let totalEtapaIgnorarIgnorados = 0;
 
     try {
       const batchSize = 500;
@@ -716,7 +742,28 @@ export default function UploadArquivosOficial() {
       };
       const newRecords = dedup(analysis.records.filter(r => !existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id)));
       const updateRecords = dedup(analysis.records.filter(r => existingIds.has(r.id) && !blockedByEtapaOrBloqueado.has(r.id)));
-      const somenteBancoIds = analysis.etapaBloqueadoValidation?.somenteBancoIds || [];
+
+      // Mesclar IDs aprovados via decisão manual no array de somenteBancoIds
+      const baseSomenteBancoIds = analysis.etapaBloqueadoValidation?.somenteBancoIds || [];
+      const etapaIgnorarItems = analysis.etapaBloqueadoValidation?.somenteBancoEtapaIgnorar || [];
+      const aprovadosManualmente: string[] = [];
+      for (const item of etapaIgnorarItems) {
+        if (decisions[item.id] === "pago") {
+          aprovadosManualmente.push(item.id);
+          totalEtapaIgnorarMarcadosPago++;
+        } else {
+          totalEtapaIgnorarIgnorados++;
+          resultRecords.push({
+            id: item.id,
+            nome_parceiro: item.nome_parceiro || "-",
+            forma_pagamento: item.forma_pagamento || "-",
+            acao: "Ignorado (etapa)",
+            status: "Sucesso",
+          });
+        }
+      }
+      const somenteBancoIds = Array.from(new Set([...baseSomenteBancoIds, ...aprovadosManualmente]));
+
 
       const totalOperations = newRecords.length + updateRecords.length + somenteBancoIds.length;
       let completedOperations = 0;
