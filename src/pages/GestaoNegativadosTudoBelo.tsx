@@ -187,6 +187,10 @@ export default function GestaoNegativadosTudoBelo() {
             <ShieldX className="h-4 w-4" />
             Títulos Negativados
           </TabsTrigger>
+          <TabsTrigger value="impedidos" className="flex items-center gap-2">
+            <ShieldOff className="h-4 w-4" />
+            Impedidos ({impedidosCompletos.length})
+          </TabsTrigger>
           <TabsTrigger value="remover" className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" />
             Remover Negativação
