@@ -20,11 +20,11 @@ import { MultiSelectFilter } from "@/components/Dashboard/MultiSelectFilter";
 import { DateFilterSelect } from "@/components/Filters/DateFilterSelect";
 import { TituloTudoBelo, TitulosFilters, useTitulosTudoBeloOptions } from "@/hooks/useTitulosTudoBelo";
 import { useTitulosEtapas } from "@/hooks/useTitulosEtapas";
-import { useNegativarTitulo } from "@/hooks/useNegativacoes";
+import { useNegativarTitulo, useMarcarImpedido, useRemoverImpedimento } from "@/hooks/useNegativacoes";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { usePagination } from "@/hooks/usePagination";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
-import { Search, ChevronUp, ChevronDown, Loader2, ShieldAlert, Filter, X, Clock } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, Loader2, ShieldAlert, ShieldOff, ShieldCheck, Filter, X, Clock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
