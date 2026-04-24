@@ -170,8 +170,26 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
     gotoPage, nextPage, previousPage, setPageSize, totalItems,
   } = usePagination<TituloTudoBelo>({ data: sortedData, initialPageSize: 100 });
 
+  // Selecionados separados em negativáveis x impedidos
+  const selectedNegativaveis = useMemo(
+    () => filtered.filter(t => selectedIds.includes(t.id) && !t.impedido_negativacao),
+    [filtered, selectedIds]
+  );
+  const selectedImpedidos = useMemo(
+    () => filtered.filter(t => selectedIds.includes(t.id) && t.impedido_negativacao === true),
+    [filtered, selectedIds]
+  );
+
+  const selectableInPage = paginatedData.filter(t => !t.impedido_negativacao);
+
   const handleSelectAll = (checked: boolean) => {
-    setSelectedIds(checked ? paginatedData.map(t => t.id) : []);
+    if (checked) {
+      // Seleciona apenas os não-impedidos da página
+      setSelectedIds(prev => Array.from(new Set([...prev, ...selectableInPage.map(t => t.id)])));
+    } else {
+      const pageIds = new Set(paginatedData.map(t => t.id));
+      setSelectedIds(prev => prev.filter(id => !pageIds.has(id)));
+    }
   };
 
   const handleSelectOne = (id: string, checked: boolean) => {
@@ -189,8 +207,7 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
 
   const handleNegativar = async () => {
     setProcessing(true);
-    const selected = titulos.filter(t => selectedIds.includes(t.id));
-    for (const titulo of selected) {
+    for (const titulo of selectedNegativaveis) {
       try {
         await negativarMutation.mutateAsync({
           tituloId: titulo.id,
@@ -208,6 +225,50 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
     setSelectedIds([]);
     setMotivo("");
     setObservacoes("");
+  };
+
+  const handleMarcarImpedido = async () => {
+    if (!motivoImpedimento.trim()) return;
+    setProcessing(true);
+    try {
+      await marcarImpedidoMutation.mutateAsync({
+        titulos: selectedNegativaveis.map(t => ({
+          id: t.id,
+          documento: t.documento,
+          nome_parceiro: t.nome_parceiro,
+        })),
+        motivo: motivoImpedimento,
+        observacoes: obsImpedimento,
+      });
+    } finally {
+      setProcessing(false);
+      setImpedirDialogOpen(false);
+      setSelectedIds([]);
+      setMotivoImpedimento("");
+      setObsImpedimento("");
+    }
+  };
+
+  const handleRemoverImpedimento = async () => {
+    if (!motivoImpedimento.trim()) return;
+    setProcessing(true);
+    try {
+      await removerImpedimentoMutation.mutateAsync({
+        titulos: selectedImpedidos.map(t => ({
+          id: t.id,
+          documento: t.documento,
+          nome_parceiro: t.nome_parceiro,
+        })),
+        motivo: motivoImpedimento,
+        observacoes: obsImpedimento,
+      });
+    } finally {
+      setProcessing(false);
+      setRemoverImpedirDialogOpen(false);
+      setSelectedIds([]);
+      setMotivoImpedimento("");
+      setObsImpedimento("");
+    }
   };
 
   const SortableHeader = ({ column, label }: { column: string; label: string }) => (
