@@ -74,6 +74,9 @@ export interface TituloTudoBelo {
   negativado: boolean | null;
   bloqueado: boolean | null;
   auditado: boolean | null;
+  impedido_negativacao: boolean | null;
+  motivo_impedimento_negativacao: string | null;
+  data_impedimento_negativacao: string | null;
 }
 
 export interface TitulosFilters {
