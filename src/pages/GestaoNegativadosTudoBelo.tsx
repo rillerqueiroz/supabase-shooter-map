@@ -11,6 +11,7 @@ import { RemoverNegativacaoTab } from "@/components/NegativadosTudoBelo/RemoverN
 import { HistoricoNegativacoesTab } from "@/components/NegativadosTudoBelo/HistoricoNegativacoesTab";
 import { TitulosNegativadosTab } from "@/components/NegativadosTudoBelo/TitulosNegativadosTab";
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
+import { ImpedidosNegativacaoTab } from "@/components/NegativadosTudoBelo/ImpedidosNegativacaoTab";
 import { FileSpreadsheet, FileText, ShieldAlert, ShieldCheck, History, ShieldX, ShieldOff } from "lucide-react";
 import logoSuperavit from "@/assets/logo-superavit.png";
 
