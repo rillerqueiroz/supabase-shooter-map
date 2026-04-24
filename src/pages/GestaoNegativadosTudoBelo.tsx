@@ -46,6 +46,12 @@ export default function GestaoNegativadosTudoBelo() {
     [titulos]
   );
 
+  // Lista completa de todos os títulos impedidos (qualquer status), para a aba dedicada
+  const impedidosCompletos = useMemo(() =>
+    (titulos || []).filter(t => t.impedido_negativacao === true),
+    [titulos]
+  );
+
   const removerData = useMemo(() =>
     (titulos || []).filter(t =>
       t.negativado === true && (
