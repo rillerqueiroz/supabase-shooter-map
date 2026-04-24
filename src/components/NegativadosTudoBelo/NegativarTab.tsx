@@ -480,7 +480,11 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
                       return (
                         <TableRow
                           key={titulo.id}
-                          className={`cursor-pointer hover:bg-muted/50 ${isImpedido ? 'opacity-60' : ''}`}
+                          className={`cursor-pointer hover:bg-muted/50 ${
+                            isImpedido
+                              ? 'bg-red-50/60 hover:bg-red-100/60 border-l-4 border-l-red-400'
+                              : ''
+                          }`}
                           onClick={() => { setSelectedTitulo(titulo); setDetailsOpen(true); }}
                         >
                           <TableCell onClick={(e) => e.stopPropagation()}>
