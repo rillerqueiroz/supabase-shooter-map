@@ -317,14 +317,42 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
               <Clock className="h-4 w-4 mr-1" />
               {only15Days ? "Exibindo +15 dias" : "Exibir apenas +15 dias"}
             </Button>
-            {selectedIds.length > 0 && (
+            <Button
+              variant={showImpedidos ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowImpedidos(!showImpedidos)}
+            >
+              <ShieldOff className="h-4 w-4 mr-1" />
+              {showImpedidos ? `Ocultar impedidos (${impedidos.length})` : `Exibir impedidos (${impedidos.length})`}
+            </Button>
+            {selectedNegativaveis.length > 0 && (
+              <>
+                <Button
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  <ShieldAlert className="h-4 w-4 mr-1" />
+                  Negativar {selectedNegativaveis.length} selecionados
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setImpedirDialogOpen(true)}
+                >
+                  <ShieldOff className="h-4 w-4 mr-1" />
+                  Marcar como impedido ({selectedNegativaveis.length})
+                </Button>
+              </>
+            )}
+            {selectedImpedidos.length > 0 && (
               <Button
                 size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={() => setDialogOpen(true)}
+                variant="outline"
+                onClick={() => setRemoverImpedirDialogOpen(true)}
               >
-                <ShieldAlert className="h-4 w-4 mr-1" />
-                Negativar {selectedIds.length} selecionados
+                <ShieldCheck className="h-4 w-4 mr-1" />
+                Remover impedimento ({selectedImpedidos.length})
               </Button>
             )}
             {activeFilterCount > 0 && (
@@ -334,7 +362,8 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
               </Button>
             )}
             <Badge variant="outline" className="text-xs">
-              {filtered.length} títulos disponíveis para negativação
+              {filtered.length - impedidosNoFiltrado} disponíveis
+              {showImpedidos && impedidosNoFiltrado > 0 && ` · ${impedidosNoFiltrado} impedidos`}
             </Badge>
           </div>
 
