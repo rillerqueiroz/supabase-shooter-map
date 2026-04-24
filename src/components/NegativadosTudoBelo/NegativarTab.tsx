@@ -486,6 +486,7 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={selectedIds.includes(titulo.id)}
+                              disabled={isImpedido}
                               onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
                             />
                           </TableCell>
