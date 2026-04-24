@@ -87,7 +87,7 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const filtered = useMemo(() => {
-    let data = titulos;
+    let data = showImpedidos ? [...titulos, ...impedidos] : titulos;
     if (filters.search) {
       const s = filters.search.toLowerCase();
       data = data.filter(t =>
@@ -144,7 +144,25 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
       });
     }
     return data;
-  }, [titulos, filters, only15Days]);
+  }, [titulos, impedidos, showImpedidos, filters, only15Days]);
+
+  // Notifica pai dos dados filtrados para recálculo das métricas
+  useEffect(() => {
+    onFilteredChange?.(filtered);
+  }, [filtered, onFilteredChange]);
+
+  // Limpa seleções inválidas (impedidos não podem ser selecionados)
+  useEffect(() => {
+    setSelectedIds(prev => prev.filter(id => {
+      const t = filtered.find(x => x.id === id);
+      return t && !t.impedido_negativacao;
+    }));
+  }, [filtered]);
+
+  const impedidosNoFiltrado = useMemo(
+    () => filtered.filter(t => t.impedido_negativacao === true).length,
+    [filtered]
+  );
 
   const { sortedData, sortConfig, requestSort } = useSortableTable(filtered);
   const {
