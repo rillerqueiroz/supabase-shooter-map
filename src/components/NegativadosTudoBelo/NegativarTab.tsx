@@ -578,7 +578,7 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Você está prestes a negativar <strong>{selectedIds.length}</strong> título(s).
+              Você está prestes a negativar <strong>{selectedNegativaveis.length}</strong> título(s).
             </p>
             <div className="space-y-2">
               <Label>Motivo da negativação</Label>
