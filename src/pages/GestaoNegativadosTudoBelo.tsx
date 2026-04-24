@@ -37,9 +37,9 @@ export default function GestaoNegativadosTudoBelo() {
     [titulos]
   );
 
+  // Impedidos para a aba Negativar (qualquer status, desde que não-negativados)
   const impedidosData = useMemo(() =>
     (titulos || []).filter(t =>
-      t.status_titulo === 'Vencido' &&
       !t.negativado &&
       t.impedido_negativacao === true
     ),
@@ -78,7 +78,7 @@ export default function GestaoNegativadosTudoBelo() {
       ? base.filter(t => t.status_titulo === 'Vencido' && !t.negativado && !t.impedido_negativacao)
       : negativarData;
     const impedidos = useFiltered
-      ? base.filter(t => t.status_titulo === 'Vencido' && !t.negativado && t.impedido_negativacao === true)
+      ? base.filter(t => !t.negativado && t.impedido_negativacao === true)
       : impedidosData;
     const remover = useFiltered
       ? base.filter(t => t.negativado === true && (
