@@ -524,12 +524,26 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {isImpedido ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-red-50 text-red-700 border-red-200"
+                                title={titulo.motivo_impedimento_negativacao || ''}
+                              >
+                                <ShieldOff className="h-3 w-3 mr-1" />
+                                Impedido
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
                     {paginatedData.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-center text-muted-foreground py-10">
+                        <TableCell colSpan={13} className="text-center text-muted-foreground py-10">
                           Nenhum título disponível para negativação
                         </TableCell>
                       </TableRow>
