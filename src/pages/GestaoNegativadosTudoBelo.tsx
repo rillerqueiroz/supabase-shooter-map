@@ -78,7 +78,7 @@ export default function GestaoNegativadosTudoBelo() {
       ? base.filter(t => t.status_titulo === 'Vencido' && !t.negativado && !t.impedido_negativacao)
       : negativarData;
     const impedidos = useFiltered
-      ? base.filter(t => t.status_titulo === 'Vencido' && !t.negativado && t.impedido_negativacao === true)
+      ? base.filter(t => !t.negativado && t.impedido_negativacao === true)
       : impedidosData;
     const remover = useFiltered
       ? base.filter(t => t.negativado === true && (
