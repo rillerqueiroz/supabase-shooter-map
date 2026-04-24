@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTitulosTudoBelo } from "@/hooks/useTitulosTudoBelo";
+import type { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
 import { useLoadingProgress } from "@/hooks/useLoadingProgress";
 import { LoadingProgress } from "@/components/ui/loading-progress";
 import { NegativarTab } from "@/components/NegativadosTudoBelo/NegativarTab";
@@ -10,7 +11,7 @@ import { RemoverNegativacaoTab } from "@/components/NegativadosTudoBelo/RemoverN
 import { HistoricoNegativacoesTab } from "@/components/NegativadosTudoBelo/HistoricoNegativacoesTab";
 import { TitulosNegativadosTab } from "@/components/NegativadosTudoBelo/TitulosNegativadosTab";
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
-import { FileSpreadsheet, FileText, ShieldAlert, ShieldCheck, History, ShieldX } from "lucide-react";
+import { FileSpreadsheet, FileText, ShieldAlert, ShieldCheck, History, ShieldX, ShieldOff } from "lucide-react";
 import logoSuperavit from "@/assets/logo-superavit.png";
 
 const formatCurrency = (value: number | null) => {
@@ -23,8 +24,24 @@ export default function GestaoNegativadosTudoBelo() {
   const { progress, onProgress } = useLoadingProgress();
   const { data: titulos, isLoading } = useTitulosTudoBelo(undefined, 'base_tudobelo_intermediaria', onProgress);
 
+  // Filtros reativos da aba Negativar para refletir nos cards
+  const [negativarFiltered, setNegativarFiltered] = useState<TituloTudoBelo[] | null>(null);
+
   const negativarData = useMemo(() =>
-    (titulos || []).filter(t => t.status_titulo === 'Vencido' && !t.negativado),
+    (titulos || []).filter(t =>
+      t.status_titulo === 'Vencido' &&
+      !t.negativado &&
+      !t.impedido_negativacao
+    ),
+    [titulos]
+  );
+
+  const impedidosData = useMemo(() =>
+    (titulos || []).filter(t =>
+      t.status_titulo === 'Vencido' &&
+      !t.negativado &&
+      t.impedido_negativacao === true
+    ),
     [titulos]
   );
 
@@ -45,14 +62,34 @@ export default function GestaoNegativadosTudoBelo() {
   );
 
   const metrics = useMemo(() => {
-    const all = titulos || [];
+    // Quando a aba Negativar está ativa e há filtros aplicados, usar a base filtrada
+    const useFiltered = activeTab === 'negativar' && negativarFiltered !== null;
+    const base = useFiltered ? negativarFiltered! : (titulos || []);
+
+    const negativados = base.filter(t => t.negativado);
+    const pendentesNegativar = useFiltered
+      ? base.filter(t => t.status_titulo === 'Vencido' && !t.negativado && !t.impedido_negativacao)
+      : negativarData;
+    const impedidos = useFiltered
+      ? base.filter(t => t.status_titulo === 'Vencido' && !t.negativado && t.impedido_negativacao === true)
+      : impedidosData;
+    const remover = useFiltered
+      ? base.filter(t => t.negativado === true && (
+          t.status_titulo?.toLowerCase().includes('pago') ||
+          t.status_titulo?.toLowerCase().includes('negociado') ||
+          ['N', 'P'].includes(t.status_cedrus || '')
+        ))
+      : removerData;
+
     return {
-      totalNegativados: all.filter(t => t.negativado).length,
-      saldoNegativados: all.filter(t => t.negativado).reduce((s, t) => s + (t.saldo_parcela || 0), 0),
-      pendentesNegativacao: negativarData.length,
-      pendentesRemocao: removerData.length,
+      totalNegativados: negativados.length,
+      saldoNegativados: negativados.reduce((s, t) => s + (t.saldo_parcela || 0), 0),
+      pendentesNegativacao: pendentesNegativar.length,
+      pendentesRemocao: remover.length,
+      impedidos: impedidos.length,
+      saldoImpedidos: impedidos.reduce((s, t) => s + (t.saldo_parcela || 0), 0),
     };
-  }, [titulos, negativarData, removerData]);
+  }, [titulos, negativarData, removerData, impedidosData, activeTab, negativarFiltered]);
 
   return (
     <div className="p-6 space-y-6">
@@ -85,7 +122,7 @@ export default function GestaoNegativadosTudoBelo() {
       )}
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Negativados</CardTitle>
@@ -108,6 +145,18 @@ export default function GestaoNegativadosTudoBelo() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">{metrics.pendentesNegativacao.toLocaleString("pt-BR")}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <ShieldOff className="h-3.5 w-3.5" />
+              Impedidos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-600">{metrics.impedidos.toLocaleString("pt-BR")}</div>
+            <div className="text-xs text-muted-foreground mt-1">{formatCurrency(metrics.saldoImpedidos)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -142,7 +191,12 @@ export default function GestaoNegativadosTudoBelo() {
         </TabsList>
 
         <TabsContent value="negativar">
-          <NegativarTab titulos={negativarData} isLoading={isLoading} />
+          <NegativarTab
+            titulos={negativarData}
+            impedidos={impedidosData}
+            isLoading={isLoading}
+            onFilteredChange={setNegativarFiltered}
+          />
         </TabsContent>
 
         <TabsContent value="negativados">

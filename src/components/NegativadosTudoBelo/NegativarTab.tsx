@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,11 +20,11 @@ import { MultiSelectFilter } from "@/components/Dashboard/MultiSelectFilter";
 import { DateFilterSelect } from "@/components/Filters/DateFilterSelect";
 import { TituloTudoBelo, TitulosFilters, useTitulosTudoBeloOptions } from "@/hooks/useTitulosTudoBelo";
 import { useTitulosEtapas } from "@/hooks/useTitulosEtapas";
-import { useNegativarTitulo } from "@/hooks/useNegativacoes";
+import { useNegativarTitulo, useMarcarImpedido, useRemoverImpedimento } from "@/hooks/useNegativacoes";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { usePagination } from "@/hooks/usePagination";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
-import { Search, ChevronUp, ChevronDown, Loader2, ShieldAlert, Filter, X, Clock } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, Loader2, ShieldAlert, ShieldOff, ShieldCheck, Filter, X, Clock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -59,26 +59,35 @@ const calcularDiasAtraso = (dataVencimento: string | null) => {
 
 interface NegativarTabProps {
   titulos: TituloTudoBelo[];
+  impedidos?: TituloTudoBelo[];
   isLoading: boolean;
+  onFilteredChange?: (data: TituloTudoBelo[]) => void;
 }
 
-export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
+export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredChange }: NegativarTabProps) {
   const [filters, setFilters] = useState<TitulosFilters>({});
   const [showFilters, setShowFilters] = useState(false);
   const [only15Days, setOnly15Days] = useState(false);
+  const [showImpedidos, setShowImpedidos] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [impedirDialogOpen, setImpedirDialogOpen] = useState(false);
+  const [removerImpedirDialogOpen, setRemoverImpedirDialogOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [motivoImpedimento, setMotivoImpedimento] = useState("");
+  const [obsImpedimento, setObsImpedimento] = useState("");
   const [processing, setProcessing] = useState(false);
   const negativarMutation = useNegativarTitulo();
+  const marcarImpedidoMutation = useMarcarImpedido();
+  const removerImpedimentoMutation = useRemoverImpedimento();
   const { data: options } = useTitulosTudoBeloOptions();
   const { data: etapasDisponiveis } = useTitulosEtapas();
   const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const filtered = useMemo(() => {
-    let data = titulos;
+    let data = showImpedidos ? [...titulos, ...impedidos] : titulos;
     if (filters.search) {
       const s = filters.search.toLowerCase();
       data = data.filter(t =>
@@ -135,7 +144,25 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
       });
     }
     return data;
-  }, [titulos, filters, only15Days]);
+  }, [titulos, impedidos, showImpedidos, filters, only15Days]);
+
+  // Notifica pai dos dados filtrados para recálculo das métricas
+  useEffect(() => {
+    onFilteredChange?.(filtered);
+  }, [filtered, onFilteredChange]);
+
+  // Limpa seleções inválidas (impedidos não podem ser selecionados)
+  useEffect(() => {
+    setSelectedIds(prev => prev.filter(id => {
+      const t = filtered.find(x => x.id === id);
+      return t && !t.impedido_negativacao;
+    }));
+  }, [filtered]);
+
+  const impedidosNoFiltrado = useMemo(
+    () => filtered.filter(t => t.impedido_negativacao === true).length,
+    [filtered]
+  );
 
   const { sortedData, sortConfig, requestSort } = useSortableTable(filtered);
   const {
@@ -143,8 +170,26 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
     gotoPage, nextPage, previousPage, setPageSize, totalItems,
   } = usePagination<TituloTudoBelo>({ data: sortedData, initialPageSize: 100 });
 
+  // Selecionados separados em negativáveis x impedidos
+  const selectedNegativaveis = useMemo(
+    () => filtered.filter(t => selectedIds.includes(t.id) && !t.impedido_negativacao),
+    [filtered, selectedIds]
+  );
+  const selectedImpedidos = useMemo(
+    () => filtered.filter(t => selectedIds.includes(t.id) && t.impedido_negativacao === true),
+    [filtered, selectedIds]
+  );
+
+  const selectableInPage = paginatedData.filter(t => !t.impedido_negativacao);
+
   const handleSelectAll = (checked: boolean) => {
-    setSelectedIds(checked ? paginatedData.map(t => t.id) : []);
+    if (checked) {
+      // Seleciona apenas os não-impedidos da página
+      setSelectedIds(prev => Array.from(new Set([...prev, ...selectableInPage.map(t => t.id)])));
+    } else {
+      const pageIds = new Set(paginatedData.map(t => t.id));
+      setSelectedIds(prev => prev.filter(id => !pageIds.has(id)));
+    }
   };
 
   const handleSelectOne = (id: string, checked: boolean) => {
@@ -162,8 +207,7 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
 
   const handleNegativar = async () => {
     setProcessing(true);
-    const selected = titulos.filter(t => selectedIds.includes(t.id));
-    for (const titulo of selected) {
+    for (const titulo of selectedNegativaveis) {
       try {
         await negativarMutation.mutateAsync({
           tituloId: titulo.id,
@@ -181,6 +225,50 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
     setSelectedIds([]);
     setMotivo("");
     setObservacoes("");
+  };
+
+  const handleMarcarImpedido = async () => {
+    if (!motivoImpedimento.trim()) return;
+    setProcessing(true);
+    try {
+      await marcarImpedidoMutation.mutateAsync({
+        titulos: selectedNegativaveis.map(t => ({
+          id: t.id,
+          documento: t.documento,
+          nome_parceiro: t.nome_parceiro,
+        })),
+        motivo: motivoImpedimento,
+        observacoes: obsImpedimento,
+      });
+    } finally {
+      setProcessing(false);
+      setImpedirDialogOpen(false);
+      setSelectedIds([]);
+      setMotivoImpedimento("");
+      setObsImpedimento("");
+    }
+  };
+
+  const handleRemoverImpedimento = async () => {
+    if (!motivoImpedimento.trim()) return;
+    setProcessing(true);
+    try {
+      await removerImpedimentoMutation.mutateAsync({
+        titulos: selectedImpedidos.map(t => ({
+          id: t.id,
+          documento: t.documento,
+          nome_parceiro: t.nome_parceiro,
+        })),
+        motivo: motivoImpedimento,
+        observacoes: obsImpedimento,
+      });
+    } finally {
+      setProcessing(false);
+      setRemoverImpedirDialogOpen(false);
+      setSelectedIds([]);
+      setMotivoImpedimento("");
+      setObsImpedimento("");
+    }
   };
 
   const SortableHeader = ({ column, label }: { column: string; label: string }) => (
@@ -229,14 +317,42 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
               <Clock className="h-4 w-4 mr-1" />
               {only15Days ? "Exibindo +15 dias" : "Exibir apenas +15 dias"}
             </Button>
-            {selectedIds.length > 0 && (
+            <Button
+              variant={showImpedidos ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowImpedidos(!showImpedidos)}
+            >
+              <ShieldOff className="h-4 w-4 mr-1" />
+              {showImpedidos ? `Ocultar impedidos (${impedidos.length})` : `Exibir impedidos (${impedidos.length})`}
+            </Button>
+            {selectedNegativaveis.length > 0 && (
+              <>
+                <Button
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  <ShieldAlert className="h-4 w-4 mr-1" />
+                  Negativar {selectedNegativaveis.length} selecionados
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setImpedirDialogOpen(true)}
+                >
+                  <ShieldOff className="h-4 w-4 mr-1" />
+                  Marcar como impedido ({selectedNegativaveis.length})
+                </Button>
+              </>
+            )}
+            {selectedImpedidos.length > 0 && (
               <Button
                 size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={() => setDialogOpen(true)}
+                variant="outline"
+                onClick={() => setRemoverImpedirDialogOpen(true)}
               >
-                <ShieldAlert className="h-4 w-4 mr-1" />
-                Negativar {selectedIds.length} selecionados
+                <ShieldCheck className="h-4 w-4 mr-1" />
+                Remover impedimento ({selectedImpedidos.length})
               </Button>
             )}
             {activeFilterCount > 0 && (
@@ -246,7 +362,8 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
               </Button>
             )}
             <Badge variant="outline" className="text-xs">
-              {filtered.length} títulos disponíveis para negativação
+              {filtered.length - impedidosNoFiltrado} disponíveis
+              {showImpedidos && impedidosNoFiltrado > 0 && ` · ${impedidosNoFiltrado} impedidos`}
             </Badge>
           </div>
 
@@ -337,8 +454,9 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
-                          checked={selectedIds.length === paginatedData.length && paginatedData.length > 0}
+                          checked={selectableInPage.length > 0 && selectableInPage.every(t => selectedIds.includes(t.id))}
                           onCheckedChange={handleSelectAll}
+                          disabled={selectableInPage.length === 0}
                         />
                       </TableHead>
                       <SortableHeader column="documento" label="Documento" />
@@ -352,16 +470,23 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
                       <SortableHeader column="etapa" label="Etapa" />
                       <TableHead>Cedrus</TableHead>
                       <SortableHeader column="status_cedrus" label="Status Cedrus" />
+                      <TableHead>Impedido</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedData.map((titulo) => {
                       const diasAtraso = calcularDiasAtraso(titulo.data_vencimento);
+                      const isImpedido = titulo.impedido_negativacao === true;
                       return (
-                        <TableRow key={titulo.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedTitulo(titulo); setDetailsOpen(true); }}>
+                        <TableRow
+                          key={titulo.id}
+                          className={`cursor-pointer hover:bg-muted/50 ${isImpedido ? 'opacity-60' : ''}`}
+                          onClick={() => { setSelectedTitulo(titulo); setDetailsOpen(true); }}
+                        >
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={selectedIds.includes(titulo.id)}
+                              disabled={isImpedido}
                               onCheckedChange={(checked) => handleSelectOne(titulo.id, !!checked)}
                             />
                           </TableCell>
@@ -400,12 +525,26 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {isImpedido ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-red-50 text-red-700 border-red-200"
+                                title={titulo.motivo_impedimento_negativacao || ''}
+                              >
+                                <ShieldOff className="h-3 w-3 mr-1" />
+                                Impedido
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
                     {paginatedData.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-center text-muted-foreground py-10">
+                        <TableCell colSpan={13} className="text-center text-muted-foreground py-10">
                           Nenhum título disponível para negativação
                         </TableCell>
                       </TableRow>
@@ -439,7 +578,7 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Você está prestes a negativar <strong>{selectedIds.length}</strong> título(s).
+              Você está prestes a negativar <strong>{selectedNegativaveis.length}</strong> título(s).
             </p>
             <div className="space-y-2">
               <Label>Motivo da negativação</Label>
@@ -470,6 +609,86 @@ export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
             >
               {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-1" />}
               Confirmar Negativação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Marcar como Impedido */}
+      <Dialog open={impedirDialogOpen} onOpenChange={setImpedirDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marcar como Impedido de Negativar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Você está marcando <strong>{selectedNegativaveis.length}</strong> título(s) como impedido(s) de negativação.
+            </p>
+            <div className="space-y-2">
+              <Label>Motivo do impedimento <span className="text-destructive">*</span></Label>
+              <Input
+                value={motivoImpedimento}
+                onChange={(e) => setMotivoImpedimento(e.target.value)}
+                placeholder="Ex.: Cliente em renegociação, decisão jurídica..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                value={obsImpedimento}
+                onChange={(e) => setObsImpedimento(e.target.value)}
+                placeholder="Observações adicionais..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImpedirDialogOpen(false)} disabled={processing}>
+              Cancelar
+            </Button>
+            <Button onClick={handleMarcarImpedido} disabled={processing || !motivoImpedimento.trim()}>
+              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ShieldOff className="h-4 w-4 mr-1" />}
+              Confirmar Impedimento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Remover Impedimento */}
+      <Dialog open={removerImpedirDialogOpen} onOpenChange={setRemoverImpedirDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remover Impedimento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Você está removendo o impedimento de <strong>{selectedImpedidos.length}</strong> título(s). Eles voltarão a ficar disponíveis para negativação.
+            </p>
+            <div className="space-y-2">
+              <Label>Motivo da remoção <span className="text-destructive">*</span></Label>
+              <Input
+                value={motivoImpedimento}
+                onChange={(e) => setMotivoImpedimento(e.target.value)}
+                placeholder="Informe o motivo..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                value={obsImpedimento}
+                onChange={(e) => setObsImpedimento(e.target.value)}
+                placeholder="Observações adicionais..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoverImpedirDialogOpen(false)} disabled={processing}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRemoverImpedimento} disabled={processing || !motivoImpedimento.trim()}>
+              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ShieldCheck className="h-4 w-4 mr-1" />}
+              Confirmar Remoção
             </Button>
           </DialogFooter>
         </DialogContent>
