@@ -454,8 +454,9 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
-                          checked={selectedIds.length === paginatedData.length && paginatedData.length > 0}
+                          checked={selectableInPage.length > 0 && selectableInPage.every(t => selectedIds.includes(t.id))}
                           onCheckedChange={handleSelectAll}
+                          disabled={selectableInPage.length === 0}
                         />
                       </TableHead>
                       <SortableHeader column="documento" label="Documento" />
@@ -469,13 +470,19 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
                       <SortableHeader column="etapa" label="Etapa" />
                       <TableHead>Cedrus</TableHead>
                       <SortableHeader column="status_cedrus" label="Status Cedrus" />
+                      <TableHead>Impedido</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedData.map((titulo) => {
                       const diasAtraso = calcularDiasAtraso(titulo.data_vencimento);
+                      const isImpedido = titulo.impedido_negativacao === true;
                       return (
-                        <TableRow key={titulo.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedTitulo(titulo); setDetailsOpen(true); }}>
+                        <TableRow
+                          key={titulo.id}
+                          className={`cursor-pointer hover:bg-muted/50 ${isImpedido ? 'opacity-60' : ''}`}
+                          onClick={() => { setSelectedTitulo(titulo); setDetailsOpen(true); }}
+                        >
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={selectedIds.includes(titulo.id)}
