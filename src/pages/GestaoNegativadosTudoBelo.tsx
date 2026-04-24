@@ -11,6 +11,7 @@ import { RemoverNegativacaoTab } from "@/components/NegativadosTudoBelo/RemoverN
 import { HistoricoNegativacoesTab } from "@/components/NegativadosTudoBelo/HistoricoNegativacoesTab";
 import { TitulosNegativadosTab } from "@/components/NegativadosTudoBelo/TitulosNegativadosTab";
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
+import { ImpedidosNegativacaoTab } from "@/components/NegativadosTudoBelo/ImpedidosNegativacaoTab";
 import { FileSpreadsheet, FileText, ShieldAlert, ShieldCheck, History, ShieldX, ShieldOff } from "lucide-react";
 import logoSuperavit from "@/assets/logo-superavit.png";
 
@@ -42,6 +43,12 @@ export default function GestaoNegativadosTudoBelo() {
       !t.negativado &&
       t.impedido_negativacao === true
     ),
+    [titulos]
+  );
+
+  // Lista completa de todos os títulos impedidos (qualquer status), para a aba dedicada
+  const impedidosCompletos = useMemo(() =>
+    (titulos || []).filter(t => t.impedido_negativacao === true),
     [titulos]
   );
 
@@ -180,6 +187,10 @@ export default function GestaoNegativadosTudoBelo() {
             <ShieldX className="h-4 w-4" />
             Títulos Negativados
           </TabsTrigger>
+          <TabsTrigger value="impedidos" className="flex items-center gap-2">
+            <ShieldOff className="h-4 w-4" />
+            Impedidos ({impedidosCompletos.length})
+          </TabsTrigger>
           <TabsTrigger value="remover" className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" />
             Remover Negativação
@@ -201,6 +212,10 @@ export default function GestaoNegativadosTudoBelo() {
 
         <TabsContent value="negativados">
           <TitulosNegativadosTab titulos={negativadosData} isLoading={isLoading} />
+        </TabsContent>
+
+        <TabsContent value="impedidos">
+          <ImpedidosNegativacaoTab titulos={impedidosCompletos} isLoading={isLoading} />
         </TabsContent>
 
         <TabsContent value="remover">
