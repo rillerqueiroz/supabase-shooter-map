@@ -59,19 +59,28 @@ const calcularDiasAtraso = (dataVencimento: string | null) => {
 
 interface NegativarTabProps {
   titulos: TituloTudoBelo[];
+  impedidos?: TituloTudoBelo[];
   isLoading: boolean;
+  onFilteredChange?: (data: TituloTudoBelo[]) => void;
 }
 
-export function NegativarTab({ titulos, isLoading }: NegativarTabProps) {
+export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredChange }: NegativarTabProps) {
   const [filters, setFilters] = useState<TitulosFilters>({});
   const [showFilters, setShowFilters] = useState(false);
   const [only15Days, setOnly15Days] = useState(false);
+  const [showImpedidos, setShowImpedidos] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [impedirDialogOpen, setImpedirDialogOpen] = useState(false);
+  const [removerImpedirDialogOpen, setRemoverImpedirDialogOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [motivoImpedimento, setMotivoImpedimento] = useState("");
+  const [obsImpedimento, setObsImpedimento] = useState("");
   const [processing, setProcessing] = useState(false);
   const negativarMutation = useNegativarTitulo();
+  const marcarImpedidoMutation = useMarcarImpedido();
+  const removerImpedimentoMutation = useRemoverImpedimento();
   const { data: options } = useTitulosTudoBeloOptions();
   const { data: etapasDisponiveis } = useTitulosEtapas();
   const [selectedTitulo, setSelectedTitulo] = useState<TituloTudoBelo | null>(null);
