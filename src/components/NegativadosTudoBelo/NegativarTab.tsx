@@ -614,6 +614,86 @@ export function NegativarTab({ titulos, impedidos = [], isLoading, onFilteredCha
         </DialogContent>
       </Dialog>
 
+      {/* Dialog Marcar como Impedido */}
+      <Dialog open={impedirDialogOpen} onOpenChange={setImpedirDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marcar como Impedido de Negativar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Você está marcando <strong>{selectedNegativaveis.length}</strong> título(s) como impedido(s) de negativação.
+            </p>
+            <div className="space-y-2">
+              <Label>Motivo do impedimento <span className="text-destructive">*</span></Label>
+              <Input
+                value={motivoImpedimento}
+                onChange={(e) => setMotivoImpedimento(e.target.value)}
+                placeholder="Ex.: Cliente em renegociação, decisão jurídica..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                value={obsImpedimento}
+                onChange={(e) => setObsImpedimento(e.target.value)}
+                placeholder="Observações adicionais..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImpedirDialogOpen(false)} disabled={processing}>
+              Cancelar
+            </Button>
+            <Button onClick={handleMarcarImpedido} disabled={processing || !motivoImpedimento.trim()}>
+              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ShieldOff className="h-4 w-4 mr-1" />}
+              Confirmar Impedimento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Remover Impedimento */}
+      <Dialog open={removerImpedirDialogOpen} onOpenChange={setRemoverImpedirDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remover Impedimento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Você está removendo o impedimento de <strong>{selectedImpedidos.length}</strong> título(s). Eles voltarão a ficar disponíveis para negativação.
+            </p>
+            <div className="space-y-2">
+              <Label>Motivo da remoção <span className="text-destructive">*</span></Label>
+              <Input
+                value={motivoImpedimento}
+                onChange={(e) => setMotivoImpedimento(e.target.value)}
+                placeholder="Informe o motivo..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                value={obsImpedimento}
+                onChange={(e) => setObsImpedimento(e.target.value)}
+                placeholder="Observações adicionais..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoverImpedirDialogOpen(false)} disabled={processing}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRemoverImpedimento} disabled={processing || !motivoImpedimento.trim()}>
+              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ShieldCheck className="h-4 w-4 mr-1" />}
+              Confirmar Remoção
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <TituloDetailsModal
         titulo={selectedTitulo}
         open={detailsOpen}
