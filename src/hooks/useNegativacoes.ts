@@ -226,3 +226,113 @@ export function useRemoverNegativacao() {
     },
   });
 }
+
+interface ImpedimentoParams {
+  titulos: Array<{ id: string; documento: string | null; nome_parceiro: string | null }>;
+  motivo: string;
+  observacoes?: string;
+}
+
+export function useMarcarImpedido() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ titulos, motivo, observacoes }: ImpedimentoParams) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const ids = titulos.map(t => t.id);
+      const now = new Date().toISOString();
+
+      const { error: updateError } = await supabase
+        .from('base_tudobelo_intermediaria')
+        .update({
+          impedido_negativacao: true,
+          motivo_impedimento_negativacao: motivo,
+          data_impedimento_negativacao: now,
+          ultima_atualizacao: now,
+        })
+        .in('id', ids);
+      if (updateError) throw updateError;
+
+      const logRows = titulos.map(t => ({
+        negativacao_id: null,
+        titulo_id: t.id,
+        documento: t.documento,
+        nome_parceiro: t.nome_parceiro,
+        acao: 'impedimento',
+        campo_alterado: 'impedido_negativacao',
+        valor_anterior: 'false',
+        valor_novo: 'true',
+        origem: 'usuario',
+        descricao: observacoes ? `Impedimento: ${motivo} - ${observacoes}` : `Impedimento: ${motivo}`,
+        usuario_id: user?.id || null,
+      }));
+      const { error: logError } = await supabase
+        .from('base_tudobelo_negativacoes_log')
+        .insert(logRows);
+      if (logError) console.error('Erro ao criar log:', logError);
+
+      return true;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['titulos-tudobelo'] });
+      queryClient.invalidateQueries({ queryKey: ['negativacoes-log'] });
+      toast.success(`${variables.titulos.length} título(s) marcado(s) como impedido(s)!`);
+    },
+    onError: (error) => {
+      console.error('Erro ao marcar impedimento:', error);
+      toast.error('Erro ao marcar títulos como impedidos');
+    },
+  });
+}
+
+export function useRemoverImpedimento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ titulos, motivo, observacoes }: ImpedimentoParams) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const ids = titulos.map(t => t.id);
+      const now = new Date().toISOString();
+
+      const { error: updateError } = await supabase
+        .from('base_tudobelo_intermediaria')
+        .update({
+          impedido_negativacao: false,
+          motivo_impedimento_negativacao: null,
+          data_impedimento_negativacao: null,
+          ultima_atualizacao: now,
+        })
+        .in('id', ids);
+      if (updateError) throw updateError;
+
+      const logRows = titulos.map(t => ({
+        negativacao_id: null,
+        titulo_id: t.id,
+        documento: t.documento,
+        nome_parceiro: t.nome_parceiro,
+        acao: 'remocao_impedimento',
+        campo_alterado: 'impedido_negativacao',
+        valor_anterior: 'true',
+        valor_novo: 'false',
+        origem: 'usuario',
+        descricao: observacoes ? `Remoção impedimento: ${motivo} - ${observacoes}` : `Remoção impedimento: ${motivo}`,
+        usuario_id: user?.id || null,
+      }));
+      const { error: logError } = await supabase
+        .from('base_tudobelo_negativacoes_log')
+        .insert(logRows);
+      if (logError) console.error('Erro ao criar log:', logError);
+
+      return true;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['titulos-tudobelo'] });
+      queryClient.invalidateQueries({ queryKey: ['negativacoes-log'] });
+      toast.success(`Impedimento removido de ${variables.titulos.length} título(s)!`);
+    },
+    onError: (error) => {
+      console.error('Erro ao remover impedimento:', error);
+      toast.error('Erro ao remover impedimento');
+    },
+  });
+}
