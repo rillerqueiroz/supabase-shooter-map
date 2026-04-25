@@ -73,7 +73,8 @@ export default function GestaoNegativadosTudoBelo() {
     const useFiltered = activeTab === 'negativar' && negativarFiltered !== null;
     const base = useFiltered ? negativarFiltered! : (titulos || []);
 
-    const negativados = base.filter(t => t.negativado);
+    // Total Negativados sempre reflete a base completa (independente de filtros da aba)
+    const negativados = (titulos || []).filter(t => t.negativado);
     const pendentesNegativar = useFiltered
       ? base.filter(t => t.status_titulo === 'Vencido' && !t.negativado && !t.impedido_negativacao)
       : negativarData;
