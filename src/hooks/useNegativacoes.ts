@@ -35,6 +35,7 @@ export const MOTIVOS_REMOCAO = [
   'Título pago',
   'Decisão Judicial',
   'A pedido do cliente',
+  'Débito negociado com a Superávit',
 ] as const;
 
 export function useNegativacoesDatas() {
