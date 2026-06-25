@@ -99,6 +99,7 @@ function agrupar(titulos: TituloTudoBelo[]): DevedorAgrupado[] {
         documentos: [],
         filiais: new Set(),
         formasPagamento: new Set(),
+        credoresCedrus: new Set(),
         email: t.email || "",
         fonesTitulo: [],
       };
