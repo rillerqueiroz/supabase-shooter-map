@@ -88,16 +88,16 @@ function CandidatePicker({
   if (candidates.length === 1) {
     const c = candidates[0];
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-1 min-w-0">
         <div className="min-w-0">
           <div className="text-xs font-medium truncate" title={c.name || ''}>
             {c.name || '(sem nome)'}
           </div>
-          <div className="text-[10px] text-muted-foreground font-mono">
+          <div className="text-[10px] text-muted-foreground font-mono truncate">
             {formatDocument(c.cpf) || '—'}
           </div>
         </div>
-        <div className="flex gap-1 ml-auto">
+        <div className="flex flex-wrap gap-1">
           {c.reasons.map((r) => (
             <CandidateBadge key={r} reason={r} />
           ))}
@@ -105,6 +105,7 @@ function CandidatePicker({
       </div>
     );
   }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
