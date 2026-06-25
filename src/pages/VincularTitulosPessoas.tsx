@@ -568,17 +568,16 @@ export default function VincularTitulosPessoas() {
                     const cls = classifyMatch(t);
                     const isLinked = !!t.person_id;
                     const pickedPersonId = selectedMap.get(t.id) || null;
-                    const autoPersonId = getAutoPersonId(t);
-                    const isSelectable = !isLinked && !!autoPersonId;
+                    const resolvedPersonId = getResolvedPersonId(t);
                     return (
                       <TableRow key={t.id}>
                         <TableCell>
                           <Checkbox
-                            disabled={!isSelectable}
+                            disabled={isLinked}
                             checked={selectedMap.has(t.id)}
                             onCheckedChange={(c) => {
-                              if (c) setSelected(t.id, autoPersonId!);
-                              else setSelected(t.id, null);
+                              if (c) setSelected(t.id, resolvedPersonId);
+                              else unsetSelected(t.id);
                             }}
                           />
                         </TableCell>
