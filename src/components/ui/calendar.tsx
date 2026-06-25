@@ -19,81 +19,79 @@ function CustomCaption({ displayMonth, onMonthChange }: CustomCaptionProps) {
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
-  
+  const monthsShort = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i);
 
   const handlePrevMonth = () => {
-    const newDate = new Date(displayMonth);
-    newDate.setMonth(newDate.getMonth() - 1);
-    onMonthChange(newDate);
+    const d = new Date(displayMonth);
+    d.setMonth(d.getMonth() - 1);
+    onMonthChange(d);
   };
-
   const handleNextMonth = () => {
-    const newDate = new Date(displayMonth);
-    newDate.setMonth(newDate.getMonth() + 1);
-    onMonthChange(newDate);
+    const d = new Date(displayMonth);
+    d.setMonth(d.getMonth() + 1);
+    onMonthChange(d);
   };
 
   return (
-    <div className="flex items-center justify-between gap-2 mb-2 px-1">
-      <button
-        type="button"
-        onClick={handlePrevMonth}
-        className="h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md hover:bg-accent"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </button>
-
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between mb-3 px-1">
+      <div className="flex items-center gap-1">
         <Select
-          value={months[displayMonth.getMonth()]}
-          onValueChange={(month) => {
-            const newDate = new Date(displayMonth);
-            newDate.setMonth(months.indexOf(month));
-            onMonthChange(newDate);
+          value={String(displayMonth.getMonth())}
+          onValueChange={(m) => {
+            const d = new Date(displayMonth);
+            d.setMonth(parseInt(m));
+            onMonthChange(d);
           }}
         >
-          <SelectTrigger className="h-8 w-[130px] text-sm">
-            <SelectValue />
+          <SelectTrigger className="h-7 px-1.5 border-0 bg-transparent shadow-none font-bold text-base hover:bg-accent focus:ring-0 focus:ring-offset-0 gap-1 [&>svg]:hidden w-auto">
+            <SelectValue>{monthsShort[displayMonth.getMonth()]}</SelectValue>
           </SelectTrigger>
-          <SelectContent className="max-h-[200px]">
-            {months.map((month) => (
-              <SelectItem key={month} value={month} className="text-sm cursor-pointer">
-                {month}
-              </SelectItem>
+          <SelectContent className="max-h-[240px]">
+            {months.map((m, i) => (
+              <SelectItem key={m} value={String(i)} className="text-sm">{m}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-
         <Select
-          value={displayMonth.getFullYear().toString()}
-          onValueChange={(year) => {
-            const newDate = new Date(displayMonth);
-            newDate.setFullYear(parseInt(year));
-            onMonthChange(newDate);
+          value={String(displayMonth.getFullYear())}
+          onValueChange={(y) => {
+            const d = new Date(displayMonth);
+            d.setFullYear(parseInt(y));
+            onMonthChange(d);
           }}
         >
-          <SelectTrigger className="h-8 w-[90px] text-sm">
+          <SelectTrigger className="h-7 px-1.5 border-0 bg-transparent shadow-none font-bold text-base hover:bg-accent focus:ring-0 focus:ring-offset-0 gap-1 [&>svg]:hidden w-auto">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="max-h-[200px]">
-            {years.map((year) => (
-              <SelectItem key={year} value={year.toString()} className="text-sm cursor-pointer">
-                {year}
-              </SelectItem>
+          <SelectContent className="max-h-[240px]">
+            {years.map((y) => (
+              <SelectItem key={y} value={String(y)} className="text-sm">{y}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <button
-        type="button"
-        onClick={handleNextMonth}
-        className="h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md hover:bg-accent"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={handlePrevMonth}
+          className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent text-foreground"
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={handleNextMonth}
+          className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent text-foreground"
+          aria-label="Próximo mês"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }
