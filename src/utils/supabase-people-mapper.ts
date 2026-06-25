@@ -50,7 +50,7 @@ export interface FetchPeopleResult {
  *  3) Pagina o set final em memória, depois busca os registros completos em chunks.
  */
 export async function fetchPeople(params: FetchPeopleParams): Promise<FetchPeopleResult> {
-  const { search = '', page = 0, pageSize = 100 } = params;
+  const { search = '', page = 0, pageSize = 100, onlyWithoutDocument = false } = params;
   const q = search.trim();
 
   let allowed = await fetchTudobeloPersonIds();
