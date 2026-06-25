@@ -281,17 +281,30 @@ export default function VincularTitulosPessoas() {
             </p>
           </div>
         </div>
-        <Select value={externalSystem} onValueChange={setExternalSystem}>
-          <SelectTrigger className="h-9 w-[220px] shrink-0">
-            <SelectValue placeholder="Sistema externo (codigo_parceiro)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__any__">Qualquer sistema</SelectItem>
-            <SelectItem value="tudobelo">tudobelo</SelectItem>
-            <SelectItem value="tudobelo-fundos">tudobelo-fundos</SelectItem>
-            <SelectItem value="cedrus">cedrus</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2 shrink-0 flex-wrap">
+          <Select value={linkFilter} onValueChange={(v) => setLinkFilter(v as LinkFilter)}>
+            <SelectTrigger className="h-9 w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unlinked">Não vinculados</SelectItem>
+              <SelectItem value="linked">Vinculados</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={externalSystem} onValueChange={setExternalSystem}>
+            <SelectTrigger className="h-9 w-[220px]">
+              <SelectValue placeholder="Sistema externo (codigo_parceiro)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__any__">Qualquer sistema</SelectItem>
+              <SelectItem value="tudobelo">tudobelo</SelectItem>
+              <SelectItem value="tudobelo-fundos">tudobelo-fundos</SelectItem>
+              <SelectItem value="cedrus">cedrus</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
       </div>
 
 
