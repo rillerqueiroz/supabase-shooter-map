@@ -659,6 +659,23 @@ export default function VincularTitulosPessoas() {
                   )}
                   Vincular {readyCount} título(s)
                 </Button>
+                {selectedSemMatchIds.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => criarPessoasBulkMut.mutate(selectedSemMatchIds)}
+                    disabled={criarPessoasBulkMut.isPending}
+                    className="gap-1"
+                    title="Cria pessoas a partir dos dados dos títulos selecionados sem match"
+                  >
+                    {criarPessoasBulkMut.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-3.5 w-3.5" />
+                    )}
+                    Criar pessoas para {selectedSemMatchIds.length} sem match
+                  </Button>
+                )}
               </div>
             )}
           </div>
