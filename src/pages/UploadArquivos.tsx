@@ -628,9 +628,21 @@ export default function UploadArquivos() {
       };
 
       try {
+        console.log('[upload-teste] analisando pessoas em', result.records.length, 'registros');
         result.peopleAnalysis = await analyzePeopleForRecords(result.records, { externalSystem: 'tudobelo' });
+        console.log('[upload-teste] peopleAnalysis:', result.peopleAnalysis);
       } catch (e: any) {
-        console.warn('[upload-teste] falha ao analisar pessoas:', e?.message);
+        console.warn('[upload-teste] falha ao analisar pessoas:', e?.message, e);
+        result.peopleAnalysis = {
+          totalRecords: result.records.length,
+          semIdentificador: 0,
+          distinctPessoas: 0,
+          jaExistem: 0,
+          matchedByExternal: 0,
+          matchedByDocument: 0,
+          novasACriar: 0,
+          novasPreview: [],
+        };
       }
 
       setAnalysis(result);
