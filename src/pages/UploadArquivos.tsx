@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
 import { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
+import { analyzePeopleForRecords, type PeopleAnalysisResult } from "@/utils/analyzePeople";
 
 // Mapeamento Excel → Supabase
 const COLUMN_MAP: Record<string, string> = {
@@ -251,6 +252,7 @@ interface AnalysisResult {
   filteredStats: FilteredStats;
   statusComparison: StatusTituloComparison | null;
   etapaBloqueadoValidation: EtapaBloqueadoValidation | null;
+  peopleAnalysis: PeopleAnalysisResult | null;
 }
 
 function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
@@ -390,6 +392,7 @@ function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagament
     filteredStats,
     statusComparison: null,
     etapaBloqueadoValidation: null,
+    peopleAnalysis: null,
   };
 }
 
@@ -623,6 +626,12 @@ export default function UploadArquivos() {
           return { from, to, count: val.count, records: val.records };
         }),
       };
+
+      try {
+        result.peopleAnalysis = await analyzePeopleForRecords(result.records, { externalSystem: 'tudobelo' });
+      } catch (e: any) {
+        console.warn('[upload-teste] falha ao analisar pessoas:', e?.message);
+      }
 
       setAnalysis(result);
     } catch (err: any) {
@@ -1232,6 +1241,90 @@ export default function UploadArquivos() {
             </CardContent>
           </Card>
         )}
+
+        {/* Análise de Pessoas (CPFs) */}
+        {analysis.peopleAnalysis && (
+          <Card className="border-l-4 border-l-blue-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Análise de Pessoas (CPFs)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">Pessoas distintas</div>
+                  <div className="font-semibold">{analysis.peopleAnalysis.distinctPessoas}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Já existem</div>
+                  <div className="font-semibold text-green-600">{analysis.peopleAnalysis.jaExistem}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">A criar</div>
+                  <div className="font-semibold text-blue-600">{analysis.peopleAnalysis.novasACriar}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Match por código</div>
+                  <div className="font-semibold">{analysis.peopleAnalysis.matchedByExternal}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Match por CPF/CNPJ</div>
+                  <div className="font-semibold">{analysis.peopleAnalysis.matchedByDocument}</div>
+                </div>
+              </div>
+              {analysis.peopleAnalysis.semIdentificador > 0 && (
+                <p className="text-xs text-amber-600 mb-2">
+                  {analysis.peopleAnalysis.semIdentificador} linha(s) sem CPF e sem código de parceiro — não serão vinculadas a nenhuma pessoa.
+                </p>
+              )}
+              {analysis.peopleAnalysis.novasACriar > 0 && (
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-xs gap-1 mb-2">
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      Ver pessoas a serem criadas
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border rounded-md overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Nome</TableHead>
+                            <TableHead className="text-xs">CPF/CNPJ</TableHead>
+                            <TableHead className="text-xs">Código Parceiro</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {analysis.peopleAnalysis.novasPreview.map((p, j) => (
+                            <TableRow key={j} className="text-xs">
+                              <TableCell className="text-xs">{p.nome_parceiro || "-"}</TableCell>
+                              <TableCell className="font-mono text-xs">{p.cnpj_cpf || "-"}</TableCell>
+                              <TableCell className="font-mono text-xs">{p.codigo_parceiro || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                          {analysis.peopleAnalysis.novasACriar > analysis.peopleAnalysis.novasPreview.length && (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-xs text-center text-muted-foreground">
+                                +{analysis.peopleAnalysis.novasACriar - analysis.peopleAnalysis.novasPreview.length} pessoa(s) adicionais não exibidas
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Pessoas existentes não serão atualizadas. (Esta tela de teste não cria pessoas no envio — apenas o ambiente oficial faz a criação.)
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* Validação: Status Título (comparativo com banco) */}
         {analysis.statusComparison && analysis.statusComparison.totalCompared > 0 && (
