@@ -261,7 +261,7 @@ export default function VincularTitulosPessoas() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <img src={logoSuperavit} alt="Superávit" className="h-10" />
