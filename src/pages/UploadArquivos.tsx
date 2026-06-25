@@ -627,6 +627,12 @@ export default function UploadArquivos() {
         }),
       };
 
+      try {
+        result.peopleAnalysis = await analyzePeopleForRecords(result.records, { externalSystem: 'tudobelo' });
+      } catch (e: any) {
+        console.warn('[upload-teste] falha ao analisar pessoas:', e?.message);
+      }
+
       setAnalysis(result);
     } catch (err: any) {
       toast.error(`Erro ao analisar arquivo: ${err.message}`);
