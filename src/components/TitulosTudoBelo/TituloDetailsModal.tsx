@@ -876,6 +876,67 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
               )}
             </section>
 
+            {/* Seção fixa: Dados da Pessoa (vinculada) */}
+            <section className="bg-gradient-to-br from-primary/5 via-card to-card rounded-lg border-2 border-primary/20 p-4">
+              <SectionHeader icon={User} title="Dados da Pessoa" />
+              <div className="mt-3 space-y-3">
+                {personId ? (
+                  isLoadingPerson ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando pessoa...
+                    </div>
+                  ) : person ? (
+                    <>
+                      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Nome da Pessoa (cadastro)</span>
+                          <p className="font-bold text-2xl text-primary leading-tight">{person.name || "-"}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Nome no Título</span>
+                          <p className="font-semibold text-base">{titulo.nome_parceiro || "-"}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t">
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-muted-foreground">CPF/CNPJ</span>
+                          <p className="text-sm font-medium">{person.document || "-"}</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-muted-foreground">Email</span>
+                          <p className="text-sm font-medium truncate">{person.email || "-"}</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-muted-foreground">Telefones</span>
+                          <p className="text-sm font-medium">
+                            {personPhones && personPhones.length > 0
+                              ? personPhones.map((p: any) => p.phone_e164 || p.phone).filter(Boolean).join(' · ')
+                              : "-"}
+                          </p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-muted-foreground">Cidade/UF</span>
+                          <p className="text-sm font-medium">
+                            {person.address_city ? `${person.address_city}/${person.address_state || '-'}` : "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Pessoa não encontrada.</p>
+                  )
+                ) : (
+                  <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Nome no Título</span>
+                      <p className="font-bold text-xl leading-tight">{titulo.nome_parceiro || "-"}</p>
+                    </div>
+                    <span className="text-xs text-amber-600 font-medium">Nenhuma pessoa vinculada a este título.</span>
+                  </div>
+                )}
+              </div>
+            </section>
+
             {/* Seção: Dados que vieram da Tudo Belo (oculta por padrão) */}
             <Collapsible defaultOpen={false}>
               <section className="bg-card rounded-lg border p-4">
