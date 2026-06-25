@@ -3,10 +3,13 @@ import { chunkArray } from '@/lib/supabaseBatch';
 import { onlyDigits } from './normalize-phone';
 import type { TituloPersonSource } from './findOrCreatePerson';
 
+export type PeopleMarcador = 'COM_CPF' | 'SEM_CPF';
+
 export interface PeopleAnalysisPreviewItem {
   nome_parceiro: string | null;
   cnpj_cpf: string | null;
   codigo_parceiro: string | null;
+  marcador: PeopleMarcador;
 }
 
 export interface PeopleAnalysisResult {
@@ -17,6 +20,7 @@ export interface PeopleAnalysisResult {
   matchedByExternal: number;
   matchedByDocument: number;
   novasACriar: number;
+  novasACriarSemCpf: number;
   novasPreview: PeopleAnalysisPreviewItem[];
 }
 
