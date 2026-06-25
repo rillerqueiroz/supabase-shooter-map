@@ -637,10 +637,6 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
               <FileText className="h-4 w-4" />
               Detalhes
             </TabsTrigger>
-            <TabsTrigger value="pessoa" className="flex items-center gap-2" disabled={!personId}>
-              <User className="h-4 w-4" />
-              Pessoa
-            </TabsTrigger>
             <TabsTrigger value="conversas" className="flex items-center gap-2" disabled={!personId}>
               <MessageSquare className="h-4 w-4" />
               Conversas
@@ -1402,21 +1398,6 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
             )}
           </TabsContent>
 
-          {/* Aba: Pessoa Vinculada */}
-          <TabsContent value="pessoa" className="mt-4 space-y-4">
-            {!personId ? (
-              <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg bg-muted/30">
-                Este título ainda não está vinculado a uma pessoa.
-              </div>
-            ) : isLoadingPerson || !person ? (
-              <div className="text-sm text-muted-foreground p-6 text-center">Carregando pessoa...</div>
-            ) : (
-              <>
-                <PessoaInfoView person={person} />
-                <PessoaTelefonesSection personId={person.id} />
-              </>
-            )}
-          </TabsContent>
 
           <TabsContent value="conversas" className="mt-4">
             {personId && person ? (
