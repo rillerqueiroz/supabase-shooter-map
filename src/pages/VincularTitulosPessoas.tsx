@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,12 +37,16 @@ import {
   type TituloComMatches,
   type LinkFilter,
 } from '@/hooks/useTitulosSemPessoa';
+import { supabase } from '@/lib/supabase';
+import { findOrCreatePersonFromTitulo } from '@/utils/findOrCreatePerson';
+import { toast } from 'sonner';
 
 import { formatDocument } from '@/utils/normalize-phone';
-import { Search, Link2, Loader2, X, Users, ChevronDown } from 'lucide-react';
+import { Search, Link2, Loader2, X, Users, ChevronDown, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import logoSuperavit from '@/assets/logo-superavit.png';
+
 
 type MatchFilter = 'todos' | 'codigo_parceiro' | 'cpf_cnpj' | 'ambos' | 'multiplos' | 'sem_match';
 
