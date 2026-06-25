@@ -625,7 +625,7 @@ export default function VincularTitulosPessoas() {
                             </Button>
                           ) : cls === 'sem_match' ? (
                             <Badge variant="outline" className="text-[10px]">—</Badge>
-                          ) : autoPersonId ? (
+                          ) : resolvedPersonId ? (
                             <Button
                               size="sm"
                               className="h-7"
@@ -633,7 +633,7 @@ export default function VincularTitulosPessoas() {
                               onClick={() =>
                                 vincularMut.mutate({
                                   tituloId: t.id,
-                                  personId: autoPersonId,
+                                  personId: resolvedPersonId,
                                 })
                               }
                             >
