@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
 import { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
+import { analyzePeopleForRecords, type PeopleAnalysisResult } from "@/utils/analyzePeople";
 
 // Mapeamento Excel → Supabase
 const COLUMN_MAP: Record<string, string> = {
