@@ -964,7 +964,10 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                   </div>
                 </div>
               )}
-            </section>
+                </CollapsibleContent>
+              </section>
+            </Collapsible>
+
 
             {/* Seção: Valores - TERCEIRA */}
             <section className="bg-card rounded-lg border p-4">
