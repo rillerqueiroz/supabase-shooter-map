@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Search } from 'lucide-react';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { usePeople } from '@/hooks/usePeople';
@@ -22,16 +24,17 @@ export function PessoasTable() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(100);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [onlyWithoutDocument, setOnlyWithoutDocument] = useState(false);
 
-  const { data, isLoading } = usePeople({ search, page, pageSize });
+  const { data, isLoading } = usePeople({ search, page, pageSize, onlyWithoutDocument });
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <Card className="p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 max-w-md min-w-[240px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome, CPF/CNPJ ou telefone"
@@ -43,10 +46,24 @@ export function PessoasTable() {
             }}
           />
         </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="only-without-doc"
+            checked={onlyWithoutDocument}
+            onCheckedChange={(v) => {
+              setPage(0);
+              setOnlyWithoutDocument(!!v);
+            }}
+          />
+          <Label htmlFor="only-without-doc" className="text-sm cursor-pointer">
+            Apenas sem CPF/CNPJ
+          </Label>
+        </div>
         <div className="text-sm text-muted-foreground ml-auto">
-          {total} pessoa(s) vinculada(s) a TUDOBELO / TUDOBELO-FUNDOS
+          {total} pessoa(s){onlyWithoutDocument ? ' sem CPF/CNPJ' : ''} vinculada(s) a TUDOBELO / TUDOBELO-FUNDOS
         </div>
       </div>
+
 
       <div className="rounded-md border">
         <Table>

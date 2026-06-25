@@ -3,10 +3,13 @@ import { chunkArray } from '@/lib/supabaseBatch';
 import { onlyDigits } from './normalize-phone';
 import type { TituloPersonSource } from './findOrCreatePerson';
 
+export type PeopleMarcador = 'COM_CPF' | 'SEM_CPF';
+
 export interface PeopleAnalysisPreviewItem {
   nome_parceiro: string | null;
   cnpj_cpf: string | null;
   codigo_parceiro: string | null;
+  marcador: PeopleMarcador;
 }
 
 export interface PeopleAnalysisResult {
@@ -17,6 +20,7 @@ export interface PeopleAnalysisResult {
   matchedByExternal: number;
   matchedByDocument: number;
   novasACriar: number;
+  novasACriarSemCpf: number;
   novasPreview: PeopleAnalysisPreviewItem[];
 }
 
@@ -58,6 +62,7 @@ export async function analyzePeopleForRecords(
         nome_parceiro: cleanStr(r.nome_parceiro),
         cnpj_cpf: docOk,
         codigo_parceiro: codigo,
+        marcador: docOk ? 'COM_CPF' : 'SEM_CPF',
         dig: docOk,
         codigo,
       });
@@ -112,6 +117,7 @@ export async function analyzePeopleForRecords(
 
   let matchedByExternal = 0;
   let matchedByDocument = 0;
+  let novasACriarSemCpf = 0;
   const novasPreview: PeopleAnalysisPreviewItem[] = [];
 
   for (const v of byKey.values()) {
@@ -123,11 +129,13 @@ export async function analyzePeopleForRecords(
       matchedByDocument++;
       continue;
     }
+    if (v.marcador === 'SEM_CPF') novasACriarSemCpf++;
     if (novasPreview.length < 100) {
       novasPreview.push({
         nome_parceiro: v.nome_parceiro,
         cnpj_cpf: v.cnpj_cpf,
         codigo_parceiro: v.codigo_parceiro,
+        marcador: v.marcador,
       });
     }
   }
@@ -143,6 +151,7 @@ export async function analyzePeopleForRecords(
     matchedByExternal,
     matchedByDocument,
     novasACriar,
+    novasACriarSemCpf,
     novasPreview,
   };
 }
