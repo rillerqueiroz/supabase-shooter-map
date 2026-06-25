@@ -454,7 +454,7 @@ export default function VincularTitulosPessoas() {
               Exibindo {filtered.length.toLocaleString('pt-BR')} de{' '}
               {(titulos?.length ?? 0).toLocaleString('pt-BR')} títulos
             </span>
-            {selectedIds.size > 0 && (
+            {selectedMap.size > 0 && (
               <Button
                 size="sm"
                 onClick={handleBulk}
@@ -466,7 +466,7 @@ export default function VincularTitulosPessoas() {
                 ) : (
                   <Link2 className="h-3.5 w-3.5" />
                 )}
-                Vincular {selectedIds.size} selecionado(s)
+                Vincular {selectedMap.size} selecionado(s)
               </Button>
             )}
           </div>
