@@ -116,6 +116,26 @@ export async function fetchPeople(params: FetchPeopleParams): Promise<FetchPeopl
     allowed = new Set([...allowed].filter((id) => nameIds.has(id)));
   }
 
+  // Filtro "sem CPF/CNPJ"
+  if (onlyWithoutDocument && allowed.size > 0) {
+    const withoutDocIds = new Set<string>();
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('people')
+        .select('id')
+        .or('document_digits.is.null,document_digits.eq.')
+        .is('merged_into_id', null)
+        .range(from, from + CHUNK - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      for (const r of data) if (r.id) withoutDocIds.add(r.id as string);
+      if (data.length < CHUNK) break;
+      from += CHUNK;
+    }
+    allowed = new Set([...allowed].filter((id) => withoutDocIds.has(id)));
+  }
+
   const allIds = Array.from(allowed);
   const total = allIds.length;
   const start = page * pageSize;
