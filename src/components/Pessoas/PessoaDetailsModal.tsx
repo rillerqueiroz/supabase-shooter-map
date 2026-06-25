@@ -23,6 +23,7 @@ interface Props {
 
 export function PessoaDetailsModal({ personId, open, onOpenChange }: Props) {
   const { data: person, isLoading } = usePerson(personId);
+  const { data: phones } = usePersonPhones(personId);
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -90,12 +91,20 @@ export function PessoaDetailsModal({ personId, open, onOpenChange }: Props) {
               <PessoaTelefonesSection personId={person.id} />
 
               <Tabs defaultValue="titulos" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="titulos">Títulos</TabsTrigger>
+                  <TabsTrigger value="conversas">Conversas</TabsTrigger>
+                  <TabsTrigger value="discador">Discador</TabsTrigger>
                   <TabsTrigger value="creditors">Credores &amp; IDs</TabsTrigger>
                 </TabsList>
                 <TabsContent value="titulos">
                   <PessoaTitulosTab documentDigits={person.document_digits} personId={person.id} />
+                </TabsContent>
+                <TabsContent value="conversas">
+                  <ConversasWhatsAppTab phones={phones ?? []} personName={person.name} />
+                </TabsContent>
+                <TabsContent value="discador">
+                  <DiscadorTab personId={person.id} personName={person.name} personCpf={person.cpf} />
                 </TabsContent>
                 <TabsContent value="creditors">
                   <PessoaCredoresExternosTab personId={person.id} />
