@@ -71,15 +71,19 @@ export async function analyzePeopleForRecords(
     new Set(Array.from(byKey.values()).map((v) => v.codigo).filter((x): x is string => !!x)),
   );
   const codigoToPerson = new Map<string, string>();
-  for (const chunk of chunkArray(codigos, 200)) {
-    const { data } = await supabase
-      .from('people_external_ids')
-      .select('external_id, person_id')
-      .eq('system', system)
-      .in('external_id', chunk);
-    for (const row of (data as any[]) || []) {
-      if (!codigoToPerson.has(row.external_id)) {
-        codigoToPerson.set(String(row.external_id), row.person_id as string);
+  if (codigos.length > 0) {
+    for (const chunk of chunkArray(codigos, 200)) {
+      if (!chunk.length) continue;
+      const { data, error } = await supabase
+        .from('people_external_ids')
+        .select('external_id, person_id')
+        .eq('system', system)
+        .in('external_id', chunk);
+      if (error) console.warn('[analyzePeople] external_ids error:', error.message);
+      for (const row of (data as any[]) || []) {
+        if (!codigoToPerson.has(row.external_id)) {
+          codigoToPerson.set(String(row.external_id), row.person_id as string);
+        }
       }
     }
   }
@@ -89,15 +93,19 @@ export async function analyzePeopleForRecords(
     new Set(Array.from(byKey.values()).map((v) => v.dig).filter((x): x is string => !!x)),
   );
   const docToPerson = new Map<string, string>();
-  for (const chunk of chunkArray(docs, 500)) {
-    const { data } = await supabase
-      .from('people')
-      .select('id, document_digits')
-      .in('document_digits', chunk)
-      .is('merged_into_id', null);
-    for (const row of (data as any[]) || []) {
-      if (!docToPerson.has(row.document_digits)) {
-        docToPerson.set(String(row.document_digits), row.id as string);
+  if (docs.length > 0) {
+    for (const chunk of chunkArray(docs, 500)) {
+      if (!chunk.length) continue;
+      const { data, error } = await supabase
+        .from('people')
+        .select('id, document_digits')
+        .in('document_digits', chunk)
+        .is('merged_into_id', null);
+      if (error) console.warn('[analyzePeople] people error:', error.message);
+      for (const row of (data as any[]) || []) {
+        if (!docToPerson.has(row.document_digits)) {
+          docToPerson.set(String(row.document_digits), row.id as string);
+        }
       }
     }
   }
