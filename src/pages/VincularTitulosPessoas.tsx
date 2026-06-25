@@ -81,10 +81,12 @@ function CandidatePicker({
   candidates,
   onPick,
   pending,
+  selectedPersonId,
 }: {
   candidates: MatchCandidate[];
   onPick: (personId: string) => void;
   pending: boolean;
+  selectedPersonId?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   if (candidates.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
@@ -109,40 +111,62 @@ function CandidatePicker({
     );
   }
 
+  const chosen = candidates.find((c) => c.person_id === selectedPersonId) || null;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 w-full justify-between">
-          <span className="text-xs">{candidates.length} candidatos</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+        <Button
+          variant={chosen ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-auto min-h-8 w-full justify-between py-1.5"
+        >
+          {chosen ? (
+            <div className="flex flex-col items-start gap-0.5 min-w-0">
+              <span className="text-xs font-medium truncate max-w-[200px]" title={chosen.name || ''}>
+                {chosen.name || '(sem nome)'}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {formatDocument(chosen.cpf) || '—'}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs">{candidates.length} candidatos — escolher</span>
+          )}
+          <ChevronDown className="h-3 w-3 opacity-50 shrink-0 ml-1" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[320px] p-1" align="end">
         <div className="max-h-72 overflow-auto">
-          {candidates.map((c) => (
-            <button
-              key={c.person_id}
-              type="button"
-              disabled={pending}
-              onClick={() => {
-                onPick(c.person_id);
-                setOpen(false);
-              }}
-              className="w-full text-left px-2 py-2 rounded hover:bg-muted text-xs flex items-start gap-2"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="font-medium truncate">{c.name || '(sem nome)'}</div>
-                <div className="text-[10px] text-muted-foreground font-mono">
-                  {formatDocument(c.cpf) || '—'}
+          {candidates.map((c) => {
+            const isSel = c.person_id === selectedPersonId;
+            return (
+              <button
+                key={c.person_id}
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  onPick(c.person_id);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-2 py-2 rounded text-xs flex items-start gap-2 ${
+                  isSel ? 'bg-muted' : 'hover:bg-muted'
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{c.name || '(sem nome)'}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    {formatDocument(c.cpf) || '—'}
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-col gap-0.5 items-end">
-                {c.reasons.map((r) => (
-                  <CandidateBadge key={r} reason={r} />
-                ))}
-              </div>
-            </button>
-          ))}
+                <div className="flex flex-col gap-0.5 items-end">
+                  {c.reasons.map((r) => (
+                    <CandidateBadge key={r} reason={r} />
+                  ))}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>
@@ -166,7 +190,7 @@ export default function VincularTitulosPessoas() {
   const [parceiros, setParceiros] = useState<string[]>([]);
   const [filiais, setFiliais] = useState<string[]>([]);
   const [ufs, setUfs] = useState<string[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedMap, setSelectedMap] = useState<Map<string, string>>(new Map());
 
   const options = useMemo(() => {
     if (!titulos) return { parceiros: [] as string[], filiais: [] as string[], ufs: [] as string[] };
@@ -221,30 +245,50 @@ export default function VincularTitulosPessoas() {
     };
   }, [titulos]);
 
-  const selectableInPage = paginatedData.filter((t) => t.candidates.length === 1);
+  // A row is "selectable" once we know which personId to assign:
+  // - single-candidate rows: auto
+  // - multi-candidate rows: only after the user picks one in the popover
+  const getAutoPersonId = (t: TituloComMatches): string | null => {
+    if (t.person_id) return null;
+    const picked = selectedMap.get(t.id);
+    if (picked) return picked;
+    if (t.candidates.length === 1) return t.candidates[0].person_id;
+    return null;
+  };
+
+  const selectableInPage = paginatedData.filter((t) => !t.person_id && !!getAutoPersonId(t));
   const allPageSelected =
-    selectableInPage.length > 0 && selectableInPage.every((t) => selectedIds.has(t.id));
+    selectableInPage.length > 0 && selectableInPage.every((t) => selectedMap.has(t.id));
+
+  const setSelected = (tituloId: string, personId: string | null) => {
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      if (personId == null) next.delete(tituloId);
+      else next.set(tituloId, personId);
+      return next;
+    });
+  };
 
   const togglePage = (checked: boolean) => {
-    const next = new Set(selectedIds);
-    for (const t of selectableInPage) {
-      if (checked) next.add(t.id);
-      else next.delete(t.id);
-    }
-    setSelectedIds(next);
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      for (const t of selectableInPage) {
+        const pid = getAutoPersonId(t);
+        if (checked && pid) next.set(t.id, pid);
+        else if (!checked) next.delete(t.id);
+      }
+      return next;
+    });
   };
 
   const handleBulk = () => {
     const pairs: Array<{ tituloId: string; personId: string }> = [];
-    for (const t of filtered) {
-      if (!selectedIds.has(t.id)) continue;
-      if (t.candidates.length === 1) {
-        pairs.push({ tituloId: t.id, personId: t.candidates[0].person_id });
-      }
+    for (const [tituloId, personId] of selectedMap) {
+      pairs.push({ tituloId, personId });
     }
     if (!pairs.length) return;
     bulkMut.mutate(pairs, {
-      onSuccess: () => setSelectedIds(new Set()),
+      onSuccess: () => setSelectedMap(new Map()),
     });
   };
 
@@ -410,7 +454,7 @@ export default function VincularTitulosPessoas() {
               Exibindo {filtered.length.toLocaleString('pt-BR')} de{' '}
               {(titulos?.length ?? 0).toLocaleString('pt-BR')} títulos
             </span>
-            {selectedIds.size > 0 && (
+            {selectedMap.size > 0 && (
               <Button
                 size="sm"
                 onClick={handleBulk}
@@ -422,7 +466,7 @@ export default function VincularTitulosPessoas() {
                 ) : (
                   <Link2 className="h-3.5 w-3.5" />
                 )}
-                Vincular {selectedIds.size} selecionado(s)
+                Vincular {selectedMap.size} selecionado(s)
               </Button>
             )}
           </div>
@@ -467,18 +511,18 @@ export default function VincularTitulosPessoas() {
                   paginatedData.map((t) => {
                     const cls = classifyMatch(t);
                     const isLinked = !!t.person_id;
-                    const isSelectable = !isLinked && t.candidates.length === 1;
+                    const pickedPersonId = selectedMap.get(t.id) || null;
+                    const autoPersonId = getAutoPersonId(t);
+                    const isSelectable = !isLinked && !!autoPersonId;
                     return (
                       <TableRow key={t.id}>
                         <TableCell>
                           <Checkbox
                             disabled={!isSelectable}
-                            checked={selectedIds.has(t.id)}
+                            checked={selectedMap.has(t.id)}
                             onCheckedChange={(c) => {
-                              const next = new Set(selectedIds);
-                              if (c) next.add(t.id);
-                              else next.delete(t.id);
-                              setSelectedIds(next);
+                              if (c) setSelected(t.id, autoPersonId!);
+                              else setSelected(t.id, null);
                             }}
                           />
                         </TableCell>
@@ -508,9 +552,8 @@ export default function VincularTitulosPessoas() {
                             <CandidatePicker
                               candidates={t.candidates}
                               pending={vincularMut.isPending}
-                              onPick={(personId) =>
-                                vincularMut.mutate({ tituloId: t.id, personId })
-                              }
+                              selectedPersonId={pickedPersonId}
+                              onPick={(personId) => setSelected(t.id, personId)}
                             />
                           )}
                         </TableCell>
@@ -527,7 +570,7 @@ export default function VincularTitulosPessoas() {
                             </Button>
                           ) : cls === 'sem_match' ? (
                             <Badge variant="outline" className="text-[10px]">—</Badge>
-                          ) : t.candidates.length === 1 ? (
+                          ) : autoPersonId ? (
                             <Button
                               size="sm"
                               className="h-7"
@@ -535,7 +578,7 @@ export default function VincularTitulosPessoas() {
                               onClick={() =>
                                 vincularMut.mutate({
                                   tituloId: t.id,
-                                  personId: t.candidates[0].person_id,
+                                  personId: autoPersonId,
                                 })
                               }
                             >
@@ -543,9 +586,8 @@ export default function VincularTitulosPessoas() {
                             </Button>
                           ) : (
                             <Badge variant="secondary" className="text-[10px]">
-                              {t.candidates.length} opções
+                              escolher
                             </Badge>
-
                           )}
                         </TableCell>
                       </TableRow>
