@@ -632,16 +632,33 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="detalhes" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Detalhes
+            </TabsTrigger>
+            <TabsTrigger value="pessoa" className="flex items-center gap-2" disabled={!personId}>
+              <User className="h-4 w-4" />
+              Pessoa
+            </TabsTrigger>
+            <TabsTrigger value="conversas" className="flex items-center gap-2" disabled={!personId}>
+              <MessageSquare className="h-4 w-4" />
+              Conversas
+            </TabsTrigger>
+            <TabsTrigger value="discador" className="flex items-center gap-2" disabled={!personId}>
+              <Phone className="h-4 w-4" />
+              Discador
+            </TabsTrigger>
+            <TabsTrigger value="credores" className="flex items-center gap-2" disabled={!personId}>
+              <Building2 className="h-4 w-4" />
+              Credores & IDs
             </TabsTrigger>
             <TabsTrigger value="historico" className="flex items-center gap-2">
               <History className="h-4 w-4" />
               Histórico
             </TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="detalhes" className="space-y-6 mt-4">
             {/* Seção: Status - PRIMEIRA */}
