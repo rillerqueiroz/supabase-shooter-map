@@ -24,6 +24,7 @@ import UploadPagosOficial from "./pages/UploadPagosOficial";
 import ChecagemInconsistencias from "./pages/ChecagemInconsistencias";
 import TitulosPagosTudoBelo from "./pages/TitulosPagosTudoBelo";
 import Pessoas from "./pages/Pessoas";
+import VincularTitulosPessoas from "./pages/VincularTitulosPessoas";
 
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -80,6 +81,7 @@ const App = () => {
               <Route path="/checagem-inconsistencias" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/checagem-inconsistencias')!}><ChecagemInconsistencias /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/titulos-pagos-tudobelo" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/titulos-pagos-tudobelo')!}><TitulosPagosTudoBelo /></ProtectedScreen></ProtectedRoute>} />
               <Route path="/pessoas" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/pessoas')!}><Pessoas /></ProtectedScreen></ProtectedRoute>} />
+              <Route path="/vincular-titulos-pessoas" element={<ProtectedRoute><ProtectedScreen screenSlug={getScreenSlugFromRoute('/vincular-titulos-pessoas')!}><VincularTitulosPessoas /></ProtectedScreen></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
