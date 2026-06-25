@@ -14,6 +14,7 @@ export const routeToScreenSlug: Record<string, string> = {
   '/checagem-inconsistencias': 'gestao-titulos-tudobelo',
   '/gestao-acesso-sistemas': 'configuracoes',
   '/pessoas': 'gestao-titulos-tudobelo',
+  '/vincular-titulos-pessoas': 'gestao-titulos-tudobelo',
 };
 
 export const getScreenSlugFromRoute = (route: string): string | undefined => {
