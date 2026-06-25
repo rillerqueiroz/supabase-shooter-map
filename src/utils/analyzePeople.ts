@@ -71,15 +71,19 @@ export async function analyzePeopleForRecords(
     new Set(Array.from(byKey.values()).map((v) => v.codigo).filter((x): x is string => !!x)),
   );
   const codigoToPerson = new Map<string, string>();
-  for (const chunk of chunkArray(codigos, 200)) {
-    const { data } = await supabase
-      .from('people_external_ids')
-      .select('external_id, person_id')
-      .eq('system', system)
-      .in('external_id', chunk);
-    for (const row of (data as any[]) || []) {
-      if (!codigoToPerson.has(row.external_id)) {
-        codigoToPerson.set(String(row.external_id), row.person_id as string);
+  if (codigos.length > 0) {
+    for (const chunk of chunkArray(codigos, 200)) {
+      if (!chunk.length) continue;
+      const { data, error } = await supabase
+        .from('people_external_ids')
+        .select('external_id, person_id')
+        .eq('system', system)
+        .in('external_id', chunk);
+      if (error) console.warn('[analyzePeople] external_ids error:', error.message);
+      for (const row of (data as any[]) || []) {
+        if (!codigoToPerson.has(row.external_id)) {
+          codigoToPerson.set(String(row.external_id), row.person_id as string);
+        }
       }
     }
   }
