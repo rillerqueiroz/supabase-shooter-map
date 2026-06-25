@@ -1,49 +1,82 @@
+# Plano — Página Pessoas (Data Lake) com vínculo TUDOBELO / TUDOBELO-FUNDOS
 
-## Plano: Impedimento de Negativação
+## Objetivo
+Nova página `/pessoas` que lista, busca, edita e deduplica pessoas do data lake (`people`) que tenham vínculo ativo em `people_creditors` com `creditor_code IN ('TUDOBELO','TUDOBELO-FUNDOS')`. Sem migração de schema — as tabelas já existem no Supabase.
 
-### 1. Banco de dados (migration)
-Adicionar coluna em `base_tudobelo_intermediaria`:
-- `impedido_negativacao boolean default false`
-- `motivo_impedimento_negativacao text` (opcional, para registrar o porquê)
-- `data_impedimento_negativacao timestamptz` (auditoria)
+## Escopo (Fase 1)
+1. Listagem paginada com busca (nome, CPF/CNPJ, telefone) e filtro fixo nos dois credores.
+2. Modal de detalhe da pessoa: dados cadastrais + telefones + credores + IDs externos + títulos vinculados (via `base_tudobelo_intermediaria.cnpj_cpf`).
+3. Edição inline da pessoa e CRUD de telefones (adicionar / validar / invalidar / marcar WhatsApp).
+4. Aba "Duplicados" com `people_duplicates` e ação de merge via RPC `merge_people`.
 
-### 2. Tipos (`useTitulosTudoBelo.ts`)
-- Adicionar os 3 campos à interface `TituloTudoBelo`.
-- Incluir `impedido_negativacao` nos `select(...)` da query principal.
+## Arquitetura
 
-### 3. Página `GestaoNegativadosTudoBelo.tsx`
-- Recalcular `negativarData` para excluir `impedido_negativacao === true` por padrão.
-- Adicionar 5º card de métrica **"Impedidos de Negativar"** (count + saldo total).
-- Cards continuam baseados na base completa (independentes de filtros da aba), mas o de "Pendentes Negativar" passa a refletir só os negativáveis (sem impedidos).
+### Backend (já existente — apenas consumir)
+- `people`, `people_phones`, `people_creditors`, `people_external_ids`
+- VIEW `people_duplicates`, RPC `merge_people(_canonical, _duplicates[])`
+- RLS permissiva `authenticated`; segurança real via screen permission.
 
-### 4. Aba Negativar (`NegativarTab.tsx`)
-- Receber também a lista completa de pendentes (com impedidos) ou aplicar o filtro internamente — vou repassar `negativarData` já filtrado + `impedidosData` separado via props.
-- Novo toggle no topo: **"Exibir impedidos"** (ícone ShieldOff). Off por padrão.
-  - Off → mostra só negativáveis.
-  - On → mistura impedidos na tabela com badge visual "Impedido" (linha em opacity reduzida, checkbox desabilitado).
-- Nova coluna "Impedido" na tabela (badge vermelho quando true).
-- Ações em massa só selecionam não-impedidos (checkbox desabilitado para impedidos).
-- **Recalcular contagem do badge "X títulos disponíveis para negativação"** com base no `filtered` atual (já reativo), refletindo filtros aplicados.
-- **Os 4 cards de métrica no topo da página passam a reagir aos filtros aplicados na aba ativa** — vou elevar o estado de filtros para o componente pai OU recalcular via callback. Abordagem escolhida: manter filtros locais na aba e expor `onFilteredChange(filteredData)` para o pai recalcular cards quando a aba Negativar estiver ativa.
+### Frontend — novos arquivos
+```
+src/types/people.ts                          # Person, PersonPhone, PersonCreditor, PersonExternalId
+src/utils/supabase-people-mapper.ts          # API TS (porta da existente em outro projeto)
+src/utils/normalize-phone.ts                 # normalizarTelefone / variantesTelefone
+src/hooks/usePeople.ts                       # fetchPeople paginado + filtro fixo TUDOBELO/-FUNDOS
+src/hooks/usePersonDetail.ts                 # pessoa + telefones + credores + external_ids
+src/hooks/usePeopleMutations.ts              # update person, add/validate/invalidate phone, addCreditor
+src/hooks/usePeopleDuplicates.ts             # grupos + mergeMutation
+src/hooks/useTitulosByCpf.ts                 # títulos em base_tudobelo_intermediaria por document_digits
 
-### 5. Ação de marcar como impedido
-- Novo botão "Marcar como impedido" aparece quando há seleção (ao lado de "Negativar X selecionados").
-- Abre dialog pedindo motivo (textarea obrigatório).
-- Atualiza os títulos selecionados via `update` no Supabase + log em `base_tudobelo_negativacoes_log` com `acao = 'impedimento'`.
-- Inverso: na visualização de impedidos (com toggle on), botão "Remover impedimento" para os selecionados impedidos.
+src/pages/Pessoas.tsx                        # shell com tabs: "Pessoas" | "Duplicados"
+src/components/Pessoas/PessoasTable.tsx      # tabela + busca + paginação (DataTablePagination)
+src/components/Pessoas/PessoaDetailsModal.tsx
+src/components/Pessoas/PessoaInfoTab.tsx
+src/components/Pessoas/PessoaTelefonesTab.tsx
+src/components/Pessoas/PessoaCredoresExternosTab.tsx
+src/components/Pessoas/PessoaTitulosTab.tsx
+src/components/Pessoas/DuplicadosTab.tsx
+src/components/Pessoas/MergePeopleDialog.tsx
+```
 
-### 6. Hook novo `useImpedirNegativacao` em `useNegativacoes.ts`
-- `useMarcarImpedido({ tituloIds, motivo })` — update em massa + insert no log.
-- `useRemoverImpedimento({ tituloIds, motivo })` — limpa flag + log.
+### Frontend — arquivos editados
+- `src/App.tsx` — rota `/pessoas` protegida por `ProtectedScreen` slug `pessoas`.
+- `src/components/Layout/AppSidebar.tsx` — novo item "Pessoas" (ícone `Users`).
+- `src/utils/screenMapping.ts` — mapeia `/pessoas` → `pessoas`.
 
-### Arquivos alterados
-- **Migration nova**: adicionar 3 colunas em `base_tudobelo_intermediaria`.
-- `src/hooks/useTitulosTudoBelo.ts` — interface + select.
-- `src/hooks/useNegativacoes.ts` — 2 mutations novas.
-- `src/pages/GestaoNegativadosTudoBelo.tsx` — 5º card + filtro de impedidos + callback de filtros reativos.
-- `src/components/NegativadosTudoBelo/NegativarTab.tsx` — toggle, coluna, dialog impedir, ações em massa, callback de filtros.
+## Lógica de filtro fixo TUDOBELO
+Constante única `TUDOBELO_CREDITORS = ['TUDOBELO','TUDOBELO-FUNDOS']` (em `supabase-people-mapper.ts`).
 
-### Decisões assumidas
-- Toggle "Exibir impedidos" mantém os impedidos **misturados na mesma tabela** (não em sub-aba), com indicação visual.
-- Cards de métricas reagem **somente** aos filtros da aba atualmente ativa; nas demais abas mantém comportamento atual baseado na base completa.
-- Nada muda nas abas "Títulos Negativados", "Remover Negativação" e "Histórico".
+Pipeline de `fetchPeople`:
+1. Consultar `people_creditors` com `creditor_code.in.(TUDOBELO,TUDOBELO-FUNDOS)` e `status='ativo'`, paginando em chunks de 1000 com `.range()` → `personIds` (Set, dedup).
+2. Sobre esse Set, aplicar filtros adicionais em `people`:
+   - busca por nome: `name.ilike.%q%`
+   - busca por documento: extrai dígitos; se ≥3 dígitos usa `document_digits.ilike.%digits%`
+   - busca por telefone: se a query tem ≥4 dígitos, usar `variantesTelefone` em `people_phones.phone.ilike.%v%` → mapeia `person_id` e intersecta com o Set
+3. `merged_into_id is null` sempre.
+4. Paginação no client (a lista de IDs costuma caber); para growth, alternativa documentada: chunked `id.in.(...)` com `.range(from,to)`.
+
+## Modal de detalhe — abas
+- **Info**: campos editáveis (`name`, `cpf`, `email`, endereço, RG, nascimento, `person_type`, bloco cônjuge). Botão Salvar usa `updatePerson`.
+- **Telefones**: tabela com `phone`, `phone_type`, `source`, badges WhatsApp / Validado / Inválido; ações Adicionar / Validar / Invalidar / Toggle WhatsApp.
+- **Credores & IDs externos**: lista todos `people_creditors` (destaca TUDOBELO/-FUNDOS); lista `people_external_ids` agrupados por `system`. Adicionar credor / external_id manualmente.
+- **Títulos**: consulta `base_tudobelo_intermediaria` por `cnpj_cpf` normalizado (document_digits da pessoa). Linha clicável abre `TituloDetailsModal` existente.
+
+## Aba Duplicados
+- Lista grupos de `people_duplicates` (paginado).
+- Em cada grupo: seleciona canônico (default = mais antigo) e confirma merge via `MergePeopleDialog` → RPC `merge_people(canonical, duplicates[])`.
+- Toast + invalidação de queries.
+
+## Permissão
+- Adicionar screen slug `pessoas` ao seed/lista (`useGestaoSplitsScreensList` / banco de permissões) — operação manual de admin pela tela de permissões existente. Plano não cria migration de seed; documentado no PR.
+
+## Padrões respeitados
+- Marca Superavit (Preto/Dourado), tabelas no padrão existente, `DataTablePagination`, modais full-width com `Dialog`, `useQuery`/`useMutation` com invalidations otimistas.
+- Bypass do limite 1000 com `.range()` em chunks (`supabaseBatch.ts` quando aplicável).
+- Telefones: nunca normalizar na escrita; normalizar na busca com `variantesTelefone`.
+- `creditor_code` sempre `.toUpperCase().trim()` ao escrever.
+
+## Fora de escopo
+- Sync com Cedrus / cascata `fetchCedrusByPhones`.
+- Importação em massa de pessoas.
+- Criar pessoa do zero (apenas via backfill externo, conforme combinado).
+- VIEWs legadas `base_devedores`/`telefones_devedores` (não usadas neste projeto).
