@@ -1341,12 +1341,59 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
             )}
           </TabsContent>
 
+          {/* Aba: Pessoa Vinculada */}
+          <TabsContent value="pessoa" className="mt-4 space-y-4">
+            {!personId ? (
+              <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg bg-muted/30">
+                Este título ainda não está vinculado a uma pessoa.
+              </div>
+            ) : isLoadingPerson || !person ? (
+              <div className="text-sm text-muted-foreground p-6 text-center">Carregando pessoa...</div>
+            ) : (
+              <>
+                <PessoaInfoView person={person} />
+                <PessoaTelefonesSection personId={person.id} />
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="conversas" className="mt-4">
+            {personId && person ? (
+              <ConversasWhatsAppTab phones={personPhones ?? []} personName={person.name} />
+            ) : (
+              <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg bg-muted/30">
+                Vincule uma pessoa para visualizar conversas.
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="discador" className="mt-4">
+            {personId && person ? (
+              <DiscadorTab personId={person.id} personName={person.name} personCpf={person.cpf} />
+            ) : (
+              <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg bg-muted/30">
+                Vincule uma pessoa para visualizar o discador.
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="credores" className="mt-4">
+            {personId ? (
+              <PessoaCredoresExternosTab personId={personId} />
+            ) : (
+              <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg bg-muted/30">
+                Vincule uma pessoa para visualizar credores e IDs.
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="historico" className="mt-4">
             <section className="bg-card rounded-lg border p-4">
               <SectionHeader icon={History} title="Histórico de Alterações" />
               <TituloHistoricoSection tituloId={titulo.id} dataCriacao={titulo.data_criacao} />
             </section>
           </TabsContent>
+
         </Tabs>
       </DialogContent>
       <CedrusConfirmDialog
