@@ -68,6 +68,7 @@ interface DevedorAgrupado {
   documentos: string[];
   filiais: Set<string>;
   formasPagamento: Set<string>;
+  credoresCedrus: Set<string>;
   email: string;
   fonesTitulo: string[];
 }
