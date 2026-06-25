@@ -466,7 +466,8 @@ export default function VincularTitulosPessoas() {
                 ) : (
                   paginatedData.map((t) => {
                     const cls = classifyMatch(t);
-                    const isSelectable = t.candidates.length === 1;
+                    const isLinked = !!t.person_id;
+                    const isSelectable = !isLinked && t.candidates.length === 1;
                     return (
                       <TableRow key={t.id}>
                         <TableCell>
@@ -494,16 +495,37 @@ export default function VincularTitulosPessoas() {
                           {formatCurrency(t.saldo_parcela)}
                         </TableCell>
                         <TableCell>
-                          <CandidatePicker
-                            candidates={t.candidates}
-                            pending={vincularMut.isPending}
-                            onPick={(personId) =>
-                              vincularMut.mutate({ tituloId: t.id, personId })
-                            }
-                          />
+                          {isLinked ? (
+                            <div className="flex flex-col gap-1 min-w-0">
+                              <div className="text-xs font-medium truncate" title={t.linked_person?.name || ''}>
+                                {t.linked_person?.name || '(pessoa)'}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono truncate">
+                                {formatDocument(t.linked_person?.cpf || null) || '—'}
+                              </div>
+                            </div>
+                          ) : (
+                            <CandidatePicker
+                              candidates={t.candidates}
+                              pending={vincularMut.isPending}
+                              onPick={(personId) =>
+                                vincularMut.mutate({ tituloId: t.id, personId })
+                              }
+                            />
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {cls === 'sem_match' ? (
+                          {isLinked ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7"
+                              disabled={desvincularMut.isPending}
+                              onClick={() => desvincularMut.mutate(t.id)}
+                            >
+                              <X className="h-3 w-3 mr-1" /> Desvincular
+                            </Button>
+                          ) : cls === 'sem_match' ? (
                             <Badge variant="outline" className="text-[10px]">—</Badge>
                           ) : t.candidates.length === 1 ? (
                             <Button
@@ -523,6 +545,7 @@ export default function VincularTitulosPessoas() {
                             <Badge variant="secondary" className="text-[10px]">
                               {t.candidates.length} opções
                             </Badge>
+
                           )}
                         </TableCell>
                       </TableRow>
