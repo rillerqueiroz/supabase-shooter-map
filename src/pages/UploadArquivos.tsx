@@ -392,6 +392,7 @@ function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagament
     filteredStats,
     statusComparison: null,
     etapaBloqueadoValidation: null,
+    peopleAnalysis: null,
   };
 }
 
