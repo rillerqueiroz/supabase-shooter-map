@@ -511,18 +511,18 @@ export default function VincularTitulosPessoas() {
                   paginatedData.map((t) => {
                     const cls = classifyMatch(t);
                     const isLinked = !!t.person_id;
-                    const isSelectable = !isLinked && t.candidates.length === 1;
+                    const pickedPersonId = selectedMap.get(t.id) || null;
+                    const autoPersonId = getAutoPersonId(t);
+                    const isSelectable = !isLinked && !!autoPersonId;
                     return (
                       <TableRow key={t.id}>
                         <TableCell>
                           <Checkbox
                             disabled={!isSelectable}
-                            checked={selectedIds.has(t.id)}
+                            checked={selectedMap.has(t.id)}
                             onCheckedChange={(c) => {
-                              const next = new Set(selectedIds);
-                              if (c) next.add(t.id);
-                              else next.delete(t.id);
-                              setSelectedIds(next);
+                              if (c) setSelected(t.id, autoPersonId!);
+                              else setSelected(t.id, null);
                             }}
                           />
                         </TableCell>
@@ -552,9 +552,8 @@ export default function VincularTitulosPessoas() {
                             <CandidatePicker
                               candidates={t.candidates}
                               pending={vincularMut.isPending}
-                              onPick={(personId) =>
-                                vincularMut.mutate({ tituloId: t.id, personId })
-                              }
+                              selectedPersonId={pickedPersonId}
+                              onPick={(personId) => setSelected(t.id, personId)}
                             />
                           )}
                         </TableCell>
