@@ -190,7 +190,7 @@ export default function VincularTitulosPessoas() {
   const [parceiros, setParceiros] = useState<string[]>([]);
   const [filiais, setFiliais] = useState<string[]>([]);
   const [ufs, setUfs] = useState<string[]>([]);
-  const [selectedMap, setSelectedMap] = useState<Map<string, string>>(new Map());
+  const [selectedMap, setSelectedMap] = useState<Map<string, string | null>>(new Map());
 
   const options = useMemo(() => {
     if (!titulos) return { parceiros: [] as string[], filiais: [] as string[], ufs: [] as string[] };
@@ -245,10 +245,8 @@ export default function VincularTitulosPessoas() {
     };
   }, [titulos]);
 
-  // A row is "selectable" once we know which personId to assign:
-  // - single-candidate rows: auto
-  // - multi-candidate rows: only after the user picks one in the popover
-  const getAutoPersonId = (t: TituloComMatches): string | null => {
+  // PersonId resolution: prefer user-picked, else auto when only one candidate exists.
+  const getResolvedPersonId = (t: TituloComMatches): string | null => {
     if (t.person_id) return null;
     const picked = selectedMap.get(t.id);
     if (picked) return picked;
@@ -256,15 +254,23 @@ export default function VincularTitulosPessoas() {
     return null;
   };
 
-  const selectableInPage = paginatedData.filter((t) => !t.person_id && !!getAutoPersonId(t));
+  // Any unlinked row is selectable now; multi-candidate rows just need a pick before bulk-vincular.
+  const selectableInPage = paginatedData.filter((t) => !t.person_id);
   const allPageSelected =
     selectableInPage.length > 0 && selectableInPage.every((t) => selectedMap.has(t.id));
 
   const setSelected = (tituloId: string, personId: string | null) => {
     setSelectedMap((prev) => {
       const next = new Map(prev);
-      if (personId == null) next.delete(tituloId);
-      else next.set(tituloId, personId);
+      next.set(tituloId, personId);
+      return next;
+    });
+  };
+
+  const unsetSelected = (tituloId: string) => {
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      next.delete(tituloId);
       return next;
     });
   };
@@ -273,18 +279,68 @@ export default function VincularTitulosPessoas() {
     setSelectedMap((prev) => {
       const next = new Map(prev);
       for (const t of selectableInPage) {
-        const pid = getAutoPersonId(t);
-        if (checked && pid) next.set(t.id, pid);
-        else if (!checked) next.delete(t.id);
+        if (checked) {
+          if (!next.has(t.id)) next.set(t.id, getResolvedPersonId(t));
+        } else {
+          next.delete(t.id);
+        }
       }
       return next;
     });
   };
 
+  // Build groups of SELECTED rows that still need a pick, keyed by candidate-set signature.
+  // Lets the user assign one candidate to a whole group at once.
+  const pendingGroups = useMemo(() => {
+    const byId = new Map<string, TituloComMatches>();
+    for (const t of filtered) byId.set(t.id, t);
+    const groups = new Map<
+      string,
+      { candidates: MatchCandidate[]; tituloIds: string[]; parceiros: Set<string> }
+    >();
+    for (const [tituloId, personId] of selectedMap) {
+      if (personId) continue;
+      const t = byId.get(tituloId);
+      if (!t || t.candidates.length < 2) continue;
+      const sig = t.candidates
+        .map((c) => c.person_id)
+        .sort()
+        .join('|');
+      const g = groups.get(sig);
+      if (g) {
+        g.tituloIds.push(t.id);
+        if (t.nome_parceiro) g.parceiros.add(t.nome_parceiro);
+      } else {
+        groups.set(sig, {
+          candidates: t.candidates,
+          tituloIds: [t.id],
+          parceiros: new Set(t.nome_parceiro ? [t.nome_parceiro] : []),
+        });
+      }
+    }
+    return Array.from(groups.values());
+  }, [selectedMap, filtered]);
+
+  const applyCandidateToGroup = (tituloIds: string[], personId: string) => {
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      for (const id of tituloIds) next.set(id, personId);
+      return next;
+    });
+  };
+
+  const readyCount = useMemo(() => {
+    let n = 0;
+    for (const v of selectedMap.values()) if (v) n++;
+    return n;
+  }, [selectedMap]);
+
+  const pendingCount = selectedMap.size - readyCount;
+
   const handleBulk = () => {
     const pairs: Array<{ tituloId: string; personId: string }> = [];
     for (const [tituloId, personId] of selectedMap) {
-      pairs.push({ tituloId, personId });
+      if (personId) pairs.push({ tituloId, personId });
     }
     if (!pairs.length) return;
     bulkMut.mutate(pairs, {
@@ -449,27 +505,77 @@ export default function VincularTitulosPessoas() {
             )}
           </div>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center justify-between text-sm text-muted-foreground gap-2 flex-wrap">
             <span>
               Exibindo {filtered.length.toLocaleString('pt-BR')} de{' '}
               {(titulos?.length ?? 0).toLocaleString('pt-BR')} títulos
             </span>
             {selectedMap.size > 0 && (
-              <Button
-                size="sm"
-                onClick={handleBulk}
-                disabled={bulkMut.isPending}
-                className="gap-1"
-              >
-                {bulkMut.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Link2 className="h-3.5 w-3.5" />
-                )}
-                Vincular {selectedMap.size} selecionado(s)
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs">
+                  {selectedMap.size} selecionado(s) · {readyCount} prontos
+                  {pendingCount > 0 && ` · ${pendingCount} sem escolha`}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedMap(new Map())}
+                >
+                  <X className="h-3.5 w-3.5 mr-1" /> Limpar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulk}
+                  disabled={bulkMut.isPending || readyCount === 0}
+                  className="gap-1"
+                >
+                  {bulkMut.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Link2 className="h-3.5 w-3.5" />
+                  )}
+                  Vincular {readyCount} título(s)
+                </Button>
+              </div>
             )}
           </div>
+
+          {pendingGroups.length > 0 && (
+            <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+              <div className="text-xs font-medium">
+                Escolher candidato em lote ({pendingGroups.length} grupo
+                {pendingGroups.length > 1 ? 's' : ''})
+              </div>
+              <div className="space-y-2">
+                {pendingGroups.map((g, idx) => {
+                  const parceirosLabel = Array.from(g.parceiros).join(', ') || '—';
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 flex-wrap bg-background border rounded-md p-2"
+                    >
+                      <div className="flex-1 min-w-[200px]">
+                        <div className="text-xs font-medium">
+                          {g.tituloIds.length} título(s) · {g.candidates.length} candidatos
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate" title={parceirosLabel}>
+                          Parceiro(s): {parceirosLabel}
+                        </div>
+                      </div>
+                      <div className="min-w-[260px] flex-1">
+                        <CandidatePicker
+                          candidates={g.candidates}
+                          pending={false}
+                          selectedPersonId={null}
+                          onPick={(pid) => applyCandidateToGroup(g.tituloIds, pid)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="rounded-md border overflow-x-auto">
             <Table className="min-w-[1200px]">
@@ -512,17 +618,16 @@ export default function VincularTitulosPessoas() {
                     const cls = classifyMatch(t);
                     const isLinked = !!t.person_id;
                     const pickedPersonId = selectedMap.get(t.id) || null;
-                    const autoPersonId = getAutoPersonId(t);
-                    const isSelectable = !isLinked && !!autoPersonId;
+                    const resolvedPersonId = getResolvedPersonId(t);
                     return (
                       <TableRow key={t.id}>
                         <TableCell>
                           <Checkbox
-                            disabled={!isSelectable}
+                            disabled={isLinked}
                             checked={selectedMap.has(t.id)}
                             onCheckedChange={(c) => {
-                              if (c) setSelected(t.id, autoPersonId!);
-                              else setSelected(t.id, null);
+                              if (c) setSelected(t.id, resolvedPersonId);
+                              else unsetSelected(t.id);
                             }}
                           />
                         </TableCell>
@@ -570,7 +675,7 @@ export default function VincularTitulosPessoas() {
                             </Button>
                           ) : cls === 'sem_match' ? (
                             <Badge variant="outline" className="text-[10px]">—</Badge>
-                          ) : autoPersonId ? (
+                          ) : resolvedPersonId ? (
                             <Button
                               size="sm"
                               className="h-7"
@@ -578,7 +683,7 @@ export default function VincularTitulosPessoas() {
                               onClick={() =>
                                 vincularMut.mutate({
                                   tituloId: t.id,
-                                  personId: autoPersonId,
+                                  personId: resolvedPersonId,
                                 })
                               }
                             >
