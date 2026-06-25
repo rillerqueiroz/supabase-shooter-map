@@ -229,6 +229,70 @@ export default function VincularTitulosPessoas() {
     onError: (e: any) => toast.error('Erro: ' + (e?.message || 'falha')),
   });
 
+  // Cria pessoas em lote para títulos sem match (busca dados completos,
+  // chama findOrCreatePersonFromTitulo e atualiza person_id de cada título).
+  const criarPessoasBulkMut = useMutation({
+    mutationFn: async (tituloIds: string[]) => {
+      const stats = { ok: 0, created: 0, matched: 0, failed: 0 };
+      const COLS =
+        'id, codigo_parceiro, cnpj_cpf, nome_parceiro, nome_fantasia, email, fone1, fone2, endereco, numero_endereco, complemento, bairro, cidade, uf';
+      // busca todos os títulos em chunks
+      const rows: any[] = [];
+      for (let i = 0; i < tituloIds.length; i += 200) {
+        const slice = tituloIds.slice(i, i + 200);
+        const { data, error } = await supabase
+          .from('base_tudobelo_intermediaria')
+          .select(COLS)
+          .in('id', slice);
+        if (error) throw error;
+        if (data) rows.push(...data);
+      }
+      const sysFromExternal =
+        externalSystem !== '__any__' ? externalSystem : 'tudobelo';
+      // processa serialmente para não estourar pool de conexão
+      for (const t of rows) {
+        try {
+          const res = await findOrCreatePersonFromTitulo(t, {
+            externalSystem: sysFromExternal,
+            creditorCode: 'TUDOBELO',
+            source: 'vincular-page-bulk',
+          });
+          if (!res.personId) {
+            stats.failed++;
+            continue;
+          }
+          if (res.created) stats.created++;
+          else stats.matched++;
+          const { error } = await supabase
+            .from('base_tudobelo_intermediaria')
+            .update({
+              person_id: res.personId,
+              ultima_atualizacao: new Date().toISOString(),
+            })
+            .eq('id', t.id);
+          if (error) {
+            stats.failed++;
+          } else {
+            stats.ok++;
+          }
+        } catch {
+          stats.failed++;
+        }
+      }
+      return stats;
+    },
+    onSuccess: (s) => {
+      toast.success(
+        `${s.ok} título(s) vinculados · ${s.created} pessoa(s) criada(s) · ${s.matched} já existia(m)` +
+          (s.failed ? ` · ${s.failed} falha(s)` : ''),
+      );
+      setSelectedMap(new Map());
+      queryClient.invalidateQueries({ queryKey: ['vincular-titulos-pessoas'] });
+    },
+    onError: (e: any) => toast.error('Erro: ' + (e?.message || 'falha')),
+  });
+
+
 
 
   const [search, setSearch] = useState('');
@@ -382,6 +446,19 @@ export default function VincularTitulosPessoas() {
   }, [selectedMap]);
 
   const pendingCount = selectedMap.size - readyCount;
+
+  // IDs selecionados que NÃO têm candidatos (sem match) — alvos da criação de pessoa.
+  const selectedSemMatchIds = useMemo(() => {
+    if (!filtered.length) return [] as string[];
+    const byId = new Map<string, TituloComMatches>();
+    for (const t of filtered) byId.set(t.id, t);
+    const ids: string[] = [];
+    for (const id of selectedMap.keys()) {
+      const t = byId.get(id);
+      if (t && !t.person_id && t.candidates.length === 0) ids.push(id);
+    }
+    return ids;
+  }, [selectedMap, filtered]);
 
   const handleBulk = () => {
     const pairs: Array<{ tituloId: string; personId: string }> = [];
@@ -582,6 +659,23 @@ export default function VincularTitulosPessoas() {
                   )}
                   Vincular {readyCount} título(s)
                 </Button>
+                {selectedSemMatchIds.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => criarPessoasBulkMut.mutate(selectedSemMatchIds)}
+                    disabled={criarPessoasBulkMut.isPending}
+                    className="gap-1"
+                    title="Cria pessoas a partir dos dados dos títulos selecionados sem match"
+                  >
+                    {criarPessoasBulkMut.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-3.5 w-3.5" />
+                    )}
+                    Criar pessoas para {selectedSemMatchIds.length} sem match
+                  </Button>
+                )}
               </div>
             )}
           </div>
