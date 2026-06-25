@@ -181,6 +181,8 @@ export default function GestaoTitulosTudoBelo() {
   const [emailDisparoLoading, setEmailDisparoLoading] = useState(false);
   const [emailRelatorio, setEmailRelatorio] = useState<{nome_parceiro: string[], email: string[], saldo_parcela: number[], data_vencimento: string[]} | null>(null);
   const [emailRelatorioOpen, setEmailRelatorioOpen] = useState(false);
+  const [discadorExportLoading, setDiscadorExportLoading] = useState(false);
+
   
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
