@@ -245,30 +245,50 @@ export default function VincularTitulosPessoas() {
     };
   }, [titulos]);
 
-  const selectableInPage = paginatedData.filter((t) => t.candidates.length === 1);
+  // A row is "selectable" once we know which personId to assign:
+  // - single-candidate rows: auto
+  // - multi-candidate rows: only after the user picks one in the popover
+  const getAutoPersonId = (t: TituloComMatches): string | null => {
+    if (t.person_id) return null;
+    const picked = selectedMap.get(t.id);
+    if (picked) return picked;
+    if (t.candidates.length === 1) return t.candidates[0].person_id;
+    return null;
+  };
+
+  const selectableInPage = paginatedData.filter((t) => !t.person_id && !!getAutoPersonId(t));
   const allPageSelected =
-    selectableInPage.length > 0 && selectableInPage.every((t) => selectedIds.has(t.id));
+    selectableInPage.length > 0 && selectableInPage.every((t) => selectedMap.has(t.id));
+
+  const setSelected = (tituloId: string, personId: string | null) => {
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      if (personId == null) next.delete(tituloId);
+      else next.set(tituloId, personId);
+      return next;
+    });
+  };
 
   const togglePage = (checked: boolean) => {
-    const next = new Set(selectedIds);
-    for (const t of selectableInPage) {
-      if (checked) next.add(t.id);
-      else next.delete(t.id);
-    }
-    setSelectedIds(next);
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      for (const t of selectableInPage) {
+        const pid = getAutoPersonId(t);
+        if (checked && pid) next.set(t.id, pid);
+        else if (!checked) next.delete(t.id);
+      }
+      return next;
+    });
   };
 
   const handleBulk = () => {
     const pairs: Array<{ tituloId: string; personId: string }> = [];
-    for (const t of filtered) {
-      if (!selectedIds.has(t.id)) continue;
-      if (t.candidates.length === 1) {
-        pairs.push({ tituloId: t.id, personId: t.candidates[0].person_id });
-      }
+    for (const [tituloId, personId] of selectedMap) {
+      pairs.push({ tituloId, personId });
     }
     if (!pairs.length) return;
     bulkMut.mutate(pairs, {
-      onSuccess: () => setSelectedIds(new Set()),
+      onSuccess: () => setSelectedMap(new Map()),
     });
   };
 
