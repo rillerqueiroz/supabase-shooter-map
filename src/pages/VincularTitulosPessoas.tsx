@@ -31,9 +31,12 @@ import {
   useTitulosSemPessoa,
   useVincularTituloPessoa,
   useVincularTitulosBulk,
+  useDesvincularTitulo,
   type MatchCandidate,
   type TituloComMatches,
+  type LinkFilter,
 } from '@/hooks/useTitulosSemPessoa';
+
 import { formatDocument } from '@/utils/normalize-phone';
 import { Search, Link2, Loader2, X, Users, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
