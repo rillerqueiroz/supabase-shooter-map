@@ -261,32 +261,31 @@ export default function VincularTitulosPessoas() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <img src={logoSuperavit} alt="Superávit" className="h-10" />
-          <div>
-            <h1 className="text-2xl font-bold">Vincular Títulos com Pessoas</h1>
-            <p className="text-muted-foreground text-sm">
-              Cruza títulos sem <code className="text-xs">person_id</code> com a base de pessoas
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <img src={logoSuperavit} alt="Superávit" className="h-9 shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold truncate">Vincular Títulos com Pessoas</h1>
+            <p className="text-muted-foreground text-xs">
+              Cruza títulos sem <code className="text-[10px]">person_id</code> com a base de pessoas
               por código do parceiro e CPF/CNPJ.
             </p>
           </div>
         </div>
-        <div className="flex gap-2 items-center">
-          <Select value={externalSystem} onValueChange={setExternalSystem}>
-            <SelectTrigger className="h-9 w-[220px]">
-              <SelectValue placeholder="Sistema externo (codigo_parceiro)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__any__">Qualquer sistema</SelectItem>
-              <SelectItem value="tudobelo">tudobelo</SelectItem>
-              <SelectItem value="tudobelo-fundos">tudobelo-fundos</SelectItem>
-              <SelectItem value="cedrus">cedrus</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={externalSystem} onValueChange={setExternalSystem}>
+          <SelectTrigger className="h-9 w-[220px] shrink-0">
+            <SelectValue placeholder="Sistema externo (codigo_parceiro)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__any__">Qualquer sistema</SelectItem>
+            <SelectItem value="tudobelo">tudobelo</SelectItem>
+            <SelectItem value="tudobelo-fundos">tudobelo-fundos</SelectItem>
+            <SelectItem value="cedrus">cedrus</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -407,8 +406,8 @@ export default function VincularTitulosPessoas() {
             )}
           </div>
 
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[1200px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8">
