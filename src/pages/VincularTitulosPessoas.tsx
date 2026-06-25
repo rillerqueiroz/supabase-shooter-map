@@ -151,11 +151,15 @@ function CandidatePicker({
 
 export default function VincularTitulosPessoas() {
   const [externalSystem, setExternalSystem] = useState<string>('__any__');
+  const [linkFilter, setLinkFilter] = useState<LinkFilter>('unlinked');
   const { data: titulos, isLoading, error } = useTitulosSemPessoa(
     externalSystem === '__any__' ? null : externalSystem,
+    linkFilter,
   );
   const vincularMut = useVincularTituloPessoa();
   const bulkMut = useVincularTitulosBulk();
+  const desvincularMut = useDesvincularTitulo();
+
 
   const [search, setSearch] = useState('');
   const [matchFilter, setMatchFilter] = useState<MatchFilter>('todos');
