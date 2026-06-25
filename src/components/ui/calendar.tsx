@@ -120,14 +120,14 @@ function Calendar({
   }, [props]);
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative w-fit mx-auto", className)}>
       <CustomCaption displayMonth={month} onMonthChange={handleMonthChange} />
       <DayPicker
         {...props}
         showOutsideDays={showOutsideDays}
         month={month}
         onMonthChange={handleMonthChange}
-        className="p-3 pt-0 pointer-events-auto"
+        className="p-0 pointer-events-auto"
         locale={ptBR}
         weekStartsOn={0}
         formatters={{
@@ -137,7 +137,7 @@ function Calendar({
           }
         }}
         classNames={{
-          months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+          months: "flex flex-col",
           month: "space-y-2",
           caption: "hidden",
           caption_label: "hidden",
@@ -145,14 +145,14 @@ function Calendar({
           nav_button: "hidden",
           nav_button_previous: "hidden",
           nav_button_next: "hidden",
-          table: "w-full border-collapse",
+          table: "border-collapse",
           head_row: "flex",
-          head_cell: "text-muted-foreground w-9 font-normal text-xs flex items-center justify-center h-9",
-          row: "flex w-full mt-1",
-          cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+          head_cell: "text-muted-foreground w-8 font-normal text-[11px] flex items-center justify-center h-8",
+          row: "flex mt-1",
+          cell: "h-8 w-8 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
           day: cn(
             buttonVariants({ variant: "ghost" }),
-            "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground"
+            "h-8 w-8 p-0 font-normal text-xs aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground"
           ),
           day_range_end: "day-range-end",
           day_selected:
