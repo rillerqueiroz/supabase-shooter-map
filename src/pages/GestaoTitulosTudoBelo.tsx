@@ -451,6 +451,27 @@ export default function GestaoTitulosTudoBelo() {
             <Send className="h-4 w-4 mr-1" />
             {emailDisparoLoading ? 'Enviando...' : 'Enviar emails de cobrança'}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={discadorExportLoading || !titulos || titulos.length === 0}
+            onClick={async () => {
+              setDiscadorExportLoading(true);
+              try {
+                const r = await exportDiscadorList(titulos || []);
+                toast.success(
+                  `Lista exportada: ${r.comTelefone} com telefone, ${r.semTelefone} sem telefone válido.`
+                );
+              } catch (e: any) {
+                toast.error(`Erro ao exportar: ${e?.message || e}`);
+              } finally {
+                setDiscadorExportLoading(false);
+              }
+            }}
+          >
+            <Phone className="h-4 w-4 mr-1" />
+            {discadorExportLoading ? "Exportando..." : "Exportar lista do discador"}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => exportTitulosToExcel(titulos || [])}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />
             Excel
