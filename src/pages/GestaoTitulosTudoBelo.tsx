@@ -58,6 +58,8 @@ import {
 import { TitulosBaixadosTab } from "@/components/TitulosTudoBelo/TitulosBaixadosTab";
 
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
+import { exportDiscadorList } from "@/utils/exportDiscadorList";
+import { Phone } from "lucide-react";
 import {
   Search,
   FileSpreadsheet,
