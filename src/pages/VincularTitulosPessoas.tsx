@@ -189,6 +189,47 @@ export default function VincularTitulosPessoas() {
   const bulkMut = useVincularTitulosBulk();
   const desvincularMut = useDesvincularTitulo();
 
+  const queryClient = useQueryClient();
+  const criarPessoaMut = useMutation({
+    mutationFn: async (tituloId: string) => {
+      // Busca a linha completa do título para pegar contato/endereço
+      const { data, error } = await supabase
+        .from('base_tudobelo_intermediaria')
+        .select(
+          'id, codigo_parceiro, cnpj_cpf, nome_parceiro, nome_fantasia, email, fone1, fone2, endereco, numero_endereco, complemento, bairro, cidade, uf',
+        )
+        .eq('id', tituloId)
+        .single();
+      if (error || !data) throw error || new Error('Título não encontrado');
+
+      const sysFromExternal =
+        externalSystem !== '__any__' ? externalSystem : 'tudobelo';
+      const res = await findOrCreatePersonFromTitulo(data as any, {
+        externalSystem: sysFromExternal,
+        creditorCode: 'TUDOBELO',
+        source: 'vincular-page',
+      });
+      if (!res.personId) throw new Error('Não foi possível criar pessoa');
+
+      const { error: upErr } = await supabase
+        .from('base_tudobelo_intermediaria')
+        .update({ person_id: res.personId, ultima_atualizacao: new Date().toISOString() })
+        .eq('id', tituloId);
+      if (upErr) throw upErr;
+      return res;
+    },
+    onSuccess: (res) => {
+      toast.success(
+        res.created
+          ? 'Pessoa criada e vinculada.'
+          : 'Pessoa já existia — vinculada ao título.',
+      );
+      queryClient.invalidateQueries({ queryKey: ['vincular-titulos-pessoas'] });
+    },
+    onError: (e: any) => toast.error('Erro: ' + (e?.message || 'falha')),
+  });
+
+
 
   const [search, setSearch] = useState('');
   const [matchFilter, setMatchFilter] = useState<MatchFilter>('todos');
