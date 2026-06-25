@@ -1508,7 +1508,7 @@ export default function UploadArquivosOficial() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3 text-sm">
                 <div>
                   <div className="text-xs text-muted-foreground">Pessoas distintas</div>
                   <div className="font-semibold">{analysis.peopleAnalysis.distinctPessoas}</div>
@@ -1522,6 +1522,10 @@ export default function UploadArquivosOficial() {
                   <div className="font-semibold text-blue-600">{analysis.peopleAnalysis.novasACriar}</div>
                 </div>
                 <div>
+                  <div className="text-xs text-muted-foreground">Sem CPF (via código)</div>
+                  <div className="font-semibold text-amber-600">{analysis.peopleAnalysis.novasACriarSemCpf}</div>
+                </div>
+                <div>
                   <div className="text-xs text-muted-foreground">Match por código</div>
                   <div className="font-semibold">{analysis.peopleAnalysis.matchedByExternal}</div>
                 </div>
@@ -1532,7 +1536,7 @@ export default function UploadArquivosOficial() {
               </div>
               {analysis.peopleAnalysis.semIdentificador > 0 && (
                 <p className="text-xs text-amber-600 mb-2">
-                  {analysis.peopleAnalysis.semIdentificador} linha(s) sem CPF e sem código de parceiro — não serão vinculadas a nenhuma pessoa.
+                  {analysis.peopleAnalysis.semIdentificador} linha(s) sem CPF e sem código de parceiro — serão ignoradas (nenhuma pessoa criada).
                 </p>
               )}
               {analysis.peopleAnalysis.novasACriar > 0 && (
@@ -1551,6 +1555,7 @@ export default function UploadArquivosOficial() {
                             <TableHead className="text-xs">Nome</TableHead>
                             <TableHead className="text-xs">CPF/CNPJ</TableHead>
                             <TableHead className="text-xs">Código Parceiro</TableHead>
+                            <TableHead className="text-xs">Marcador</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1559,11 +1564,18 @@ export default function UploadArquivosOficial() {
                               <TableCell className="text-xs">{p.nome_parceiro || "-"}</TableCell>
                               <TableCell className="font-mono text-xs">{p.cnpj_cpf || "-"}</TableCell>
                               <TableCell className="font-mono text-xs">{p.codigo_parceiro || "-"}</TableCell>
+                              <TableCell className="text-xs">
+                                {p.marcador === 'SEM_CPF' ? (
+                                  <Badge variant="outline" className="border-amber-500 text-amber-600">Sem CPF · via código</Badge>
+                                ) : (
+                                  <Badge variant="secondary">Com CPF</Badge>
+                                )}
+                              </TableCell>
                             </TableRow>
                           ))}
                           {analysis.peopleAnalysis.novasACriar > analysis.peopleAnalysis.novasPreview.length && (
                             <TableRow>
-                              <TableCell colSpan={3} className="text-xs text-center text-muted-foreground">
+                              <TableCell colSpan={4} className="text-xs text-center text-muted-foreground">
                                 +{analysis.peopleAnalysis.novasACriar - analysis.peopleAnalysis.novasPreview.length} pessoa(s) adicionais não exibidas
                               </TableCell>
                             </TableRow>
