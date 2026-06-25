@@ -319,10 +319,18 @@ export async function fetchTitulosByDocumento(documentDigits: string) {
     .select('*')
     .eq('cnpj_cpf', d);
   if (error) {
-    // Alguns ambientes guardam com máscara — tenta fallback regex em document_digits gerado não existe aqui.
-    // Retorna vazio em caso de erro de coluna.
     console.warn('[fetchTitulosByDocumento] erro:', error);
     return [];
   }
   return data || [];
 }
+
+/** Vincula (ou desvincula, com null) um título a uma Person via person_id. */
+export async function setTituloPersonId(tituloId: string, personId: string | null) {
+  const { error } = await supabase
+    .from('base_tudobelo_intermediaria')
+    .update({ person_id: personId })
+    .eq('id', tituloId);
+  if (error) throw error;
+}
+
