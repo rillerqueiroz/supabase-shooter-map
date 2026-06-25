@@ -657,7 +657,136 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
 
 
           <TabsContent value="detalhes" className="space-y-6 mt-4">
-            {/* Seção: Status - PRIMEIRA */}
+            {/* PRIMEIRA SEÇÃO: Dados da Pessoa (conteúdo da antiga aba Pessoa) */}
+            <section className="bg-gradient-to-br from-primary/5 via-card to-card rounded-lg border-2 border-primary/20 p-4">
+              <SectionHeader icon={User} title="Dados da Pessoa" />
+              {!personId ? (
+                <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg bg-muted/30">
+                  Este título ainda não está vinculado a uma pessoa.
+                  {titulo.nome_parceiro && (
+                    <div className="mt-2 text-foreground">
+                      <span className="text-xs text-muted-foreground">Nome no Título: </span>
+                      <span className="font-semibold">{titulo.nome_parceiro}</span>
+                    </div>
+                  )}
+                </div>
+              ) : isLoadingPerson || !person ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-6 justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando pessoa...
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Nome da Pessoa (cadastro)</span>
+                      <p className="font-bold text-2xl text-primary leading-tight">{person.name || "-"}</p>
+                    </div>
+                    {titulo.nome_parceiro && (
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Nome no Título</span>
+                        <p className="font-semibold text-base">{titulo.nome_parceiro}</p>
+                      </div>
+                    )}
+                  </div>
+                  <PessoaInfoView person={person} />
+                  <PessoaTelefonesSection personId={person.id} />
+                </div>
+              )}
+            </section>
+
+            {/* SEGUNDA SEÇÃO: Valores + Informações do Documento (mesclados) */}
+            <section className="bg-card rounded-lg border p-4">
+              <SectionHeader icon={DollarSign} title="Valores e Documento" />
+              {isEditing ? (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Valores</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <EditField label="Saldo Parcela" field="saldo_parcela" type="number" value={editData.saldo_parcela} onChange={handleFieldChange} />
+                      <EditField label="Data Vencimento" field="data_vencimento" type="date" value={editData.data_vencimento?.split('T')[0] || ''} onChange={handleFieldChange} />
+                      <EditField label="Valor Parcela" field="valor_parcela" type="number" value={editData.valor_parcela} onChange={handleFieldChange} />
+                      <EditField label="Valor Pago" field="valor_pago" type="number" value={editData.valor_pago} onChange={handleFieldChange} />
+                      <EditField label="Data Pagamento" field="data_pagamento" type="date" value={editData.data_pagamento?.split('T')[0] || ''} onChange={handleFieldChange} />
+                      <EditField label="Dias Atraso" field="dias_atraso" type="number" value={editData.dias_atraso} onChange={handleFieldChange} />
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Informações do Documento
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <EditField label="Documento" field="documento" value={editData.documento} onChange={handleFieldChange} />
+                      <EditField label="Tipo Documento" field="tipo_documento" value={editData.tipo_documento} onChange={handleFieldChange} />
+                      <EditField label="Série" field="serie_documento" value={editData.serie_documento} onChange={handleFieldChange} />
+                      <EditField label="Número Parcela" field="numero_parcela" value={editData.numero_parcela} onChange={handleFieldChange} />
+                      <EditField label="Forma Pagamento" field="forma_pagamento" value={editData.forma_pagamento} onChange={handleFieldChange} />
+                      <EditField label="Status Boleto" field="status_boleto" value={editData.status_boleto} onChange={handleFieldChange} />
+                      <EditField label="Filial" field="filial" value={editData.filial} onChange={handleFieldChange} />
+                      <EditField label="Vendedor" field="vendedor" value={editData.vendedor} onChange={handleFieldChange} />
+                      <EditField label="UF Cobrança" field="uf_cobranca" value={editData.uf_cobranca} onChange={handleFieldChange} />
+                      <EditField label="Município Cobrança" field="municipio_cobranca" value={editData.municipio_cobranca} onChange={handleFieldChange} />
+                    </div>
+                    <div className="mt-4">
+                      <Label className="text-xs">Observações</Label>
+                      <Textarea
+                        value={editData.observacoes || ""}
+                        onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-stretch gap-4">
+                    <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-primary/5 border border-primary/20">
+                      <span className="text-sm text-muted-foreground font-medium">Saldo Parcela</span>
+                      <p className="text-2xl font-bold text-primary">{formatCurrency(titulo.saldo_parcela)}</p>
+                    </div>
+                    <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-muted/50 border text-right">
+                      <span className="text-sm text-muted-foreground font-medium">Data Vencimento</span>
+                      <p className="text-lg font-semibold">{formatDate(titulo.data_vencimento)}</p>
+                      {titulo.dias_atraso && Number(titulo.dias_atraso) > 0 && (
+                        <Badge variant="destructive" className="mt-1">{titulo.dias_atraso} dias em atraso</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6">
+                    <InfoRow label="Valor Parcela" value={formatCurrency(titulo.valor_parcela)} />
+                    <InfoRow label="Valor Pago" value={formatCurrency(titulo.valor_pago)} />
+                    <InfoRow label="Data Pagamento" value={formatDate(titulo.data_pagamento)} />
+                    <InfoRow label="Dias Atraso" value={titulo.dias_atraso} />
+                  </div>
+                  <InfoRowWithCopy label="Linha Digitável" value={titulo.linha_digitavel} />
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Informações do Documento
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6">
+                      <InfoRow label="Documento" value={titulo.documento} />
+                      <InfoRow label="Tipo" value={titulo.tipo_documento} />
+                      <InfoRow label="Série" value={titulo.serie_documento} />
+                      <InfoRow label="Nº Parcela" value={titulo.numero_parcela} />
+                      <InfoRow label="Forma Pagamento" value={titulo.forma_pagamento} />
+                      <InfoRow label="Status Boleto" value={titulo.status_boleto} />
+                      <InfoRow label="Filial" value={titulo.filial} />
+                      <InfoRow label="Vendedor" value={titulo.vendedor} />
+                      <InfoRow label="UF Cobrança" value={titulo.uf_cobranca} />
+                      <InfoRow label="Município Cobrança" value={titulo.municipio_cobranca} />
+                      <InfoRow label="Data Documento" value={formatDate(titulo.data_documento)} />
+                    </div>
+                    {titulo.observacoes && (
+                      <div className="mt-4">
+                        <span className="text-muted-foreground text-sm">Observações:</span>
+                        <p className="text-sm bg-muted p-3 rounded-md mt-1">{titulo.observacoes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* TERCEIRA SEÇÃO: Status */}
             <section className="bg-card rounded-lg border p-4">
               <SectionHeader icon={Tag} title="Status" />
               {isEditing ? (
@@ -763,8 +892,7 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                       </Select>
                     </div>
                   </div>
-                  
-                  {/* Campo obrigatório de Data Pagamento quando status é "Pago" */}
+
                   {isStatusPago && (
                     <div className="p-3 bg-green-50/50 rounded-lg border border-green-200">
                       <Label className="text-xs font-medium text-green-700">
@@ -784,7 +912,6 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Negativado badge em destaque */}
                   <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border font-semibold text-sm ${
                     titulo.negativado 
                       ? 'bg-red-500/10 text-red-700 border-red-500/30' 
@@ -870,67 +997,6 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                   </div>
                 </div>
               )}
-            </section>
-
-            {/* Seção fixa: Dados da Pessoa (vinculada) */}
-            <section className="bg-gradient-to-br from-primary/5 via-card to-card rounded-lg border-2 border-primary/20 p-4">
-              <SectionHeader icon={User} title="Dados da Pessoa" />
-              <div className="mt-3 space-y-3">
-                {personId ? (
-                  isLoadingPerson ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando pessoa...
-                    </div>
-                  ) : person ? (
-                    <>
-                      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                        <div>
-                          <span className="text-xs text-muted-foreground block">Nome da Pessoa (cadastro)</span>
-                          <p className="font-bold text-2xl text-primary leading-tight">{person.name || "-"}</p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-muted-foreground block">Nome no Título</span>
-                          <p className="font-semibold text-base">{titulo.nome_parceiro || "-"}</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t">
-                        <div className="space-y-0.5">
-                          <span className="text-xs text-muted-foreground">CPF/CNPJ</span>
-                          <p className="text-sm font-medium">{person.document || "-"}</p>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-xs text-muted-foreground">Email</span>
-                          <p className="text-sm font-medium truncate">{person.email || "-"}</p>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-xs text-muted-foreground">Telefones</span>
-                          <p className="text-sm font-medium">
-                            {personPhones && personPhones.length > 0
-                              ? personPhones.map((p: any) => p.phone_e164 || p.phone).filter(Boolean).join(' · ')
-                              : "-"}
-                          </p>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-xs text-muted-foreground">Cidade/UF</span>
-                          <p className="text-sm font-medium">
-                            {person.address_city ? `${person.address_city}/${person.address_state || '-'}` : "-"}
-                          </p>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Pessoa não encontrada.</p>
-                  )
-                ) : (
-                  <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                    <div>
-                      <span className="text-xs text-muted-foreground block">Nome no Título</span>
-                      <p className="font-bold text-xl leading-tight">{titulo.nome_parceiro || "-"}</p>
-                    </div>
-                    <span className="text-xs text-amber-600 font-medium">Nenhuma pessoa vinculada a este título.</span>
-                  </div>
-                )}
-              </div>
             </section>
 
             {/* Seção: Dados que vieram da Tudo Belo (oculta por padrão) */}
@@ -1025,179 +1091,72 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
               </section>
             </Collapsible>
 
-
-            {/* Seção: Valores - TERCEIRA */}
-            <section className="bg-card rounded-lg border p-4">
-              <SectionHeader icon={DollarSign} title="Valores" />
-              {isEditing ? (
+            {/* Seção: Integração Cedrus */}
+            {isEditing ? (
+              <section className="bg-card rounded-lg border p-4">
+                <SectionHeader icon={Database} title="Integração Cedrus" />
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <EditField label="Saldo Parcela" field="saldo_parcela" type="number" value={editData.saldo_parcela} onChange={handleFieldChange} />
-                    <EditField label="Data Vencimento" field="data_vencimento" type="date" value={editData.data_vencimento?.split('T')[0] || ''} onChange={handleFieldChange} />
-                    <EditField label="Valor Parcela" field="valor_parcela" type="number" value={editData.valor_parcela} onChange={handleFieldChange} />
-                    <EditField label="Valor Pago" field="valor_pago" type="number" value={editData.valor_pago} onChange={handleFieldChange} />
-                    <EditField label="Data Pagamento" field="data_pagamento" type="date" value={editData.data_pagamento?.split('T')[0] || ''} onChange={handleFieldChange} />
-                    <EditField label="Dias Atraso" field="dias_atraso" type="number" value={editData.dias_atraso} onChange={handleFieldChange} />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Saldo em destaque */}
-                  <div className="flex flex-wrap items-stretch gap-4">
-                    <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-primary/5 border border-primary/20">
-                      <span className="text-sm text-muted-foreground font-medium">Saldo Parcela</span>
-                      <p className="text-2xl font-bold text-primary">{formatCurrency(titulo.saldo_parcela)}</p>
+                  <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium">Inserido no Cedrus</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {editData.inserido_cedrus 
+                          ? "Título marcado como inserido no sistema Cedrus" 
+                          : "Marcar como inserido requer informar o ID do título"}
+                      </p>
                     </div>
-                    <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-muted/50 border text-right">
-                      <span className="text-sm text-muted-foreground font-medium">Data Vencimento</span>
-                      <p className="text-lg font-semibold">{formatDate(titulo.data_vencimento)}</p>
-                      {titulo.dias_atraso && Number(titulo.dias_atraso) > 0 && (
-                        <Badge variant="destructive" className="mt-1">{titulo.dias_atraso} dias em atraso</Badge>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editData.inserido_cedrus) {
+                          setEditData({ ...editData, inserido_cedrus: false, id_titulo_cedrus: null });
+                        } else if (editData.id_titulo_cedrus && editData.id_titulo_cedrus.trim() !== "") {
+                          setEditData({ ...editData, inserido_cedrus: true });
+                        }
+                      }}
+                      disabled={!editData.inserido_cedrus && (!editData.id_titulo_cedrus || editData.id_titulo_cedrus.trim() === "")}
+                      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                        editData.inserido_cedrus 
+                          ? "bg-green-500" 
+                          : "bg-muted-foreground/30"
+                      } ${!editData.inserido_cedrus && (!editData.id_titulo_cedrus || editData.id_titulo_cedrus.trim() === "") ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
+                          editData.inserido_cedrus ? "translate-x-8" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">ID Título Cedrus *</Label>
+                      <Input
+                        value={editData.id_titulo_cedrus || ""}
+                        onChange={(e) => setEditData({ ...editData, id_titulo_cedrus: e.target.value })}
+                        placeholder="Informe o ID para ativar"
+                        className={`h-8 text-sm ${!editData.inserido_cedrus && (!editData.id_titulo_cedrus || editData.id_titulo_cedrus.trim() === "") ? "border-orange-300 focus:border-orange-500" : ""}`}
+                      />
+                      {!editData.inserido_cedrus && (!editData.id_titulo_cedrus || editData.id_titulo_cedrus.trim() === "") && (
+                        <p className="text-xs text-orange-600">Preencha para habilitar o toggle</p>
                       )}
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6">
-                    <InfoRow label="Valor Parcela" value={formatCurrency(titulo.valor_parcela)} />
-                    <InfoRow label="Valor Pago" value={formatCurrency(titulo.valor_pago)} />
-                    <InfoRow label="Data Pagamento" value={formatDate(titulo.data_pagamento)} />
-                    <InfoRow label="Dias Atraso" value={titulo.dias_atraso} />
-                  </div>
-                  <div className="mt-4">
-                    <InfoRowWithCopy label="Linha Digitável" value={titulo.linha_digitavel} />
+                    <EditField label="Credor Cedrus" field="credor_cedrus" value={editData.credor_cedrus} onChange={handleFieldChange} />
+                    <div className="flex items-center gap-2 pt-5">
+                      <input
+                        type="checkbox"
+                        checked={editData.processado_internamente || false}
+                        onChange={(e) => setEditData({ ...editData, processado_internamente: e.target.checked })}
+                        className="h-4 w-4 rounded border-input"
+                      />
+                      <Label>Processado Internamente</Label>
+                    </div>
                   </div>
                 </div>
-              )}
-            </section>
-
-
-            {/* Seções colapsáveis: Informações do Documento e Integração Cedrus */}
-            {isEditing ? (
-              <>
-                {/* Seção: Informações do Documento - modo edição */}
-                <section className="bg-card rounded-lg border p-4">
-                  <SectionHeader icon={FileText} title="Informações do Documento" />
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <EditField label="Documento" field="documento" value={editData.documento} onChange={handleFieldChange} />
-                    <EditField label="Tipo Documento" field="tipo_documento" value={editData.tipo_documento} onChange={handleFieldChange} />
-                    <EditField label="Série" field="serie_documento" value={editData.serie_documento} onChange={handleFieldChange} />
-                    <EditField label="Número Parcela" field="numero_parcela" value={editData.numero_parcela} onChange={handleFieldChange} />
-                    <EditField label="Forma Pagamento" field="forma_pagamento" value={editData.forma_pagamento} onChange={handleFieldChange} />
-                    <EditField label="Status Boleto" field="status_boleto" value={editData.status_boleto} onChange={handleFieldChange} />
-                    <EditField label="Filial" field="filial" value={editData.filial} onChange={handleFieldChange} />
-                    <EditField label="Vendedor" field="vendedor" value={editData.vendedor} onChange={handleFieldChange} />
-                    <EditField label="UF Cobrança" field="uf_cobranca" value={editData.uf_cobranca} onChange={handleFieldChange} />
-                    <EditField label="Município Cobrança" field="municipio_cobranca" value={editData.municipio_cobranca} onChange={handleFieldChange} />
-                  </div>
-                  <div className="mt-4">
-                    <Label className="text-xs">Observações</Label>
-                    <Textarea
-                      value={editData.observacoes || ""}
-                      onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                </section>
-
-                {/* Seção: Cedrus - modo edição */}
-                <section className="bg-card rounded-lg border p-4">
-                  <SectionHeader icon={Database} title="Integração Cedrus" />
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                      <div className="flex-1">
-                        <Label className="text-sm font-medium">Inserido no Cedrus</Label>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {editData.inserido_cedrus 
-                            ? "Título marcado como inserido no sistema Cedrus" 
-                            : "Marcar como inserido requer informar o ID do título"}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (editData.inserido_cedrus) {
-                            setEditData({ ...editData, inserido_cedrus: false, id_titulo_cedrus: null });
-                          } else if (editData.id_titulo_cedrus && editData.id_titulo_cedrus.trim() !== "") {
-                            setEditData({ ...editData, inserido_cedrus: true });
-                          }
-                        }}
-                        disabled={!editData.inserido_cedrus && (!editData.id_titulo_cedrus || editData.id_titulo_cedrus.trim() === "")}
-                        className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                          editData.inserido_cedrus 
-                            ? "bg-green-500" 
-                            : "bg-muted-foreground/30"
-                        } ${!editData.inserido_cedrus && (!editData.id_titulo_cedrus || editData.id_titulo_cedrus.trim() === "") ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
-                            editData.inserido_cedrus ? "translate-x-8" : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <Label className="text-xs">ID Título Cedrus *</Label>
-                        <Input
-                          value={editData.id_titulo_cedrus || ""}
-                          onChange={(e) => setEditData({ ...editData, id_titulo_cedrus: e.target.value })}
-                          placeholder="Informe o ID para ativar"
-                          className={`h-8 text-sm ${!editData.inserido_cedrus && (!editData.id_titulo_cedrus || editData.id_titulo_cedrus.trim() === "") ? "border-orange-300 focus:border-orange-500" : ""}`}
-                        />
-                        {!editData.inserido_cedrus && (!editData.id_titulo_cedrus || editData.id_titulo_cedrus.trim() === "") && (
-                          <p className="text-xs text-orange-600">Preencha para habilitar o toggle</p>
-                        )}
-                      </div>
-                      <EditField label="Credor Cedrus" field="credor_cedrus" value={editData.credor_cedrus} onChange={handleFieldChange} />
-                      <div className="flex items-center gap-2 pt-5">
-                        <input
-                          type="checkbox"
-                          checked={editData.processado_internamente || false}
-                          onChange={(e) => setEditData({ ...editData, processado_internamente: e.target.checked })}
-                          className="h-4 w-4 rounded border-input"
-                        />
-                        <Label>Processado Internamente</Label>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </>
+              </section>
             ) : (
               <Accordion type="multiple" className="space-y-2">
-                {/* Seção: Informações do Documento - colapsável */}
-                <AccordionItem value="info-documento" className="bg-card rounded-lg border">
-                  <AccordionTrigger className="px-4 hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <FileText className="h-4 w-4 text-primary" />
-                      </div>
-                      <span className="font-semibold text-base">Informações do Documento</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6">
-                      <InfoRow label="Documento" value={titulo.documento} />
-                      <InfoRow label="Tipo" value={titulo.tipo_documento} />
-                      <InfoRow label="Série" value={titulo.serie_documento} />
-                      <InfoRow label="Nº Parcela" value={titulo.numero_parcela} />
-                      <InfoRow label="Forma Pagamento" value={titulo.forma_pagamento} />
-                      <InfoRow label="Status Boleto" value={titulo.status_boleto} />
-                      <InfoRow label="Filial" value={titulo.filial} />
-                      <InfoRow label="Vendedor" value={titulo.vendedor} />
-                      <InfoRow label="UF Cobrança" value={titulo.uf_cobranca} />
-                      <InfoRow label="Município Cobrança" value={titulo.municipio_cobranca} />
-                      <InfoRow label="Data Documento" value={formatDate(titulo.data_documento)} />
-                    </div>
-                    {titulo.observacoes && (
-                      <div className="mt-4">
-                        <span className="text-muted-foreground text-sm">Observações:</span>
-                        <p className="text-sm bg-muted p-3 rounded-md mt-1">{titulo.observacoes}</p>
-                      </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-
-                {/* Seção: Cedrus - colapsável */}
                 <AccordionItem value="integracao-cedrus" className="bg-card rounded-lg border">
                   <AccordionTrigger className="px-4 hover:no-underline">
                     <div className="flex items-center gap-2">
