@@ -123,7 +123,21 @@ export function useTitulosSemPessoa(
         }
       }
 
-      // 5) Combine candidates per título (dedup, merge reasons)
+      // 5) Resolve linked person info for already-linked titles
+      const linkedIds = Array.from(
+        new Set(titulos.map((t) => t.person_id).filter((x): x is string => !!x)),
+      );
+      const linkedMap = new Map<string, { id: string; name: string | null; cpf: string | null }>();
+      for (const chunk of chunkArray(linkedIds, 500)) {
+        const { data, error } = await supabase
+          .from('people')
+          .select('id, name, cpf')
+          .in('id', chunk);
+        if (error) throw error;
+        for (const p of (data as any[]) || []) linkedMap.set(p.id, p);
+      }
+
+      // 6) Combine candidates per título (dedup, merge reasons)
       return titulos.map((t) => {
         const byPerson = new Map<string, MatchCandidate>();
 
@@ -150,8 +164,13 @@ export function useTitulosSemPessoa(
           }
         }
 
-        return { ...t, candidates: Array.from(byPerson.values()) };
+        return {
+          ...t,
+          candidates: Array.from(byPerson.values()),
+          linked_person: t.person_id ? linkedMap.get(t.person_id) || null : null,
+        };
       });
+
     },
   });
 }
