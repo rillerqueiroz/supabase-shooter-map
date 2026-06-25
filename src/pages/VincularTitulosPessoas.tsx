@@ -31,9 +31,12 @@ import {
   useTitulosSemPessoa,
   useVincularTituloPessoa,
   useVincularTitulosBulk,
+  useDesvincularTitulo,
   type MatchCandidate,
   type TituloComMatches,
+  type LinkFilter,
 } from '@/hooks/useTitulosSemPessoa';
+
 import { formatDocument } from '@/utils/normalize-phone';
 import { Search, Link2, Loader2, X, Users, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
@@ -148,11 +151,15 @@ function CandidatePicker({
 
 export default function VincularTitulosPessoas() {
   const [externalSystem, setExternalSystem] = useState<string>('__any__');
+  const [linkFilter, setLinkFilter] = useState<LinkFilter>('unlinked');
   const { data: titulos, isLoading, error } = useTitulosSemPessoa(
     externalSystem === '__any__' ? null : externalSystem,
+    linkFilter,
   );
   const vincularMut = useVincularTituloPessoa();
   const bulkMut = useVincularTitulosBulk();
+  const desvincularMut = useDesvincularTitulo();
+
 
   const [search, setSearch] = useState('');
   const [matchFilter, setMatchFilter] = useState<MatchFilter>('todos');
@@ -274,17 +281,30 @@ export default function VincularTitulosPessoas() {
             </p>
           </div>
         </div>
-        <Select value={externalSystem} onValueChange={setExternalSystem}>
-          <SelectTrigger className="h-9 w-[220px] shrink-0">
-            <SelectValue placeholder="Sistema externo (codigo_parceiro)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__any__">Qualquer sistema</SelectItem>
-            <SelectItem value="tudobelo">tudobelo</SelectItem>
-            <SelectItem value="tudobelo-fundos">tudobelo-fundos</SelectItem>
-            <SelectItem value="cedrus">cedrus</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2 shrink-0 flex-wrap">
+          <Select value={linkFilter} onValueChange={(v) => setLinkFilter(v as LinkFilter)}>
+            <SelectTrigger className="h-9 w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unlinked">Não vinculados</SelectItem>
+              <SelectItem value="linked">Vinculados</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={externalSystem} onValueChange={setExternalSystem}>
+            <SelectTrigger className="h-9 w-[220px]">
+              <SelectValue placeholder="Sistema externo (codigo_parceiro)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__any__">Qualquer sistema</SelectItem>
+              <SelectItem value="tudobelo">tudobelo</SelectItem>
+              <SelectItem value="tudobelo-fundos">tudobelo-fundos</SelectItem>
+              <SelectItem value="cedrus">cedrus</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
       </div>
 
 
@@ -446,7 +466,8 @@ export default function VincularTitulosPessoas() {
                 ) : (
                   paginatedData.map((t) => {
                     const cls = classifyMatch(t);
-                    const isSelectable = t.candidates.length === 1;
+                    const isLinked = !!t.person_id;
+                    const isSelectable = !isLinked && t.candidates.length === 1;
                     return (
                       <TableRow key={t.id}>
                         <TableCell>
@@ -474,16 +495,37 @@ export default function VincularTitulosPessoas() {
                           {formatCurrency(t.saldo_parcela)}
                         </TableCell>
                         <TableCell>
-                          <CandidatePicker
-                            candidates={t.candidates}
-                            pending={vincularMut.isPending}
-                            onPick={(personId) =>
-                              vincularMut.mutate({ tituloId: t.id, personId })
-                            }
-                          />
+                          {isLinked ? (
+                            <div className="flex flex-col gap-1 min-w-0">
+                              <div className="text-xs font-medium truncate" title={t.linked_person?.name || ''}>
+                                {t.linked_person?.name || '(pessoa)'}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono truncate">
+                                {formatDocument(t.linked_person?.cpf || null) || '—'}
+                              </div>
+                            </div>
+                          ) : (
+                            <CandidatePicker
+                              candidates={t.candidates}
+                              pending={vincularMut.isPending}
+                              onPick={(personId) =>
+                                vincularMut.mutate({ tituloId: t.id, personId })
+                              }
+                            />
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {cls === 'sem_match' ? (
+                          {isLinked ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7"
+                              disabled={desvincularMut.isPending}
+                              onClick={() => desvincularMut.mutate(t.id)}
+                            >
+                              <X className="h-3 w-3 mr-1" /> Desvincular
+                            </Button>
+                          ) : cls === 'sem_match' ? (
                             <Badge variant="outline" className="text-[10px]">—</Badge>
                           ) : t.candidates.length === 1 ? (
                             <Button
@@ -503,6 +545,7 @@ export default function VincularTitulosPessoas() {
                             <Badge variant="secondary" className="text-[10px]">
                               {t.candidates.length} opções
                             </Badge>
+
                           )}
                         </TableCell>
                       </TableRow>
