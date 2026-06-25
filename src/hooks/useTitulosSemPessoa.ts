@@ -30,30 +30,39 @@ export interface MatchCandidate {
 
 export interface TituloComMatches extends TituloSemPessoa {
   candidates: MatchCandidate[];
+  linked_person?: { id: string; name: string | null; cpf: string | null } | null;
 }
+
+export type LinkFilter = 'unlinked' | 'linked' | 'all';
 
 const SELECT_COLS =
   'id, documento, nome_parceiro, codigo_parceiro, cnpj_cpf, valor_parcela, saldo_parcela, data_vencimento, status_titulo, forma_pagamento, filial, uf_cobranca, person_id';
 
 /**
- * Carrega todos os títulos sem person_id e cruza com a base people
+ * Carrega títulos (filtráveis por vínculo) e cruza com a base people
  * por: (1) people_external_ids.external_id = codigo_parceiro
  *      (2) people.document_digits = digits(cnpj_cpf)
  */
-export function useTitulosSemPessoa(externalSystem?: string | null) {
+export function useTitulosSemPessoa(
+  externalSystem?: string | null,
+  linkFilter: LinkFilter = 'unlinked',
+) {
   return useQuery({
-    queryKey: ['vincular-titulos-pessoas', externalSystem ?? '__any__'],
+    queryKey: ['vincular-titulos-pessoas', externalSystem ?? '__any__', linkFilter],
     queryFn: async (): Promise<TituloComMatches[]> => {
-      // 1) Fetch titles with person_id null
+      // 1) Fetch titles per link filter
       const titulos = await fetchAllSupabaseRows<TituloSemPessoa>(async (from, to) => {
-        const result = await supabase
+        let q = supabase
           .from('base_tudobelo_intermediaria')
-          .select(SELECT_COLS)
-          .is('person_id', null)
+          .select(SELECT_COLS);
+        if (linkFilter === 'unlinked') q = q.is('person_id', null);
+        else if (linkFilter === 'linked') q = q.not('person_id', 'is', null);
+        const result = await q
           .order('data_vencimento', { ascending: false })
           .range(from, to);
         return result as any;
       }, 500);
+
 
       if (!titulos.length) return [];
 
