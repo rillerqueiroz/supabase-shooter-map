@@ -235,6 +235,11 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
   const [isMarcandoPago, setIsMarcandoPago] = useState(false);
   const [isCancelandoCedrus, setIsCancelandoCedrus] = useState(false);
 
+  // Pessoa vinculada ao título (carrega quando há person_id)
+  const personId = titulo?.person_id ?? null;
+  const { data: person, isLoading: isLoadingPerson } = usePerson(personId);
+  const { data: personPhones } = usePersonPhones(personId);
+
   const handleMarcarPagoCedrus = async (valorPagoApurado?: number, dataPagamento?: string) => {
     if (!titulo) return;
     setIsMarcandoPago(true);
