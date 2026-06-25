@@ -11,6 +11,9 @@ import { PessoaInfoView } from './PessoaInfoView';
 import { PessoaTelefonesSection } from './PessoaTelefonesSection';
 import { PessoaCredoresExternosTab } from './PessoaCredoresExternosTab';
 import { PessoaTitulosTab } from './PessoaTitulosTab';
+import ConversasWhatsAppTab from './ConversasWhatsAppTab';
+import DiscadorTab from './DiscadorTab';
+import { usePersonPhones } from '@/hooks/usePersonDetail';
 
 interface Props {
   personId: string | null;
