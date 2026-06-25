@@ -657,136 +657,7 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
 
 
           <TabsContent value="detalhes" className="space-y-6 mt-4">
-            {/* PRIMEIRA SEÇÃO: Dados da Pessoa (conteúdo da antiga aba Pessoa) */}
-            <section className="bg-gradient-to-br from-primary/5 via-card to-card rounded-lg border-2 border-primary/20 p-4">
-              <SectionHeader icon={User} title="Dados da Pessoa" />
-              {!personId ? (
-                <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg bg-muted/30">
-                  Este título ainda não está vinculado a uma pessoa.
-                  {titulo.nome_parceiro && (
-                    <div className="mt-2 text-foreground">
-                      <span className="text-xs text-muted-foreground">Nome no Título: </span>
-                      <span className="font-semibold">{titulo.nome_parceiro}</span>
-                    </div>
-                  )}
-                </div>
-              ) : isLoadingPerson || !person ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground p-6 justify-center">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando pessoa...
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                    <div>
-                      <span className="text-xs text-muted-foreground block">Nome da Pessoa (cadastro)</span>
-                      <p className="font-bold text-2xl text-primary leading-tight">{person.name || "-"}</p>
-                    </div>
-                    {titulo.nome_parceiro && (
-                      <div>
-                        <span className="text-xs text-muted-foreground block">Nome no Título</span>
-                        <p className="font-semibold text-base">{titulo.nome_parceiro}</p>
-                      </div>
-                    )}
-                  </div>
-                  <PessoaInfoView person={person} />
-                  <PessoaTelefonesSection personId={person.id} />
-                </div>
-              )}
-            </section>
-
-            {/* SEGUNDA SEÇÃO: Valores + Informações do Documento (mesclados) */}
-            <section className="bg-card rounded-lg border p-4">
-              <SectionHeader icon={DollarSign} title="Valores e Documento" />
-              {isEditing ? (
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Valores</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <EditField label="Saldo Parcela" field="saldo_parcela" type="number" value={editData.saldo_parcela} onChange={handleFieldChange} />
-                      <EditField label="Data Vencimento" field="data_vencimento" type="date" value={editData.data_vencimento?.split('T')[0] || ''} onChange={handleFieldChange} />
-                      <EditField label="Valor Parcela" field="valor_parcela" type="number" value={editData.valor_parcela} onChange={handleFieldChange} />
-                      <EditField label="Valor Pago" field="valor_pago" type="number" value={editData.valor_pago} onChange={handleFieldChange} />
-                      <EditField label="Data Pagamento" field="data_pagamento" type="date" value={editData.data_pagamento?.split('T')[0] || ''} onChange={handleFieldChange} />
-                      <EditField label="Dias Atraso" field="dias_atraso" type="number" value={editData.dias_atraso} onChange={handleFieldChange} />
-                    </div>
-                  </div>
-                  <div className="pt-4 border-t">
-                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
-                      <FileText className="h-4 w-4" /> Informações do Documento
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <EditField label="Documento" field="documento" value={editData.documento} onChange={handleFieldChange} />
-                      <EditField label="Tipo Documento" field="tipo_documento" value={editData.tipo_documento} onChange={handleFieldChange} />
-                      <EditField label="Série" field="serie_documento" value={editData.serie_documento} onChange={handleFieldChange} />
-                      <EditField label="Número Parcela" field="numero_parcela" value={editData.numero_parcela} onChange={handleFieldChange} />
-                      <EditField label="Forma Pagamento" field="forma_pagamento" value={editData.forma_pagamento} onChange={handleFieldChange} />
-                      <EditField label="Status Boleto" field="status_boleto" value={editData.status_boleto} onChange={handleFieldChange} />
-                      <EditField label="Filial" field="filial" value={editData.filial} onChange={handleFieldChange} />
-                      <EditField label="Vendedor" field="vendedor" value={editData.vendedor} onChange={handleFieldChange} />
-                      <EditField label="UF Cobrança" field="uf_cobranca" value={editData.uf_cobranca} onChange={handleFieldChange} />
-                      <EditField label="Município Cobrança" field="municipio_cobranca" value={editData.municipio_cobranca} onChange={handleFieldChange} />
-                    </div>
-                    <div className="mt-4">
-                      <Label className="text-xs">Observações</Label>
-                      <Textarea
-                        value={editData.observacoes || ""}
-                        onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="flex flex-wrap items-stretch gap-4">
-                    <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-primary/5 border border-primary/20">
-                      <span className="text-sm text-muted-foreground font-medium">Saldo Parcela</span>
-                      <p className="text-2xl font-bold text-primary">{formatCurrency(titulo.saldo_parcela)}</p>
-                    </div>
-                    <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-muted/50 border text-right">
-                      <span className="text-sm text-muted-foreground font-medium">Data Vencimento</span>
-                      <p className="text-lg font-semibold">{formatDate(titulo.data_vencimento)}</p>
-                      {titulo.dias_atraso && Number(titulo.dias_atraso) > 0 && (
-                        <Badge variant="destructive" className="mt-1">{titulo.dias_atraso} dias em atraso</Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6">
-                    <InfoRow label="Valor Parcela" value={formatCurrency(titulo.valor_parcela)} />
-                    <InfoRow label="Valor Pago" value={formatCurrency(titulo.valor_pago)} />
-                    <InfoRow label="Data Pagamento" value={formatDate(titulo.data_pagamento)} />
-                    <InfoRow label="Dias Atraso" value={titulo.dias_atraso} />
-                  </div>
-                  <InfoRowWithCopy label="Linha Digitável" value={titulo.linha_digitavel} />
-                  <div className="pt-4 border-t">
-                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
-                      <FileText className="h-4 w-4" /> Informações do Documento
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6">
-                      <InfoRow label="Documento" value={titulo.documento} />
-                      <InfoRow label="Tipo" value={titulo.tipo_documento} />
-                      <InfoRow label="Série" value={titulo.serie_documento} />
-                      <InfoRow label="Nº Parcela" value={titulo.numero_parcela} />
-                      <InfoRow label="Forma Pagamento" value={titulo.forma_pagamento} />
-                      <InfoRow label="Status Boleto" value={titulo.status_boleto} />
-                      <InfoRow label="Filial" value={titulo.filial} />
-                      <InfoRow label="Vendedor" value={titulo.vendedor} />
-                      <InfoRow label="UF Cobrança" value={titulo.uf_cobranca} />
-                      <InfoRow label="Município Cobrança" value={titulo.municipio_cobranca} />
-                      <InfoRow label="Data Documento" value={formatDate(titulo.data_documento)} />
-                    </div>
-                    {titulo.observacoes && (
-                      <div className="mt-4">
-                        <span className="text-muted-foreground text-sm">Observações:</span>
-                        <p className="text-sm bg-muted p-3 rounded-md mt-1">{titulo.observacoes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </section>
-
-            {/* TERCEIRA SEÇÃO: Status */}
+            {/* PRIMEIRA SEÇÃO: Status */}
             <section className="bg-card rounded-lg border p-4">
               <SectionHeader icon={Tag} title="Status" />
               {isEditing ? (
@@ -998,6 +869,136 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                 </div>
               )}
             </section>
+
+            {/* SEGUNDA SEÇÃO: Dados da Pessoa (conteúdo da antiga aba Pessoa) */}
+            <section className="bg-gradient-to-br from-primary/5 via-card to-card rounded-lg border-2 border-primary/20 p-4">
+              <SectionHeader icon={User} title="Dados da Pessoa" />
+              {!personId ? (
+                <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg bg-muted/30">
+                  Este título ainda não está vinculado a uma pessoa.
+                  {titulo.nome_parceiro && (
+                    <div className="mt-2 text-foreground">
+                      <span className="text-xs text-muted-foreground">Nome no Título: </span>
+                      <span className="font-semibold">{titulo.nome_parceiro}</span>
+                    </div>
+                  )}
+                </div>
+              ) : isLoadingPerson || !person ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-6 justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando pessoa...
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Nome da Pessoa (cadastro)</span>
+                      <p className="font-bold text-2xl text-primary leading-tight">{person.name || "-"}</p>
+                    </div>
+                    {titulo.nome_parceiro && (
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Nome no Título</span>
+                        <p className="font-semibold text-base">{titulo.nome_parceiro}</p>
+                      </div>
+                    )}
+                  </div>
+                  <PessoaInfoView person={person} />
+                  <PessoaTelefonesSection personId={person.id} />
+                </div>
+              )}
+            </section>
+
+            {/* TERCEIRA SEÇÃO: Valores + Informações do Documento (mesclados) */}
+            <section className="bg-card rounded-lg border p-4">
+              <SectionHeader icon={DollarSign} title="Valores e Documento" />
+              {isEditing ? (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Valores</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <EditField label="Saldo Parcela" field="saldo_parcela" type="number" value={editData.saldo_parcela} onChange={handleFieldChange} />
+                      <EditField label="Data Vencimento" field="data_vencimento" type="date" value={editData.data_vencimento?.split('T')[0] || ''} onChange={handleFieldChange} />
+                      <EditField label="Valor Parcela" field="valor_parcela" type="number" value={editData.valor_parcela} onChange={handleFieldChange} />
+                      <EditField label="Valor Pago" field="valor_pago" type="number" value={editData.valor_pago} onChange={handleFieldChange} />
+                      <EditField label="Data Pagamento" field="data_pagamento" type="date" value={editData.data_pagamento?.split('T')[0] || ''} onChange={handleFieldChange} />
+                      <EditField label="Dias Atraso" field="dias_atraso" type="number" value={editData.dias_atraso} onChange={handleFieldChange} />
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Informações do Documento
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <EditField label="Documento" field="documento" value={editData.documento} onChange={handleFieldChange} />
+                      <EditField label="Tipo Documento" field="tipo_documento" value={editData.tipo_documento} onChange={handleFieldChange} />
+                      <EditField label="Série" field="serie_documento" value={editData.serie_documento} onChange={handleFieldChange} />
+                      <EditField label="Número Parcela" field="numero_parcela" value={editData.numero_parcela} onChange={handleFieldChange} />
+                      <EditField label="Forma Pagamento" field="forma_pagamento" value={editData.forma_pagamento} onChange={handleFieldChange} />
+                      <EditField label="Status Boleto" field="status_boleto" value={editData.status_boleto} onChange={handleFieldChange} />
+                      <EditField label="Filial" field="filial" value={editData.filial} onChange={handleFieldChange} />
+                      <EditField label="Vendedor" field="vendedor" value={editData.vendedor} onChange={handleFieldChange} />
+                      <EditField label="UF Cobrança" field="uf_cobranca" value={editData.uf_cobranca} onChange={handleFieldChange} />
+                      <EditField label="Município Cobrança" field="municipio_cobranca" value={editData.municipio_cobranca} onChange={handleFieldChange} />
+                    </div>
+                    <div className="mt-4">
+                      <Label className="text-xs">Observações</Label>
+                      <Textarea
+                        value={editData.observacoes || ""}
+                        onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-stretch gap-4">
+                    <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-primary/5 border border-primary/20">
+                      <span className="text-sm text-muted-foreground font-medium">Saldo Parcela</span>
+                      <p className="text-2xl font-bold text-primary">{formatCurrency(titulo.saldo_parcela)}</p>
+                    </div>
+                    <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-muted/50 border text-right">
+                      <span className="text-sm text-muted-foreground font-medium">Data Vencimento</span>
+                      <p className="text-lg font-semibold">{formatDate(titulo.data_vencimento)}</p>
+                      {titulo.dias_atraso && Number(titulo.dias_atraso) > 0 && (
+                        <Badge variant="destructive" className="mt-1">{titulo.dias_atraso} dias em atraso</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6">
+                    <InfoRow label="Valor Parcela" value={formatCurrency(titulo.valor_parcela)} />
+                    <InfoRow label="Valor Pago" value={formatCurrency(titulo.valor_pago)} />
+                    <InfoRow label="Data Pagamento" value={formatDate(titulo.data_pagamento)} />
+                    <InfoRow label="Dias Atraso" value={titulo.dias_atraso} />
+                  </div>
+                  <InfoRowWithCopy label="Linha Digitável" value={titulo.linha_digitavel} />
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Informações do Documento
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6">
+                      <InfoRow label="Documento" value={titulo.documento} />
+                      <InfoRow label="Tipo" value={titulo.tipo_documento} />
+                      <InfoRow label="Série" value={titulo.serie_documento} />
+                      <InfoRow label="Nº Parcela" value={titulo.numero_parcela} />
+                      <InfoRow label="Forma Pagamento" value={titulo.forma_pagamento} />
+                      <InfoRow label="Status Boleto" value={titulo.status_boleto} />
+                      <InfoRow label="Filial" value={titulo.filial} />
+                      <InfoRow label="Vendedor" value={titulo.vendedor} />
+                      <InfoRow label="UF Cobrança" value={titulo.uf_cobranca} />
+                      <InfoRow label="Município Cobrança" value={titulo.municipio_cobranca} />
+                      <InfoRow label="Data Documento" value={formatDate(titulo.data_documento)} />
+                    </div>
+                    {titulo.observacoes && (
+                      <div className="mt-4">
+                        <span className="text-muted-foreground text-sm">Observações:</span>
+                        <p className="text-sm bg-muted p-3 rounded-md mt-1">{titulo.observacoes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+
 
             {/* Seção: Dados da pessoa (que vieram da Tudo Belo) (oculta por padrão) */}
             <Collapsible defaultOpen={false}>
