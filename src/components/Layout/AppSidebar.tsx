@@ -10,6 +10,7 @@ import {
   FileUp,
   DollarSign,
   CheckCircle2,
+  Users,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
@@ -31,6 +32,7 @@ import logoSuperavit from "@/assets/logo-superavit.png"
 
 const navigationItems = [
   { title: "Títulos Tudo Belo", url: "/gestao-titulos-tudobelo", icon: Receipt },
+  { title: "Pessoas", url: "/pessoas", icon: Users },
   { title: "Analytics Títulos", url: "/analytics-titulos-tudobelo", icon: BarChart3 },
   { title: "Negativados Tudo Belo", url: "/gestao-negativados-tudobelo", icon: AlertTriangle },
   { title: "Envio Títulos - Oficial", url: "/upload-arquivos-oficial", icon: FileUp },

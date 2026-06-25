@@ -13,6 +13,7 @@ export const routeToScreenSlug: Record<string, string> = {
   '/gestao-titulos-testes': 'upload-arquivos',
   '/checagem-inconsistencias': 'gestao-titulos-tudobelo',
   '/gestao-acesso-sistemas': 'configuracoes',
+  '/pessoas': 'gestao-titulos-tudobelo',
 };
 
 export const getScreenSlugFromRoute = (route: string): string | undefined => {
