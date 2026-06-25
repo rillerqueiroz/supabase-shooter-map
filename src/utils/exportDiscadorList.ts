@@ -152,6 +152,7 @@ export async function exportDiscadorList(titulos: TituloTudoBelo[]) {
       "Nome Devedor": d.nome,
       "CNPJ/CPF": d.cnpj_cpf,
       "Código Parceiro": d.codigo_parceiro,
+      "credor_cedrus": Array.from(d.credoresCedrus).join(", "),
       "Cidade": d.cidade,
       "UF": d.uf,
       "Qtd Títulos": d.qtdTitulos,
