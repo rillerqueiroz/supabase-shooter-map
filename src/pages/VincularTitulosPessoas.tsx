@@ -447,6 +447,19 @@ export default function VincularTitulosPessoas() {
 
   const pendingCount = selectedMap.size - readyCount;
 
+  // IDs selecionados que NÃO têm candidatos (sem match) — alvos da criação de pessoa.
+  const selectedSemMatchIds = useMemo(() => {
+    if (!filtered.length) return [] as string[];
+    const byId = new Map<string, TituloComMatches>();
+    for (const t of filtered) byId.set(t.id, t);
+    const ids: string[] = [];
+    for (const id of selectedMap.keys()) {
+      const t = byId.get(id);
+      if (t && !t.person_id && t.candidates.length === 0) ids.push(id);
+    }
+    return ids;
+  }, [selectedMap, filtered]);
+
   const handleBulk = () => {
     const pairs: Array<{ tituloId: string; personId: string }> = [];
     for (const [tituloId, personId] of selectedMap) {
