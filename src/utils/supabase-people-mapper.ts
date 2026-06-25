@@ -49,14 +49,26 @@ export interface FetchPeopleResult {
  *  2) Filtra por nome / CPF (document_digits) / telefone (variantes).
  *  3) Pagina o set final em memória, depois busca os registros completos em chunks.
  */
+/** Remove acentos para busca tolerante. */
+function deaccent(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 export async function fetchPeople(params: FetchPeopleParams): Promise<FetchPeopleResult> {
   const { search = '', page = 0, pageSize = 100, onlyWithoutDocument = false } = params;
   const q = search.trim();
+  const hasSearch = q.length > 0;
 
-  let allowed = await fetchTudobeloPersonIds();
-  if (allowed.size === 0) return { rows: [], total: 0 };
+  // Escopo TUDOBELO apenas quando NÃO há busca. Com busca, varre todas as pessoas
+  // (a pessoa pode existir sem vínculo ativo em people_creditors).
+  let allowed: Set<string>;
+  if (hasSearch) {
+    allowed = new Set<string>(); // será preenchido pelos filtros abaixo
+  } else {
+    allowed = await fetchTudobeloPersonIds();
+    if (allowed.size === 0) return { rows: [], total: 0 };
+  }
 
-  // Filtro por telefone — quando search tem >=4 dígitos
   const digits = onlyDigits(q);
   if (digits.length >= 4) {
     const variants = variantesTelefone(digits);
@@ -78,42 +90,42 @@ export async function fetchPeople(params: FetchPeopleParams): Promise<FetchPeopl
     }
     // Também tenta document_digits
     const docIds = new Set<string>();
-    if (digits.length >= 3) {
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from('people')
-          .select('id')
-          .ilike('document_digits', `%${digits}%`)
-          .is('merged_into_id', null)
-          .range(from, from + CHUNK - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) if (r.id) docIds.add(r.id as string);
-        if (data.length < CHUNK) break;
-        from += CHUNK;
-      }
-    }
-    const union = new Set<string>([...phoneIds, ...docIds]);
-    allowed = new Set([...allowed].filter((id) => union.has(id)));
-  } else if (q.length > 0) {
-    // Filtro por nome (texto livre)
-    const nameIds = new Set<string>();
     let from = 0;
     while (true) {
       const { data, error } = await supabase
         .from('people')
         .select('id')
-        .ilike('name', `%${q}%`)
+        .ilike('document_digits', `%${digits}%`)
         .is('merged_into_id', null)
         .range(from, from + CHUNK - 1);
       if (error) throw error;
       if (!data || data.length === 0) break;
-      for (const r of data) if (r.id) nameIds.add(r.id as string);
+      for (const r of data) if (r.id) docIds.add(r.id as string);
       if (data.length < CHUNK) break;
       from += CHUNK;
     }
-    allowed = new Set([...allowed].filter((id) => nameIds.has(id)));
+    allowed = new Set<string>([...phoneIds, ...docIds]);
+  } else if (hasSearch) {
+    // Busca por nome — variantes com e sem acento para ser tolerante.
+    const variants = new Set<string>([q, deaccent(q)]);
+    const nameIds = new Set<string>();
+    for (const v of variants) {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('people')
+          .select('id')
+          .ilike('name', `%${v}%`)
+          .is('merged_into_id', null)
+          .range(from, from + CHUNK - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) if (r.id) nameIds.add(r.id as string);
+        if (data.length < CHUNK) break;
+        from += CHUNK;
+      }
+    }
+    allowed = nameIds;
   }
 
   // Filtro "sem CPF/CNPJ"
