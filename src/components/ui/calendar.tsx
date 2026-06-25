@@ -47,7 +47,7 @@ function Calendar({
   }, [controlledMonth]);
 
   const currentYear = new Date().getFullYear();
-  const years = React.useMemo(() => Array.from({ length: 31 }, (_, index) => currentYear - 15 + index), [currentYear]);
+  const years = React.useMemo(() => Array.from({ length: 61 }, (_, index) => currentYear - 30 + index), [currentYear]);
 
   const handleMonthChange = React.useCallback(
     (newMonth: Date) => {
