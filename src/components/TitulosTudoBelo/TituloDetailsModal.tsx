@@ -31,6 +31,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { TituloTudoBelo, useUpdateTituloTudoBelo, STATUS_TITULO_OPTIONS, STATUS_CEDRUS_OPTIONS } from "@/hooks/useTitulosTudoBelo";
 import { useInserirCedrusWebhook } from "@/hooks/useInserirCedrusWebhook";
 import { useTitulosEtapas } from "@/hooks/useTitulosEtapas";
@@ -39,10 +44,17 @@ import { useCreateLogAlteracao } from "@/hooks/useTitulosLogAlteracoes";
 import { useNegativarTitulo, useRemoverNegativacao } from "@/hooks/useNegativacoes";
 import { TituloHistoricoSection } from "./TituloHistoricoSection";
 import { CedrusConfirmDialog } from "./CedrusConfirmDialog";
+// Person consultation pieces (merged from PessoaDetailsModal)
+import { usePerson, usePersonPhones } from "@/hooks/usePersonDetail";
+import { PessoaInfoView } from "@/components/Pessoas/PessoaInfoView";
+import { PessoaTelefonesSection } from "@/components/Pessoas/PessoaTelefonesSection";
+import { PessoaCredoresExternosTab } from "@/components/Pessoas/PessoaCredoresExternosTab";
+import ConversasWhatsAppTab from "@/components/Pessoas/ConversasWhatsAppTab";
+import DiscadorTab from "@/components/Pessoas/DiscadorTab";
 import { useState, useEffect, useRef } from "react";
 import { format, differenceInDays, addDays, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock, CheckCircle2 } from "lucide-react";
+import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock, CheckCircle2, ChevronDown, User, MessageSquare, Phone, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
