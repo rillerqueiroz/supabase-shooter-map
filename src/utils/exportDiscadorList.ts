@@ -118,6 +118,7 @@ function agrupar(titulos: TituloTudoBelo[]): DevedorAgrupado[] {
     if (t.documento) g.documentos.push(t.documento);
     if (t.filial) g.filiais.add(t.filial);
     if (t.forma_pagamento) g.formasPagamento.add(t.forma_pagamento);
+    if (t.credor_cedrus) g.credoresCedrus.add(t.credor_cedrus);
     if (!g.email && t.email) g.email = t.email;
     for (const f of [t.fone1, t.fone2]) {
       const n = normalizarTelefone(f);
