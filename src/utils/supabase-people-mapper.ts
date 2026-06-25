@@ -58,15 +58,10 @@ export async function fetchPeople(params: FetchPeopleParams): Promise<FetchPeopl
   const q = search.trim();
   const hasSearch = q.length > 0;
 
-  // Escopo TUDOBELO apenas quando NÃO há busca. Com busca, varre todas as pessoas
-  // (a pessoa pode existir sem vínculo ativo em people_creditors).
-  let allowed: Set<string>;
-  if (hasSearch) {
-    allowed = new Set<string>(); // será preenchido pelos filtros abaixo
-  } else {
-    allowed = await fetchTudobeloPersonIds();
-    if (allowed.size === 0) return { rows: [], total: 0 };
-  }
+  // Escopo: somente pessoas com vínculo TUDOBELO ou TUDOBELO-FUNDOS (case-insensitive).
+  const tudobeloIds = await fetchTudobeloPersonIds();
+  if (tudobeloIds.size === 0) return { rows: [], total: 0 };
+  let allowed = tudobeloIds;
 
   const digits = onlyDigits(q);
   if (digits.length >= 4) {
@@ -87,7 +82,6 @@ export async function fetchPeople(params: FetchPeopleParams): Promise<FetchPeopl
         from += CHUNK;
       }
     }
-    // Também tenta document_digits
     const docIds = new Set<string>();
     let from = 0;
     while (true) {
@@ -103,9 +97,10 @@ export async function fetchPeople(params: FetchPeopleParams): Promise<FetchPeopl
       if (data.length < CHUNK) break;
       from += CHUNK;
     }
-    allowed = new Set<string>([...phoneIds, ...docIds]);
+    const matches = new Set<string>([...phoneIds, ...docIds]);
+    allowed = new Set([...tudobeloIds].filter((id) => matches.has(id)));
   } else if (hasSearch) {
-    // Busca por nome — variantes com e sem acento para ser tolerante.
+    // Busca por nome — variantes com e sem acento.
     const variants = new Set<string>([q, deaccent(q)]);
     const nameIds = new Set<string>();
     for (const v of variants) {
@@ -124,7 +119,7 @@ export async function fetchPeople(params: FetchPeopleParams): Promise<FetchPeopl
         from += CHUNK;
       }
     }
-    allowed = nameIds;
+    allowed = new Set([...tudobeloIds].filter((id) => nameIds.has(id)));
   }
 
   // Filtro "sem CPF/CNPJ"
