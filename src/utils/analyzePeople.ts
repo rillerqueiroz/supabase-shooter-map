@@ -117,6 +117,7 @@ export async function analyzePeopleForRecords(
 
   let matchedByExternal = 0;
   let matchedByDocument = 0;
+  let novasACriarSemCpf = 0;
   const novasPreview: PeopleAnalysisPreviewItem[] = [];
 
   for (const v of byKey.values()) {
@@ -128,11 +129,13 @@ export async function analyzePeopleForRecords(
       matchedByDocument++;
       continue;
     }
+    if (v.marcador === 'SEM_CPF') novasACriarSemCpf++;
     if (novasPreview.length < 100) {
       novasPreview.push({
         nome_parceiro: v.nome_parceiro,
         cnpj_cpf: v.cnpj_cpf,
         codigo_parceiro: v.codigo_parceiro,
+        marcador: v.marcador,
       });
     }
   }
@@ -148,6 +151,7 @@ export async function analyzePeopleForRecords(
     matchedByExternal,
     matchedByDocument,
     novasACriar,
+    novasACriarSemCpf,
     novasPreview,
   };
 }
