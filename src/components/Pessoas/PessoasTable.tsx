@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Search } from 'lucide-react';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { usePeople } from '@/hooks/usePeople';
