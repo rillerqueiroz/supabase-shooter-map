@@ -514,7 +514,8 @@ export default function VincularTitulosPessoas() {
           </div>
 
           <DataTablePagination
-            pagination={pagination}
+            pageIndex={pagination.pageIndex}
+            pageSize={pagination.pageSize}
             pageCount={pageCount}
             canPreviousPage={canPreviousPage}
             canNextPage={canNextPage}
