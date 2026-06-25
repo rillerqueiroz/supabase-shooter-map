@@ -62,6 +62,7 @@ export async function analyzePeopleForRecords(
         nome_parceiro: cleanStr(r.nome_parceiro),
         cnpj_cpf: docOk,
         codigo_parceiro: codigo,
+        marcador: docOk ? 'COM_CPF' : 'SEM_CPF',
         dig: docOk,
         codigo,
       });
