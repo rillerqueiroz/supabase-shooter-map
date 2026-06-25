@@ -682,6 +682,13 @@ export default function UploadArquivosOficial() {
         }),
       };
 
+      // People analysis — apenas leitura, contra pessoas existentes
+      try {
+        result.peopleAnalysis = await analyzePeopleForRecords(result.records, { externalSystem: 'tudobelo' });
+      } catch (e: any) {
+        console.warn('[upload-oficial] falha ao analisar pessoas:', e?.message);
+      }
+
       setAnalysis(result);
     } catch (err: any) {
       toast.error(`Erro ao analisar arquivo: ${err.message}`);
