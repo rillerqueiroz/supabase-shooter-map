@@ -119,7 +119,7 @@ export function PessoaTelefonesSection({ personId }: Props) {
             </TableRow>
           ) : (
             (phones ?? []).map((ph) => (
-              <TableRow key={ph.id}>
+              <TableRow key={ph.id} className="[&>td]:py-3 [&>td]:align-middle">
                 <TableCell className="font-mono text-sm">
                   <div className="flex items-center gap-1.5">
                     {formatPhone(ph.phone)}
