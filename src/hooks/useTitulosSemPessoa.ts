@@ -223,3 +223,25 @@ export function useVincularTitulosBulk() {
     },
   });
 }
+
+export function useDesvincularTitulo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (tituloId: string) => {
+      const { error } = await supabase
+        .from('base_tudobelo_intermediaria')
+        .update({ person_id: null, ultima_atualizacao: new Date().toISOString() })
+        .eq('id', tituloId);
+      if (error) throw error;
+      return tituloId;
+    },
+    onSuccess: () => {
+      toast.success('Vínculo removido.');
+      queryClient.invalidateQueries({ queryKey: ['vincular-titulos-pessoas'] });
+    },
+    onError: (e: any) => {
+      toast.error('Erro ao desvincular: ' + (e?.message || 'falha'));
+    },
+  });
+}
+
