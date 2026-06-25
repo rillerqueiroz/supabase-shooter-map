@@ -81,10 +81,12 @@ function CandidatePicker({
   candidates,
   onPick,
   pending,
+  selectedPersonId,
 }: {
   candidates: MatchCandidate[];
   onPick: (personId: string) => void;
   pending: boolean;
+  selectedPersonId?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   if (candidates.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
@@ -109,40 +111,62 @@ function CandidatePicker({
     );
   }
 
+  const chosen = candidates.find((c) => c.person_id === selectedPersonId) || null;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 w-full justify-between">
-          <span className="text-xs">{candidates.length} candidatos</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+        <Button
+          variant={chosen ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-auto min-h-8 w-full justify-between py-1.5"
+        >
+          {chosen ? (
+            <div className="flex flex-col items-start gap-0.5 min-w-0">
+              <span className="text-xs font-medium truncate max-w-[200px]" title={chosen.name || ''}>
+                {chosen.name || '(sem nome)'}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {formatDocument(chosen.cpf) || '—'}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs">{candidates.length} candidatos — escolher</span>
+          )}
+          <ChevronDown className="h-3 w-3 opacity-50 shrink-0 ml-1" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[320px] p-1" align="end">
         <div className="max-h-72 overflow-auto">
-          {candidates.map((c) => (
-            <button
-              key={c.person_id}
-              type="button"
-              disabled={pending}
-              onClick={() => {
-                onPick(c.person_id);
-                setOpen(false);
-              }}
-              className="w-full text-left px-2 py-2 rounded hover:bg-muted text-xs flex items-start gap-2"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="font-medium truncate">{c.name || '(sem nome)'}</div>
-                <div className="text-[10px] text-muted-foreground font-mono">
-                  {formatDocument(c.cpf) || '—'}
+          {candidates.map((c) => {
+            const isSel = c.person_id === selectedPersonId;
+            return (
+              <button
+                key={c.person_id}
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  onPick(c.person_id);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-2 py-2 rounded text-xs flex items-start gap-2 ${
+                  isSel ? 'bg-muted' : 'hover:bg-muted'
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{c.name || '(sem nome)'}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    {formatDocument(c.cpf) || '—'}
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-col gap-0.5 items-end">
-                {c.reasons.map((r) => (
-                  <CandidateBadge key={r} reason={r} />
-                ))}
-              </div>
-            </button>
-          ))}
+                <div className="flex flex-col gap-0.5 items-end">
+                  {c.reasons.map((r) => (
+                    <CandidateBadge key={r} reason={r} />
+                  ))}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>
