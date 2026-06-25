@@ -130,7 +130,7 @@ function Calendar({
         weekStartsOn={0}
         formatters={{
           formatWeekdayName: (date) => {
-            const days = ['Do', 'Se', 'Te', 'Qu', 'Qu', 'Se', 'Sa'];
+            const days = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
             return days[date.getDay()];
           }
         }}
