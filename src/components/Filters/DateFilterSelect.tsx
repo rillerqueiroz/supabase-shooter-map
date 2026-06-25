@@ -44,9 +44,14 @@ export function DateFilterSelect({ label = "Período", value, onChange }: DateFi
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent
+          className="w-[300px] p-2 pointer-events-auto"
+          align="start"
+          sideOffset={4}
+        >
           <Calendar
             mode="range"
+            numberOfMonths={1}
             selected={value?.from ? { from: value.from, to: value.to } : undefined}
             onSelect={(range) => {
               if (!range) {
@@ -56,6 +61,21 @@ export function DateFilterSelect({ label = "Período", value, onChange }: DateFi
               }
             }}
           />
+          {hasValue && (
+            <div className="flex justify-end pt-2 border-t mt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  onChange(undefined);
+                  setOpen(false);
+                }}
+              >
+                <X className="h-3 w-3 mr-1" /> Limpar
+              </Button>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
     </div>
