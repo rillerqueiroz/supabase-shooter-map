@@ -141,6 +141,34 @@ export async function exportDiscadorList(titulos: TituloTudoBelo[]) {
   );
   const phonesMap = await fetchValidPhonesByPersonIds(personIds);
 
+  // Fallback: para devedores sem credor_cedrus, buscar em outros títulos do mesmo codigo_parceiro
+  const codigosSemCredor = Array.from(
+    new Set(
+      devedores
+        .filter((d) => d.credoresCedrus.size === 0 && d.codigo_parceiro)
+        .map((d) => d.codigo_parceiro)
+    )
+  );
+  const credorFallbackMap = new Map<string, Set<string>>();
+  if (codigosSemCredor.length > 0) {
+    const chunkSize = 200;
+    for (let i = 0; i < codigosSemCredor.length; i += chunkSize) {
+      const chunk = codigosSemCredor.slice(i, i + chunkSize);
+      const { data, error } = await supabase
+        .from("base_tudobelo_intermediaria")
+        .select("codigo_parceiro, credor_cedrus")
+        .in("codigo_parceiro", chunk)
+        .not("credor_cedrus", "is", null);
+      if (error) throw error;
+      for (const r of (data as any[]) || []) {
+        if (!r.codigo_parceiro || !r.credor_cedrus) continue;
+        const set = credorFallbackMap.get(r.codigo_parceiro) || new Set<string>();
+        set.add(r.credor_cedrus);
+        credorFallbackMap.set(r.codigo_parceiro, set);
+      }
+    }
+  }
+
   const comTelefone: any[] = [];
   const semTelefone: any[] = [];
 
@@ -148,11 +176,17 @@ export async function exportDiscadorList(titulos: TituloTudoBelo[]) {
     const phones = (d.person_id && phonesMap.get(d.person_id)) || [];
     const phoneList = phones.map((p) => normalizarTelefone(p.phone)).filter(Boolean);
 
+    let credorStr = Array.from(d.credoresCedrus).join(", ");
+    if (!credorStr && d.codigo_parceiro) {
+      const fb = credorFallbackMap.get(d.codigo_parceiro);
+      if (fb && fb.size > 0) credorStr = Array.from(fb).join(", ");
+    }
+
     const baseRow = {
       "Nome Devedor": d.nome,
       "CNPJ/CPF": d.cnpj_cpf,
       "Código Parceiro": d.codigo_parceiro,
-      "credor_cedrus": Array.from(d.credoresCedrus).join(", "),
+      "credor_cedrus": credorStr,
       "Cidade": d.cidade,
       "UF": d.uf,
       "Qtd Títulos": d.qtdTitulos,
