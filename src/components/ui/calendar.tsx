@@ -9,159 +9,159 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-interface CustomCaptionProps {
-  displayMonth: Date;
-  onMonthChange: (date: Date) => void;
-}
+const MONTHS = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
 
-function CustomCaption({ displayMonth, onMonthChange }: CustomCaptionProps) {
-  const months = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-  ];
-  const monthsShort = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i);
-
-  const handlePrevMonth = () => {
-    const d = new Date(displayMonth);
-    d.setMonth(d.getMonth() - 1);
-    onMonthChange(d);
-  };
-  const handleNextMonth = () => {
-    const d = new Date(displayMonth);
-    d.setMonth(d.getMonth() + 1);
-    onMonthChange(d);
-  };
-
-  return (
-    <div className="flex items-center justify-between mb-3 px-1">
-      <div className="flex items-center gap-1">
-        <Select
-          value={String(displayMonth.getMonth())}
-          onValueChange={(m) => {
-            const d = new Date(displayMonth);
-            d.setMonth(parseInt(m));
-            onMonthChange(d);
-          }}
-        >
-          <SelectTrigger className="h-7 px-1.5 border-0 bg-transparent shadow-none font-bold text-base hover:bg-accent focus:ring-0 focus:ring-offset-0 gap-1 [&>svg]:hidden w-auto">
-            <SelectValue>{monthsShort[displayMonth.getMonth()]}</SelectValue>
-          </SelectTrigger>
-          <SelectContent className="max-h-[240px]">
-            {months.map((m, i) => (
-              <SelectItem key={m} value={String(i)} className="text-sm">{m}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={String(displayMonth.getFullYear())}
-          onValueChange={(y) => {
-            const d = new Date(displayMonth);
-            d.setFullYear(parseInt(y));
-            onMonthChange(d);
-          }}
-        >
-          <SelectTrigger className="h-7 px-1.5 border-0 bg-transparent shadow-none font-bold text-base hover:bg-accent focus:ring-0 focus:ring-offset-0 gap-1 [&>svg]:hidden w-auto">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="max-h-[240px]">
-            {years.map((y) => (
-              <SelectItem key={y} value={String(y)} className="text-sm">{y}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={handlePrevMonth}
-          className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent text-foreground"
-          aria-label="Mês anterior"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={handleNextMonth}
-          className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent text-foreground"
-          aria-label="Próximo mês"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
+function getCalendarMonth(selected?: unknown, month?: Date) {
+  if (month) return month;
+  if (selected instanceof Date) return selected;
+  if (selected && typeof selected === "object" && "from" in selected && selected.from instanceof Date) return selected.from;
+  return new Date();
 }
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  month: controlledMonth,
+  onMonthChange,
   ...props
 }: CalendarProps) {
-  const [month, setMonth] = React.useState<Date>(props.month || new Date());
+  const selected = (props as { selected?: unknown }).selected;
+  const [month, setMonth] = React.useState<Date>(() => getCalendarMonth(selected, controlledMonth));
 
-  // Sync internal month state with external month prop
   React.useEffect(() => {
-    if (props.month && props.month.getTime() !== month.getTime()) {
-      setMonth(props.month);
-    }
-  }, [props.month]);
+    if (controlledMonth) setMonth(controlledMonth);
+  }, [controlledMonth]);
 
-  // Forward month changes to parent while keeping local state in sync
-  const handleMonthChange = React.useCallback((newDate: Date) => {
-    setMonth(newDate);
-    (props as any).onMonthChange?.(newDate);
-  }, [props]);
+  const currentYear = new Date().getFullYear();
+  const years = React.useMemo(() => Array.from({ length: 61 }, (_, index) => currentYear - 30 + index), [currentYear]);
+
+  const handleMonthChange = React.useCallback(
+    (newMonth: Date) => {
+      setMonth(newMonth);
+      onMonthChange?.(newMonth);
+    },
+    [onMonthChange]
+  );
+
+  const goToMonth = (offset: number) => {
+    const nextMonth = new Date(month);
+    nextMonth.setMonth(nextMonth.getMonth() + offset);
+    handleMonthChange(nextMonth);
+  };
+
+  const selectMonth = (value: string) => {
+    const nextMonth = new Date(month);
+    nextMonth.setMonth(Number(value));
+    handleMonthChange(nextMonth);
+  };
+
+  const selectYear = (value: string) => {
+    const nextMonth = new Date(month);
+    nextMonth.setFullYear(Number(value));
+    handleMonthChange(nextMonth);
+  };
 
   return (
-    <div className={cn("relative w-fit mx-auto", className)}>
-      <CustomCaption displayMonth={month} onMonthChange={handleMonthChange} />
+    <div className={cn("w-[276px] max-w-[276px] p-2", className)}>
+      <div className="mb-2 flex items-center gap-1">
+        <button
+          type="button"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          onClick={() => goToMonth(-1)}
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        <div className="grid min-w-0 flex-1 grid-cols-[1fr_74px] gap-1">
+          <Select value={String(month.getMonth())} onValueChange={selectMonth}>
+            <SelectTrigger className="h-8 min-w-0 rounded-md px-2 text-xs font-semibold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-[260px]">
+              {MONTHS.map((monthName, index) => (
+                <SelectItem key={monthName} value={String(index)}>
+                  {monthName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={String(month.getFullYear())} onValueChange={selectYear}>
+            <SelectTrigger className="h-8 min-w-0 rounded-md px-2 text-xs font-semibold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-[260px]">
+              {years.map((year) => (
+                <SelectItem key={year} value={String(year)}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <button
+          type="button"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          onClick={() => goToMonth(1)}
+          aria-label="Próximo mês"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
       <DayPicker
         {...props}
-        showOutsideDays={showOutsideDays}
         month={month}
         onMonthChange={handleMonthChange}
-        className="p-0 pointer-events-auto"
+        showOutsideDays={showOutsideDays}
+        hideNavigation
         locale={ptBR}
         weekStartsOn={0}
+        className="w-full"
         formatters={{
-          formatWeekdayName: (date) => {
-            const days = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-            return days[date.getDay()];
-          }
+          formatWeekdayName: (date) => ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"][date.getDay()],
         }}
         classNames={{
-          months: "flex flex-col",
-          month: "space-y-2",
-          caption: "hidden",
+          root: "w-full",
+          months: "w-full",
+          month: "w-full",
+          month_caption: "hidden",
           caption_label: "hidden",
           nav: "hidden",
-          nav_button: "hidden",
-          nav_button_previous: "hidden",
-          nav_button_next: "hidden",
-          table: "border-collapse",
-          head_row: "flex",
-          head_cell: "text-muted-foreground w-9 font-normal text-[11px] flex items-center justify-center h-7",
-          row: "flex mt-1",
-          cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-full [&:has([aria-selected].day-outside)]:bg-accent/40 [&:has([aria-selected])]:bg-accent/60 first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full focus-within:relative focus-within:z-20",
-          day: cn(
+          month_grid: "w-full table-fixed border-collapse",
+          weekdays: "table-row",
+          weekday: "h-7 w-9 text-center align-middle text-[11px] font-medium text-muted-foreground",
+          weeks: "table-row-group",
+          week: "table-row",
+          day: "h-9 w-9 p-0 text-center align-middle text-sm",
+          day_button: cn(
             buttonVariants({ variant: "ghost" }),
-            "h-9 w-9 p-0 font-normal text-sm rounded-full aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground"
+            "mx-auto flex h-8 w-8 items-center justify-center rounded-full p-0 text-sm font-normal hover:bg-accent hover:text-accent-foreground"
           ),
-          day_range_end: "day-range-end",
-          day_selected:
-            "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-full",
-          day_today: "text-primary font-bold relative after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-primary",
-          day_outside:
-            "day-outside text-muted-foreground/50 aria-selected:bg-accent/40 aria-selected:text-muted-foreground",
-          day_disabled: "text-muted-foreground opacity-40",
-          day_range_middle:
-            "aria-selected:bg-accent/60 aria-selected:text-accent-foreground rounded-none",
-          day_hidden: "invisible",
+          selected: "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground",
+          range_start: "[&>button]:bg-primary [&>button]:text-primary-foreground",
+          range_middle: "bg-accent/60 [&>button]:rounded-none [&>button]:bg-transparent [&>button]:text-accent-foreground [&>button]:hover:bg-transparent",
+          range_end: "[&>button]:bg-primary [&>button]:text-primary-foreground",
+          today: "[&>button]:border [&>button]:border-primary [&>button]:font-semibold [&>button]:text-primary",
+          outside: "text-muted-foreground/40 [&>button]:text-muted-foreground/40",
+          disabled: "text-muted-foreground/30 opacity-40 [&>button]:cursor-not-allowed",
+          hidden: "invisible",
           ...classNames,
         }}
       />
