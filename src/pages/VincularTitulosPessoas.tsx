@@ -720,7 +720,21 @@ export default function VincularTitulosPessoas() {
                               <X className="h-3 w-3 mr-1" /> Desvincular
                             </Button>
                           ) : cls === 'sem_match' ? (
-                            <Badge variant="outline" className="text-[10px]">—</Badge>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7"
+                              disabled={criarPessoaMut.isPending}
+                              onClick={() => criarPessoaMut.mutate(t.id)}
+                              title="Cria pessoa em people com os dados do título e vincula"
+                            >
+                              {criarPessoaMut.isPending && criarPessoaMut.variables === t.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <UserPlus className="h-3 w-3 mr-1" />
+                              )}
+                              Criar pessoa
+                            </Button>
                           ) : resolvedPersonId ? (
                             <Button
                               size="sm"
