@@ -505,27 +505,77 @@ export default function VincularTitulosPessoas() {
             )}
           </div>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center justify-between text-sm text-muted-foreground gap-2 flex-wrap">
             <span>
               Exibindo {filtered.length.toLocaleString('pt-BR')} de{' '}
               {(titulos?.length ?? 0).toLocaleString('pt-BR')} títulos
             </span>
             {selectedMap.size > 0 && (
-              <Button
-                size="sm"
-                onClick={handleBulk}
-                disabled={bulkMut.isPending}
-                className="gap-1"
-              >
-                {bulkMut.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Link2 className="h-3.5 w-3.5" />
-                )}
-                Vincular {selectedMap.size} selecionado(s)
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs">
+                  {selectedMap.size} selecionado(s) · {readyCount} prontos
+                  {pendingCount > 0 && ` · ${pendingCount} sem escolha`}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedMap(new Map())}
+                >
+                  <X className="h-3.5 w-3.5 mr-1" /> Limpar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulk}
+                  disabled={bulkMut.isPending || readyCount === 0}
+                  className="gap-1"
+                >
+                  {bulkMut.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Link2 className="h-3.5 w-3.5" />
+                  )}
+                  Vincular {readyCount} título(s)
+                </Button>
+              </div>
             )}
           </div>
+
+          {pendingGroups.length > 0 && (
+            <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+              <div className="text-xs font-medium">
+                Escolher candidato em lote ({pendingGroups.length} grupo
+                {pendingGroups.length > 1 ? 's' : ''})
+              </div>
+              <div className="space-y-2">
+                {pendingGroups.map((g, idx) => {
+                  const parceirosLabel = Array.from(g.parceiros).join(', ') || '—';
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 flex-wrap bg-background border rounded-md p-2"
+                    >
+                      <div className="flex-1 min-w-[200px]">
+                        <div className="text-xs font-medium">
+                          {g.tituloIds.length} título(s) · {g.candidates.length} candidatos
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate" title={parceirosLabel}>
+                          Parceiro(s): {parceirosLabel}
+                        </div>
+                      </div>
+                      <div className="min-w-[260px] flex-1">
+                        <CandidatePicker
+                          candidates={g.candidates}
+                          pending={false}
+                          selectedPersonId={null}
+                          onPick={(pid) => applyCandidateToGroup(g.tituloIds, pid)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="rounded-md border overflow-x-auto">
             <Table className="min-w-[1200px]">
