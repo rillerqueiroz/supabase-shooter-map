@@ -876,9 +876,14 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
               )}
             </section>
 
-            {/* Seção: Dados do Parceiro - SEGUNDA */}
-            <section className="bg-card rounded-lg border p-4">
-              <SectionHeader icon={Users} title="Dados do Parceiro" />
+            {/* Seção: Dados que vieram da Tudo Belo (oculta por padrão) */}
+            <Collapsible defaultOpen={false}>
+              <section className="bg-card rounded-lg border p-4">
+                <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 group">
+                  <SectionHeader icon={Users} title="Dados que vieram da Tudo Belo" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-4">
               {isEditing ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
