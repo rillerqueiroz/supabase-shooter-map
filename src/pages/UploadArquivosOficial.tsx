@@ -270,6 +270,7 @@ interface AnalysisResult {
   filteredStats: FilteredStats;
   statusComparison: StatusTituloComparison | null;
   etapaBloqueadoValidation: EtapaBloqueadoValidation | null;
+  peopleAnalysis: PeopleAnalysisResult | null;
 }
 
 function analyzeData(rawRows: Record<string, any>[], formasConfig: FormaPagamentoConfig[]): AnalysisResult {
