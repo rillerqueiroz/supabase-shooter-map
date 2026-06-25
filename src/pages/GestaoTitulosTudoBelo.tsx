@@ -58,6 +58,8 @@ import {
 import { TitulosBaixadosTab } from "@/components/TitulosTudoBelo/TitulosBaixadosTab";
 
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
+import { exportDiscadorList } from "@/utils/exportDiscadorList";
+import { Phone } from "lucide-react";
 import {
   Search,
   FileSpreadsheet,
@@ -179,6 +181,8 @@ export default function GestaoTitulosTudoBelo() {
   const [emailDisparoLoading, setEmailDisparoLoading] = useState(false);
   const [emailRelatorio, setEmailRelatorio] = useState<{nome_parceiro: string[], email: string[], saldo_parcela: number[], data_vencimento: string[]} | null>(null);
   const [emailRelatorioOpen, setEmailRelatorioOpen] = useState(false);
+  const [discadorExportLoading, setDiscadorExportLoading] = useState(false);
+
   
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -446,6 +450,27 @@ export default function GestaoTitulosTudoBelo() {
           >
             <Send className="h-4 w-4 mr-1" />
             {emailDisparoLoading ? 'Enviando...' : 'Enviar emails de cobrança'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={discadorExportLoading || !titulos || titulos.length === 0}
+            onClick={async () => {
+              setDiscadorExportLoading(true);
+              try {
+                const r = await exportDiscadorList(titulos || []);
+                toast.success(
+                  `Lista exportada: ${r.comTelefone} com telefone, ${r.semTelefone} sem telefone válido.`
+                );
+              } catch (e: any) {
+                toast.error(`Erro ao exportar: ${e?.message || e}`);
+              } finally {
+                setDiscadorExportLoading(false);
+              }
+            }}
+          >
+            <Phone className="h-4 w-4 mr-1" />
+            {discadorExportLoading ? "Exportando..." : "Exportar lista do discador"}
           </Button>
           <Button variant="outline" size="sm" onClick={() => exportTitulosToExcel(titulos || [])}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />
