@@ -35,7 +35,7 @@ async function fetchValidPhonesByPersonIds(personIds: string[]): Promise<Map<str
       .from("people_phones")
       .select("person_id, phone, phone_type, is_valid, is_whatsapp")
       .in("person_id", chunk)
-      .eq("is_valid", true);
+      .or("is_valid.is.null,is_valid.eq.true");
     if (error) throw error;
     for (const r of (data as PhoneRow[]) || []) {
       if (!r.person_id || !r.phone) continue;
