@@ -46,7 +46,7 @@ export async function analyzePeopleForRecords(
 
   for (const r of records) {
     const codigo = cleanStr(r.codigo_parceiro);
-    const dig = onlyDigits(r.cnpj_cpf);
+    const dig = onlyDigits(r.cnpj_cpf == null ? '' : String(r.cnpj_cpf));
     const docOk = dig && (dig.length === 11 || dig.length === 14) ? dig : null;
     if (!codigo && !docOk) {
       semIdentificador++;
