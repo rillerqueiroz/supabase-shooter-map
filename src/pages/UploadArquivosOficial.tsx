@@ -697,6 +697,7 @@ export default function UploadArquivosOficial() {
           matchedByExternal: 0,
           matchedByDocument: 0,
           novasACriar: 0,
+          novasACriarSemCpf: 0,
           novasPreview: [],
         };
       }
