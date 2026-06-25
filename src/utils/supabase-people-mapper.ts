@@ -35,6 +35,7 @@ export interface FetchPeopleParams {
   search?: string;
   page?: number;
   pageSize?: number;
+  onlyWithoutDocument?: boolean;
 }
 
 export interface FetchPeopleResult {
