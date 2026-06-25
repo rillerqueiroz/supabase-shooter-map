@@ -201,8 +201,8 @@ export default function DiscadorTab({ personId, personName, personCpf }: Props) 
               const isOpen = expanded.has(l.id);
               const src = audioSrc(l);
               return (
-                <>
-                  <TableRow key={l.id} className="cursor-pointer" onClick={() => toggle(l.id)}>
+                <Fragment key={l.id}>
+                  <TableRow className="cursor-pointer" onClick={() => toggle(l.id)}>
                     <TableCell>
                       {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </TableCell>
