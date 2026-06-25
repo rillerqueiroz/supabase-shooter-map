@@ -93,15 +93,19 @@ export async function analyzePeopleForRecords(
     new Set(Array.from(byKey.values()).map((v) => v.dig).filter((x): x is string => !!x)),
   );
   const docToPerson = new Map<string, string>();
-  for (const chunk of chunkArray(docs, 500)) {
-    const { data } = await supabase
-      .from('people')
-      .select('id, document_digits')
-      .in('document_digits', chunk)
-      .is('merged_into_id', null);
-    for (const row of (data as any[]) || []) {
-      if (!docToPerson.has(row.document_digits)) {
-        docToPerson.set(String(row.document_digits), row.id as string);
+  if (docs.length > 0) {
+    for (const chunk of chunkArray(docs, 500)) {
+      if (!chunk.length) continue;
+      const { data, error } = await supabase
+        .from('people')
+        .select('id, document_digits')
+        .in('document_digits', chunk)
+        .is('merged_into_id', null);
+      if (error) console.warn('[analyzePeople] people error:', error.message);
+      for (const row of (data as any[]) || []) {
+        if (!docToPerson.has(row.document_digits)) {
+          docToPerson.set(String(row.document_digits), row.id as string);
+        }
       }
     }
   }
