@@ -24,7 +24,7 @@ const MONTHS = [
   "Dezembro",
 ];
 
-function getCalendarMonth(selected?: CalendarProps["selected"], month?: Date) {
+function getCalendarMonth(selected?: unknown, month?: Date) {
   if (month) return month;
   if (selected instanceof Date) return selected;
   if (selected && typeof selected === "object" && "from" in selected && selected.from instanceof Date) return selected.from;
@@ -35,11 +35,11 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  selected,
   month: controlledMonth,
   onMonthChange,
   ...props
 }: CalendarProps) {
+  const selected = (props as { selected?: unknown }).selected;
   const [month, setMonth] = React.useState<Date>(() => getCalendarMonth(selected, controlledMonth));
 
   React.useEffect(() => {
@@ -127,7 +127,6 @@ function Calendar({
 
       <DayPicker
         {...props}
-        selected={selected}
         month={month}
         onMonthChange={handleMonthChange}
         showOutsideDays={showOutsideDays}
