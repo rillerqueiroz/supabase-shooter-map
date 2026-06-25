@@ -11,7 +11,7 @@ import { TUDOBELO_CREDITORS } from '@/types/people';
 
 const CHUNK = 1000;
 
-/** Busca todos os person_id vinculados a TUDOBELO ou TUDOBELO-FUNDOS (status ativo). */
+/** Busca todos os person_id vinculados a TUDOBELO ou TUDOBELO-FUNDOS (case-insensitive, qualquer status). */
 export async function fetchTudobeloPersonIds(): Promise<Set<string>> {
   const ids = new Set<string>();
   let from = 0;
@@ -19,8 +19,7 @@ export async function fetchTudobeloPersonIds(): Promise<Set<string>> {
     const { data, error } = await supabase
       .from('people_creditors')
       .select('person_id')
-      .in('creditor_code', TUDOBELO_CREDITORS as unknown as string[])
-      .eq('status', 'ativo')
+      .or('creditor_code.ilike.tudobelo,creditor_code.ilike.tudobelo-fundos')
       .range(from, from + CHUNK - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
