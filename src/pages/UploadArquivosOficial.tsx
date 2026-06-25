@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsModal";
 import { TituloTudoBelo } from "@/hooks/useTitulosTudoBelo";
+import { resolveOrCreatePeopleForRecords } from "@/utils/findOrCreatePerson";
 
 // Mapeamento Excel → Supabase
 const COLUMN_MAP: Record<string, string> = {
@@ -817,6 +818,30 @@ export default function UploadArquivosOficial() {
       }
 
       // Step 2: Insert new records
+      // Antes de inserir: para cada novo título, vincula (ou cria) a pessoa correspondente
+      // em `people`, garantindo o vínculo via external_id (codigo_parceiro) + creditor + telefones.
+      // Pessoas existentes NÃO são atualizadas — só criadas se não existirem.
+      if (newRecords.length > 0) {
+        setUploadProgressLabel(`Resolvendo pessoas (0/${newRecords.length})...`);
+        try {
+          const { stats } = await resolveOrCreatePeopleForRecords(
+            newRecords,
+            { externalSystem: 'tudobelo', creditorCode: 'TUDOBELO', source: 'upload-oficial' },
+            (done, total) => {
+              setUploadProgressLabel(`Resolvendo pessoas (${done}/${total})...`);
+            },
+          );
+          console.log('[upload-oficial] pessoas:', stats);
+          toast.success(
+            `Pessoas: ${stats.created} criadas · ${stats.matchedByExternal + stats.matchedByDocument} vinculadas` +
+              (stats.failed ? ` · ${stats.failed} falhas` : ''),
+          );
+        } catch (e: any) {
+          console.warn('[upload-oficial] falha ao resolver pessoas:', e?.message);
+          toast.error('Falha ao resolver pessoas — títulos serão inseridos sem vínculo.');
+        }
+      }
+
       setUploadProgressLabel(`Inserindo novos registros (0/${newRecords.length})...`);
       for (let i = 0; i < newRecords.length; i += batchSize) {
         const batchRaw = newRecords.slice(i, i + batchSize);
@@ -859,6 +884,7 @@ export default function UploadArquivosOficial() {
         setUploadProgress(pct);
         setUploadProgressLabel(`Inserindo novos registros (${Math.min(i + batchSize, newRecords.length)}/${newRecords.length})...`);
       }
+
 
       // Step 3: Update existing records - fetch current DB data first for comparison
       setUploadProgressLabel(`Buscando dados atuais para comparação...`);

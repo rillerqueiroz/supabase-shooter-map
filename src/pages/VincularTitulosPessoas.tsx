@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,12 +37,16 @@ import {
   type TituloComMatches,
   type LinkFilter,
 } from '@/hooks/useTitulosSemPessoa';
+import { supabase } from '@/lib/supabase';
+import { findOrCreatePersonFromTitulo } from '@/utils/findOrCreatePerson';
+import { toast } from 'sonner';
 
 import { formatDocument } from '@/utils/normalize-phone';
-import { Search, Link2, Loader2, X, Users, ChevronDown } from 'lucide-react';
+import { Search, Link2, Loader2, X, Users, ChevronDown, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import logoSuperavit from '@/assets/logo-superavit.png';
+
 
 type MatchFilter = 'todos' | 'codigo_parceiro' | 'cpf_cnpj' | 'ambos' | 'multiplos' | 'sem_match';
 
@@ -183,6 +188,47 @@ export default function VincularTitulosPessoas() {
   const vincularMut = useVincularTituloPessoa();
   const bulkMut = useVincularTitulosBulk();
   const desvincularMut = useDesvincularTitulo();
+
+  const queryClient = useQueryClient();
+  const criarPessoaMut = useMutation({
+    mutationFn: async (tituloId: string) => {
+      // Busca a linha completa do título para pegar contato/endereço
+      const { data, error } = await supabase
+        .from('base_tudobelo_intermediaria')
+        .select(
+          'id, codigo_parceiro, cnpj_cpf, nome_parceiro, nome_fantasia, email, fone1, fone2, endereco, numero_endereco, complemento, bairro, cidade, uf',
+        )
+        .eq('id', tituloId)
+        .single();
+      if (error || !data) throw error || new Error('Título não encontrado');
+
+      const sysFromExternal =
+        externalSystem !== '__any__' ? externalSystem : 'tudobelo';
+      const res = await findOrCreatePersonFromTitulo(data as any, {
+        externalSystem: sysFromExternal,
+        creditorCode: 'TUDOBELO',
+        source: 'vincular-page',
+      });
+      if (!res.personId) throw new Error('Não foi possível criar pessoa');
+
+      const { error: upErr } = await supabase
+        .from('base_tudobelo_intermediaria')
+        .update({ person_id: res.personId, ultima_atualizacao: new Date().toISOString() })
+        .eq('id', tituloId);
+      if (upErr) throw upErr;
+      return res;
+    },
+    onSuccess: (res) => {
+      toast.success(
+        res.created
+          ? 'Pessoa criada e vinculada.'
+          : 'Pessoa já existia — vinculada ao título.',
+      );
+      queryClient.invalidateQueries({ queryKey: ['vincular-titulos-pessoas'] });
+    },
+    onError: (e: any) => toast.error('Erro: ' + (e?.message || 'falha')),
+  });
+
 
 
   const [search, setSearch] = useState('');
@@ -674,7 +720,21 @@ export default function VincularTitulosPessoas() {
                               <X className="h-3 w-3 mr-1" /> Desvincular
                             </Button>
                           ) : cls === 'sem_match' ? (
-                            <Badge variant="outline" className="text-[10px]">—</Badge>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7"
+                              disabled={criarPessoaMut.isPending}
+                              onClick={() => criarPessoaMut.mutate(t.id)}
+                              title="Cria pessoa em people com os dados do título e vincula"
+                            >
+                              {criarPessoaMut.isPending && criarPessoaMut.variables === t.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <UserPlus className="h-3 w-3 mr-1" />
+                              )}
+                              Criar pessoa
+                            </Button>
                           ) : resolvedPersonId ? (
                             <Button
                               size="sm"
