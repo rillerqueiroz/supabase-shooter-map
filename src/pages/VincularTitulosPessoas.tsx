@@ -190,7 +190,7 @@ export default function VincularTitulosPessoas() {
   const [parceiros, setParceiros] = useState<string[]>([]);
   const [filiais, setFiliais] = useState<string[]>([]);
   const [ufs, setUfs] = useState<string[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedMap, setSelectedMap] = useState<Map<string, string>>(new Map());
 
   const options = useMemo(() => {
     if (!titulos) return { parceiros: [] as string[], filiais: [] as string[], ufs: [] as string[] };
