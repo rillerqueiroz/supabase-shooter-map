@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PessoasTable } from '@/components/Pessoas/PessoasTable';
 import { DuplicadosTab } from '@/components/Pessoas/DuplicadosTab';
+import { SemCredorTab } from '@/components/Pessoas/SemCredorTab';
 import { Users } from 'lucide-react';
 
 export default function Pessoas() {
@@ -19,10 +20,14 @@ export default function Pessoas() {
       <Tabs defaultValue="lista" className="w-full">
         <TabsList>
           <TabsTrigger value="lista">Pessoas</TabsTrigger>
+          <TabsTrigger value="sem-credor">Sem Credor</TabsTrigger>
           <TabsTrigger value="duplicados">Duplicados</TabsTrigger>
         </TabsList>
         <TabsContent value="lista">
           <PessoasTable />
+        </TabsContent>
+        <TabsContent value="sem-credor">
+          <SemCredorTab />
         </TabsContent>
         <TabsContent value="duplicados">
           <DuplicadosTab />
