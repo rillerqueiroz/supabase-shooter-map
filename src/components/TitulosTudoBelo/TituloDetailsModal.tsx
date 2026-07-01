@@ -1462,6 +1462,11 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
         onConfirm={handleCancelarCedrus}
         isLoading={isCancelandoCedrus}
       />
+      <AtualizarCedrusPreviewDialog
+        open={cedrusSyncOpen}
+        onOpenChange={setCedrusSyncOpen}
+        results={cedrusSyncResults}
+      />
     </Dialog>
   );
 }
