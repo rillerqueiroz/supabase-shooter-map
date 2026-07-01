@@ -56,7 +56,7 @@ import DiscadorTab from "@/components/Pessoas/DiscadorTab";
 import { useState, useEffect, useRef } from "react";
 import { format, differenceInDays, addDays, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock, CheckCircle2, ChevronDown, User, MessageSquare, Phone, Building2 } from "lucide-react";
+import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock, CheckCircle2, ChevronDown, User, MessageSquare, Phone, Building2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
