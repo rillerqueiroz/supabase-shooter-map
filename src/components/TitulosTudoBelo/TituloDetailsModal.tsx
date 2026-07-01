@@ -236,6 +236,24 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
   const [cancelarCedrusOpen, setCancelarCedrusOpen] = useState(false);
   const [isMarcandoPago, setIsMarcandoPago] = useState(false);
   const [isCancelandoCedrus, setIsCancelandoCedrus] = useState(false);
+  const [cedrusSyncOpen, setCedrusSyncOpen] = useState(false);
+  const [cedrusSyncResults, setCedrusSyncResults] = useState<CedrusSyncResult[]>([]);
+  const [isSyncingCedrus, setIsSyncingCedrus] = useState(false);
+  const { consultar: consultarCedrus } = useAtualizarCedrus();
+
+  const handleSyncCedrus = async () => {
+    if (!titulo) return;
+    setIsSyncingCedrus(true);
+    try {
+      const results = await consultarCedrus([titulo]);
+      setCedrusSyncResults(results);
+      setCedrusSyncOpen(true);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao consultar Cedrus");
+    } finally {
+      setIsSyncingCedrus(false);
+    }
+  };
 
   // Pessoa vinculada ao título (carrega quando há person_id)
   const personId = titulo?.person_id ?? null;
