@@ -44,6 +44,8 @@ import { useCreateLogAlteracao } from "@/hooks/useTitulosLogAlteracoes";
 import { useNegativarTitulo, useRemoverNegativacao } from "@/hooks/useNegativacoes";
 import { TituloHistoricoSection } from "./TituloHistoricoSection";
 import { CedrusConfirmDialog } from "./CedrusConfirmDialog";
+import { AtualizarCedrusPreviewDialog } from "./AtualizarCedrusPreviewDialog";
+import { useAtualizarCedrus, CedrusSyncResult } from "@/hooks/useAtualizarCedrus";
 // Person consultation pieces (merged from PessoaDetailsModal)
 import { usePerson, usePersonPhones } from "@/hooks/usePersonDetail";
 import { PessoaInfoView } from "@/components/Pessoas/PessoaInfoView";
