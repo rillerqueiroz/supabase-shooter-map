@@ -61,7 +61,6 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ptBR } from "date-fns/locale";
 
 const formatCurrency = (value: number | null) => {
   if (value === null || value === undefined) return "R$ 0,00";
