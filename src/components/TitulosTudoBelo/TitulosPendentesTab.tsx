@@ -233,6 +233,29 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
     setFilters({});
   };
 
+  const handleAtualizarCedrus = async () => {
+    const alvos = (sortedData || []).filter(
+      (t) => t.inserido_cedrus || t.id_titulo_cedrus
+    );
+    if (alvos.length === 0) {
+      toast.info("Nenhum título com vínculo Cedrus na lista atual.");
+      return;
+    }
+    setCedrusSyncRunning(true);
+    setCedrusSyncProgress({ done: 0, total: alvos.length });
+    try {
+      const results = await consultarCedrus(alvos, (done, total) =>
+        setCedrusSyncProgress({ done, total })
+      );
+      setCedrusSyncResults(results);
+      setCedrusSyncOpen(true);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao consultar Cedrus");
+    } finally {
+      setCedrusSyncRunning(false);
+    }
+  };
+
   const SortableHeader = ({ column, label }: { column: string; label: string }) => (
     <TableHead
       className="cursor-pointer hover:bg-muted/50 select-none"
