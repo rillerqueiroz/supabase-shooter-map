@@ -820,6 +820,13 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
           (confirmDialog.actionType === "marcar_pago" && markingPaidId === confirmDialog.titulo?.id)
         }
       />
+
+      <AtualizarCedrusPreviewDialog
+        open={cedrusSyncOpen}
+        onOpenChange={setCedrusSyncOpen}
+        results={cedrusSyncResults}
+        tableName={tableName}
+      />
     </div>
   );
 }
