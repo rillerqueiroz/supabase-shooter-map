@@ -44,6 +44,8 @@ import { useCreateLogAlteracao } from "@/hooks/useTitulosLogAlteracoes";
 import { useNegativarTitulo, useRemoverNegativacao } from "@/hooks/useNegativacoes";
 import { TituloHistoricoSection } from "./TituloHistoricoSection";
 import { CedrusConfirmDialog } from "./CedrusConfirmDialog";
+import { AtualizarCedrusPreviewDialog } from "./AtualizarCedrusPreviewDialog";
+import { useAtualizarCedrus, CedrusSyncResult } from "@/hooks/useAtualizarCedrus";
 // Person consultation pieces (merged from PessoaDetailsModal)
 import { usePerson, usePersonPhones } from "@/hooks/usePersonDetail";
 import { PessoaInfoView } from "@/components/Pessoas/PessoaInfoView";
@@ -54,7 +56,7 @@ import DiscadorTab from "@/components/Pessoas/DiscadorTab";
 import { useState, useEffect, useRef } from "react";
 import { format, differenceInDays, addDays, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock, CheckCircle2, ChevronDown, User, MessageSquare, Phone, Building2 } from "lucide-react";
+import { Download, Save, X, FileText, Users, DollarSign, Database, History, Tag, Link2, Loader2, Upload, Copy, Clock, Send, Mail, Lock, CheckCircle2, ChevronDown, User, MessageSquare, Phone, Building2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -234,6 +236,24 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
   const [cancelarCedrusOpen, setCancelarCedrusOpen] = useState(false);
   const [isMarcandoPago, setIsMarcandoPago] = useState(false);
   const [isCancelandoCedrus, setIsCancelandoCedrus] = useState(false);
+  const [cedrusSyncOpen, setCedrusSyncOpen] = useState(false);
+  const [cedrusSyncResults, setCedrusSyncResults] = useState<CedrusSyncResult[]>([]);
+  const [isSyncingCedrus, setIsSyncingCedrus] = useState(false);
+  const { consultar: consultarCedrus } = useAtualizarCedrus();
+
+  const handleSyncCedrus = async () => {
+    if (!titulo) return;
+    setIsSyncingCedrus(true);
+    try {
+      const results = await consultarCedrus([titulo]);
+      setCedrusSyncResults(results);
+      setCedrusSyncOpen(true);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao consultar Cedrus");
+    } finally {
+      setIsSyncingCedrus(false);
+    }
+  };
 
   // Pessoa vinculada ao título (carrega quando há person_id)
   const personId = titulo?.person_id ?? null;
@@ -841,6 +861,20 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                               )}
                               Cancelar no Cedrus
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-2 h-8 border-blue-300 text-blue-700 hover:bg-blue-50"
+                              disabled={isSyncingCedrus}
+                              onClick={handleSyncCedrus}
+                            >
+                              {isSyncingCedrus ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3.5 w-3.5" />
+                              )}
+                              Atualizar Cedrus
+                            </Button>
                           </>
                         )}
                       </div>
@@ -1427,6 +1461,11 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
         }}
         onConfirm={handleCancelarCedrus}
         isLoading={isCancelandoCedrus}
+      />
+      <AtualizarCedrusPreviewDialog
+        open={cedrusSyncOpen}
+        onOpenChange={setCedrusSyncOpen}
+        results={cedrusSyncResults}
       />
     </Dialog>
   );

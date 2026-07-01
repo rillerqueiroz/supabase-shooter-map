@@ -1,38 +1,55 @@
-## Resumo
+## Objetivo
 
-1) No card de análise de pessoas (Upload Oficial + Teste), passar a contar como "a criar" também as linhas **sem CPF/CNPJ mas com `codigo_parceiro`**. Linhas sem CPF **e** sem `codigo_parceiro` continuam ignoradas (vão para "Sem identificador", não viram pessoa).
-2) Adicionar filtro **"Pessoas sem CPF/CNPJ"** na tela de Pessoas.
+Adicionar botão **"Atualizar Cedrus"** que sincroniza `status_cedrus`, `inserido_cedrus` e `id_titulo_cedrus` a partir da API Cedrus, com preview de diffs antes de gravar. Localizações: bulk na aba **Títulos Pendentes** e individual no **TituloDetailsModal**.
 
-O banco já aceita pessoa sem CPF (`cpf`/`document_digits` nullable) — sem mudança de schema.
+Observação: `id_devedor_cedrus` foi mencionado, mas a tabela atual não tem essa coluna — vou ignorá-lo (fora do escopo desta task; se quiser, criamos migration em passo separado).
 
-## Mudanças
+## Passos
 
-### 1) `src/utils/analyzePeople.ts` (preview)
+### 1. Hook `useAtualizarCedrus`
+`src/hooks/useAtualizarCedrus.ts` — expõe:
+- `consultarTitulo(titulo)`: chama `supabase.functions.invoke('cedrus-consultar-titulo', { body: { cod_titulo: titulo.documento, parcela: titulo.numero_parcela } })` (fallback `id_titulo` quando já existir `id_titulo_cedrus`).
+- Extrai da resposta: `id_titulo`, `status` (mapeado para nosso `status_cedrus`), presença de registro → `inserido_cedrus: true`.
+- Retorna `{ found, remote: { status_cedrus, inserido_cedrus, id_titulo_cedrus } }`.
 
-- Tratar linhas como elegíveis se tiverem **CPF/CNPJ válido OU `codigo_parceiro`**.
-- `semIdentificador` = apenas linhas sem os dois (ignoradas).
-- `novasACriar` / `novasPreview` passa a incluir as "só com código".
-- Dedup dentro do lote: `document_digits` quando existir, senão `cod:{codigo_parceiro}`.
-- Cada item do preview ganha `marcador`: `'COM_CPF' | 'SEM_CPF'`.
+### 2. Utilitário `computeCedrusDiff(local, remote)`
+`src/utils/cedrusDiff.ts` — compara apenas os 3 campos e retorna array `{ campo, valorAnterior, valorNovo }[]` (vazio quando idêntico).
 
-### 2) Card nas páginas `UploadArquivos.tsx` e `UploadArquivosOficial.tsx`
+### 3. Dialog de preview `AtualizarCedrusPreviewDialog`
+`src/components/TitulosTudoBelo/AtualizarCedrusPreviewDialog.tsx` — reutiliza padrão dos dialogs existentes:
+- Recebe `results: { titulo, diffs, remote, error? }[]`.
+- Tabela agrupando por título: parceiro, documento, colunas "campo / de → para", badge de status (Sem alteração, Divergente, Não encontrado, Erro).
+- Botões: **Cancelar** / **Aplicar N alterações** (só grava linhas com diffs).
+- Ao confirmar: `UPDATE base_tudobelo_intermediaria` via `supabaseBatch` apenas nos campos alterados (padrão diff-only já usado no upload). Trigger `log_titulo_alteracao` grava histórico automaticamente com `origem='cedrus_sync'` (setar via `set_config` se aplicável, senão default).
+- Invalida `queryClient.invalidateQueries(['titulos-tudobelo'])`.
 
-- Acrescentar métrica **"Sem CPF (a criar via código)"** no grid.
-- Na tabela do preview, coluna **Marcador** com Badge:
-  - `COM_CPF` → badge neutro
-  - `SEM_CPF` → badge âmbar ("Sem CPF · vínculo por código")
-- Reformular o aviso âmbar: "X linhas sem CPF e sem código serão ignoradas".
+### 4. Botão bulk em `TitulosPendentesTab.tsx`
+- Adicionar `<Button variant="outline">` "Atualizar Cedrus" ao lado dos botões de ação existentes.
+- Ao clicar: itera os títulos atualmente exibidos (`filteredTitulos`) com concorrência controlada (ex.: 5 em paralelo) chamando `consultarTitulo`, mostra `<Progress>` inline com contador `X / total`.
+- Ao concluir, abre `AtualizarCedrusPreviewDialog` com todos os resultados (incluindo "sem alterações" colapsados).
 
-### 3) Filtro "Pessoas sem CPF/CNPJ" — tela `/pessoas`
+### 5. Botão individual em `TituloDetailsModal.tsx`
+- Adicionar `<Button size="sm">` "Atualizar Cedrus" no header do modal (perto de "Inserir no Cedrus" existente).
+- Fluxo: 1 chamada → abre o mesmo `AtualizarCedrusPreviewDialog` com 1 item.
 
-- `src/utils/supabase-people-mapper.ts` → `FetchPeopleParams` ganha `onlyWithoutDocument?: boolean`. Em `fetchPeople`, quando true, aplicar filtro `.or('document_digits.is.null,document_digits.eq.')` sobre o conjunto de pessoas vinculadas a TUDOBELO/TUDOBELO-FUNDOS (mantém o pipeline atual).
-- `src/hooks/usePeople.ts` → repassa o novo parâmetro (já está genérico).
-- `src/components/Pessoas/PessoasTable.tsx`:
-  - Adicionar um `Switch` (ou `Checkbox`) ao lado do search: **"Apenas sem CPF/CNPJ"**.
-  - Resetar `page` para 0 ao alternar.
-  - Mostrar contagem ajustada no texto da direita.
+### 6. Mapeamento status Cedrus
+Confirmar o vocabulário: Cedrus retorna `status` (ex.: `A`, `B`, `C`, ...). Reaproveitar `STATUS_CEDRUS_OPTIONS` já existente no modal para exibir label; gravar o código bruto em `status_cedrus`.
 
-### Fora de escopo
+## Detalhes técnicos
 
-- Não alterar `findOrCreatePerson.ts` agora (a análise segue sendo preview). Quando a criação real for habilitada, o mesmo critério (`cpf || codigo_parceiro`) será aplicado lá.
-- Sem migração de schema.
+- **Autenticação**: `supabase.functions.invoke` já anexa o Bearer JWT do usuário logado — cobre o requisito das edge functions de consulta.
+- **Concorrência**: helper `pLimit`-like inline (Promise pool) para evitar sobrecarga; 5 requests simultâneos.
+- **Erros por título**: capturados individualmente (Promise.allSettled) e exibidos como linha "Erro" no dialog, sem abortar o lote.
+- **Diff-only write**: apenas campos com valor diferente entram no `update`, seguindo o padrão de `UploadArquivos`.
+- **Nada muda no backend**: as edge functions já existem; nenhuma migration necessária.
+
+## Arquivos
+
+Novos:
+- `src/hooks/useAtualizarCedrus.ts`
+- `src/utils/cedrusDiff.ts`
+- `src/components/TitulosTudoBelo/AtualizarCedrusPreviewDialog.tsx`
+
+Editados:
+- `src/components/TitulosTudoBelo/TitulosPendentesTab.tsx` (botão bulk + progress)
+- `src/components/TitulosTudoBelo/TituloDetailsModal.tsx` (botão individual no header)

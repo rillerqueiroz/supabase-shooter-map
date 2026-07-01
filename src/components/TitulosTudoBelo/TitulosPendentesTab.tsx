@@ -36,6 +36,9 @@ import { TituloDetailsModal } from "@/components/TitulosTudoBelo/TituloDetailsMo
 import { TitulosBulkEditModal } from "@/components/TitulosTudoBelo/TitulosBulkEditModal";
 import { BulkInsercaoCedrusModal } from "@/components/TitulosTudoBelo/BulkInsercaoCedrusModal";
 import { CedrusConfirmDialog } from "@/components/TitulosTudoBelo/CedrusConfirmDialog";
+import { AtualizarCedrusPreviewDialog } from "@/components/TitulosTudoBelo/AtualizarCedrusPreviewDialog";
+import { useAtualizarCedrus, CedrusSyncResult } from "@/hooks/useAtualizarCedrus";
+import { Progress } from "@/components/ui/progress";
 import { exportTitulosToExcel, exportTitulosToPDF } from "@/utils/exportTitulosTudoBelo";
 import {
   Search,
@@ -53,6 +56,7 @@ import {
   Lock,
   LockOpen,
   Unlock,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -91,6 +95,11 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
   const [bulkInsercaoOpen, setBulkInsercaoOpen] = useState(false);
   const [removingCedrusId, setRemovingCedrusId] = useState<string | null>(null);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [cedrusSyncOpen, setCedrusSyncOpen] = useState(false);
+  const [cedrusSyncResults, setCedrusSyncResults] = useState<CedrusSyncResult[]>([]);
+  const [cedrusSyncRunning, setCedrusSyncRunning] = useState(false);
+  const [cedrusSyncProgress, setCedrusSyncProgress] = useState({ done: 0, total: 0 });
+  const { consultar: consultarCedrus } = useAtualizarCedrus();
   
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -224,6 +233,29 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
     setFilters({});
   };
 
+  const handleAtualizarCedrus = async () => {
+    const alvos = (sortedData || []).filter(
+      (t) => t.inserido_cedrus || t.id_titulo_cedrus
+    );
+    if (alvos.length === 0) {
+      toast.info("Nenhum título com vínculo Cedrus na lista atual.");
+      return;
+    }
+    setCedrusSyncRunning(true);
+    setCedrusSyncProgress({ done: 0, total: alvos.length });
+    try {
+      const results = await consultarCedrus(alvos, (done, total) =>
+        setCedrusSyncProgress({ done, total })
+      );
+      setCedrusSyncResults(results);
+      setCedrusSyncOpen(true);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao consultar Cedrus");
+    } finally {
+      setCedrusSyncRunning(false);
+    }
+  };
+
   const SortableHeader = ({ column, label }: { column: string; label: string }) => (
     <TableHead
       className="cursor-pointer hover:bg-muted/50 select-none"
@@ -283,7 +315,32 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
       </div>
 
       {/* Export Buttons */}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 items-center">
+        {cedrusSyncRunning && (
+          <div className="flex items-center gap-2 mr-2 min-w-[220px]">
+            <Progress
+              value={cedrusSyncProgress.total ? (cedrusSyncProgress.done / cedrusSyncProgress.total) * 100 : 0}
+              className="h-2 w-40"
+            />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {cedrusSyncProgress.done}/{cedrusSyncProgress.total}
+            </span>
+          </div>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleAtualizarCedrus}
+          disabled={cedrusSyncRunning}
+          className="text-blue-700 border-blue-300 hover:bg-blue-50"
+        >
+          {cedrusSyncRunning ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-1" />
+          )}
+          Atualizar Cedrus
+        </Button>
         <Button variant="outline" size="sm" onClick={() => exportTitulosToExcel(titulos || [])}>
           <FileSpreadsheet className="h-4 w-4 mr-1" />
           Excel
@@ -762,6 +819,13 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
           (confirmDialog.actionType === "cancelar" && removingCedrusId === confirmDialog.titulo?.id) ||
           (confirmDialog.actionType === "marcar_pago" && markingPaidId === confirmDialog.titulo?.id)
         }
+      />
+
+      <AtualizarCedrusPreviewDialog
+        open={cedrusSyncOpen}
+        onOpenChange={setCedrusSyncOpen}
+        results={cedrusSyncResults}
+        tableName={tableName}
       />
     </div>
   );
