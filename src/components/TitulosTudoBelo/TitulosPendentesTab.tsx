@@ -315,7 +315,32 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
       </div>
 
       {/* Export Buttons */}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 items-center">
+        {cedrusSyncRunning && (
+          <div className="flex items-center gap-2 mr-2 min-w-[220px]">
+            <Progress
+              value={cedrusSyncProgress.total ? (cedrusSyncProgress.done / cedrusSyncProgress.total) * 100 : 0}
+              className="h-2 w-40"
+            />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {cedrusSyncProgress.done}/{cedrusSyncProgress.total}
+            </span>
+          </div>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleAtualizarCedrus}
+          disabled={cedrusSyncRunning}
+          className="text-blue-700 border-blue-300 hover:bg-blue-50"
+        >
+          {cedrusSyncRunning ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-1" />
+          )}
+          Atualizar Cedrus
+        </Button>
         <Button variant="outline" size="sm" onClick={() => exportTitulosToExcel(titulos || [])}>
           <FileSpreadsheet className="h-4 w-4 mr-1" />
           Excel
