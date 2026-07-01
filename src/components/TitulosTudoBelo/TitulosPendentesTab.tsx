@@ -95,6 +95,11 @@ export function TitulosPendentesTab({ tableName = 'base_tudobelo_intermediaria' 
   const [bulkInsercaoOpen, setBulkInsercaoOpen] = useState(false);
   const [removingCedrusId, setRemovingCedrusId] = useState<string | null>(null);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [cedrusSyncOpen, setCedrusSyncOpen] = useState(false);
+  const [cedrusSyncResults, setCedrusSyncResults] = useState<CedrusSyncResult[]>([]);
+  const [cedrusSyncRunning, setCedrusSyncRunning] = useState(false);
+  const [cedrusSyncProgress, setCedrusSyncProgress] = useState({ done: 0, total: 0 });
+  const { consultar: consultarCedrus } = useAtualizarCedrus();
   
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
