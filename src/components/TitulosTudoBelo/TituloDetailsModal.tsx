@@ -861,6 +861,20 @@ export function TituloDetailsModal({ titulo, open, onOpenChange, onTituloUpdated
                               )}
                               Cancelar no Cedrus
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-2 h-8 border-blue-300 text-blue-700 hover:bg-blue-50"
+                              disabled={isSyncingCedrus}
+                              onClick={handleSyncCedrus}
+                            >
+                              {isSyncingCedrus ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3.5 w-3.5" />
+                              )}
+                              Atualizar Cedrus
+                            </Button>
                           </>
                         )}
                       </div>
